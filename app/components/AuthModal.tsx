@@ -101,7 +101,12 @@ export default function AuthModal({ isOpen, onClose, redirectTo = "/espace-membr
 
         <p className="mt-8 text-center text-[11px] text-stone-400 font-medium">
           Authentification sécurisée sans mot de passe via votre compte Google.
+          <br /><br />
+          <span className="text-red-500 font-bold border border-red-200 p-2 rounded bg-red-50">
+            DÉBOGAGE : {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "✅ CLÉ DÉTECTÉE" : "❌ CLÉ ABSENTE DU NAVIGATEUR"}
+          </span>
         </p>
+
       </div>
     </div>
   );
