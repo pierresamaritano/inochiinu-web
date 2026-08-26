@@ -12,10 +12,12 @@ interface AuthModalProps {
 export default function AuthModal({ isOpen, onClose, redirectTo = "/espace-membre" }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
 
+  console.log("Supabase Init");
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
 
   if (!isOpen) return null;
 
