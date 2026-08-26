@@ -1,325 +1,126 @@
-"use client";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import LiquidNavbar from "../components/LiquidNavbar";
+import ClientDashboardHub from "../components/ClientDashboardHub";
 
-import { useState } from "react";
-
-interface EducationItem {
-  id: string;
-  title: string;
-  date: string;
-  status: "validé" | "en cours" | "à venir";
-  notes: string;
-  homework?: string;
-}
-
-interface PensionItem {
-  id: string;
-  title: string;
-  date: string;
-  status: "en cours" | "réservé" | "passé";
-  details: string;
-}
-
-export default function ClientDashboardHub() {
-  const [expandedWidget, setExpandedWidget] = useState<string | null>(null);
-  const [selectedEduItem, setSelectedEduItem] = useState<EducationItem | null>(null);
-
-  const educationSessions: EducationItem[] = [
+export default async function EspaceMembre() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      id: "edu-1",
-      title: "Séance 1 : Évaluation & Prise de contact",
-      date: "12 Août 2026",
-      status: "validé",
-      notes: "Très bonne attention, bon focus. Début de la marche sans traction.",
-      homework: "Pratiquer le demi-tour dès tension sur 5 min par balade.",
-    },
-    {
-      id: "edu-2",
-      title: "Séance 2 : Suivi naturel & Marche en laisse",
-      date: "19 Août 2026",
-      status: "validé",
-      notes: "Chien très réceptif aux changements de direction. Laisse détendue sur 80% du parcours.",
-      homework: "Intégrer les zones avec distractions légères.",
-    },
-    {
-      id: "edu-3",
-      title: "Séance 3 : Rappel sous distraction",
-      date: "26 Août 2026",
-      status: "en cours",
-      notes: "Travail à la longe 10m. Temps de réaction immédiat sans stimulus fort.",
-      homework: "Renforcer la récompense jackpot au retour immédiat.",
-    },
-    {
-      id: "edu-4",
-      title: "Séance 4 : Croisements congénères & Auto-contrôles",
-      date: "02 Septembre 2026",
-      status: "à venir",
-      notes: "Séance prévue en milieu urbain / parc.",
-    },
-    {
-      id: "edu-5",
-      title: "Séance 5 : Bilan final & Perfectionnement",
-      date: "09 Septembre 2026",
-      status: "à venir",
-      notes: "Validation de la grille globale d'autonomie.",
-    },
-  ];
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+      },
+    }
+  );
 
-  const pensionStays: PensionItem[] = [
-    {
-      id: "pen-1",
-      title: "Séjour Estival (Box N°4)",
-      date: "01 - 07 Août 2026",
-      status: "passé",
-      details: "Sorties régulières en parc de détente, excellente entente avec le groupe.",
-    },
-    {
-      id: "pen-2",
-      title: "Week-end Automne (Box N°2)",
-      date: "18 - 20 Septembre 2026",
-      status: "réservé",
-      details: "Réservation confirmée. Repas personnalisés enregistrés.",
-    },
-  ];
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Calcul de la jauge circulaire
-  const progressPercent = 65;
-  const radius = 32;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+  if (!user) {
+    redirect("/");
+  }
 
-  const isEduExpanded = expandedWidget === "education";
-  const displayedEduList = isEduExpanded ? educationSessions : educationSessions.slice(0, 3);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = profile?.role === "admin";
+
+  // --- ÉTAT DES SERVICES CLIENT ---
+  // Mettre hasServices à false pour tester l'écran "espace prêt / pas de données"
+  const hasActiveServices = true;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 items-start">
-      {/* =========================================================================
-          WIDGET 1 : ÉDUCATION (JAUGE CIRCULAIRE & EXPANSION GRILLE)
-          ========================================================================= */}
-      <div
-        className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${
-          isEduExpanded ? "lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100" : ""
-        }`}
-      >
-        {/* EN-TÊTE : TITRE + JAUGE SVG */}
-        <div className="flex items-center justify-between gap-4 pb-6 border-b border-stone-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                Éducation
+    <>
+      <LiquidNavbar />
+      
+      <div className="min-h-screen bg-[#FDFCF8] text-stone-800 pt-32 px-4 sm:px-8 pb-20">
+        <div className="max-w-5xl mx-auto">
+          {/* EN-TÊTE DE L'ESPACE */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-stone-200">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+                {isAdmin ? "Tableau de Bord Administrateur" : "Espace Personnel"}
               </span>
-              <span className="text-xs text-stone-400 font-semibold">
-                {educationSessions.length} séances au carnet
-              </span>
-            </div>
-            <h2 className="text-xl font-extrabold text-stone-900 mt-2">
-              Progression & Apprentissage
-            </h2>
-          </div>
-
-          {/* JAUGE CIRCULAIRE */}
-          <div className="relative flex items-center justify-center shrink-0">
-            <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-              <circle
-                cx="40"
-                cy="40"
-                r={radius}
-                className="stroke-stone-100"
-                strokeWidth="7"
-                fill="transparent"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r={radius}
-                className="stroke-orange-500 transition-all duration-700 ease-out"
-                strokeWidth="7"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-sm font-black text-stone-900 leading-none">
-                {progressPercent}%
-              </span>
-              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">
-                Acquis
-              </span>
+              <h1 className="text-3xl font-black text-stone-900 mt-1">
+                Bonjour, {profile?.full_name || user.email}
+              </h1>
             </div>
           </div>
-        </div>
 
-        {/* PANNEAU DÉTAILLÉ ("GROS WIDGET") OU LISTE DES LIGNES */}
-        {selectedEduItem ? (
-          <div className="mt-6 p-6 rounded-2xl bg-orange-50/40 border border-orange-100 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-orange-200/50">
-              <button
-                onClick={() => setSelectedEduItem(null)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 hover:text-orange-900 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Retour aux séances
-              </button>
-              <span
-                className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                  selectedEduItem.status === "validé"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : selectedEduItem.status === "en cours"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-stone-100 text-stone-600"
-                }`}
-              >
-                {selectedEduItem.status}
-              </span>
+          {isAdmin ? (
+            /* =================================================================
+               1. VUE ADMINISTRATEUR
+               ================================================================= */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+              <div className="p-8 rounded-[2rem] bg-stone-900 text-white border border-stone-800 shadow-xl relative overflow-hidden group hover:scale-[1.01] transition-transform cursor-pointer">
+                <span className="text-xs font-black uppercase tracking-wider text-orange-500">Pension</span>
+                <h2 className="text-xl font-bold mt-2">Gestion des 12 Boxs</h2>
+                <p className="text-sm text-stone-400 mt-2 mb-6">Aperçu du planning d'occupation et validation des demandes de séjours.</p>
+                <div className="flex items-center gap-3 text-sm font-bold bg-white/10 w-fit px-4 py-2 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  0 / 12 boxs occupés
+                </div>
+              </div>
+
+              <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm hover:border-orange-200 transition-colors cursor-pointer">
+                <span className="text-xs font-black uppercase tracking-wider text-orange-600">Élevage</span>
+                <h2 className="text-xl font-bold text-stone-900 mt-2">Les héritiers de Boshin</h2>
+                <p className="text-sm text-stone-500 mt-2 mb-6">Gestion des portées Akita Inu, statuts de réservation et courbes de croissance.</p>
+                <button className="text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors">
+                  + Nouvelle portée
+                </button>
+              </div>
+
+              <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm hover:border-orange-200 transition-colors cursor-pointer">
+                <span className="text-xs font-black uppercase tracking-wider text-orange-600">Sellerie</span>
+                <h2 className="text-xl font-bold text-stone-900 mt-2">Atelier & Expéditions</h2>
+                <p className="text-sm text-stone-500 mt-2 mb-6">Commandes d'équipements tactiques, laisses modulaires et ajustements sur-mesure.</p>
+                <div className="text-sm font-bold text-stone-400">0 commande en attente</div>
+              </div>
+
+              <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm hover:border-orange-200 transition-colors cursor-pointer">
+                <span className="text-xs font-black uppercase tracking-wider text-orange-600">Éducation</span>
+                <h2 className="text-xl font-bold text-stone-900 mt-2">Calendrier des Séances</h2>
+                <p className="text-sm text-stone-500 mt-2">Planning des rendez-vous clients et suivi des grilles d'évaluation comportementale.</p>
+              </div>
             </div>
-
-            <div className="mt-4">
-              <span className="text-xs text-stone-500 font-semibold">{selectedEduItem.date}</span>
-              <h3 className="text-lg font-black text-stone-900 mt-0.5">{selectedEduItem.title}</h3>
-              
-              <div className="mt-4 space-y-3">
-                <div className="bg-white p-4 rounded-xl border border-stone-200/60 shadow-2xs">
-                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
-                    Observations de séance
-                  </span>
-                  <p className="text-sm text-stone-700 font-medium mt-1">
-                    {selectedEduItem.notes}
+          ) : (
+            /* =================================================================
+               2. VUE CLIENT (DYNAMIC BENTO HUB OU ÉTAT VIDE)
+               ================================================================= */
+            <>
+              {!hasActiveServices ? (
+                /* --- ÉTAT VIDE (AUCUN SERVICE ACTIF) --- */
+                <div className="mt-12 p-10 sm:p-16 rounded-[2.5rem] bg-white/40 border border-stone-200 border-dashed text-center flex flex-col items-center justify-center max-w-3xl mx-auto shadow-sm">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-6 shadow-inner">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-black text-stone-900 tracking-tight">Votre espace est prêt</h2>
+                  <p className="text-stone-500 mt-3 text-sm leading-relaxed max-w-lg">
+                    Ce tableau de bord s'animera automatiquement dès que vous ferez appel à l'un de nos services. 
+                    Vos séjours en pension, carnets de suivi éducatif, adoptions et commandes sur-mesure apparaîtront directement ici.
                   </p>
+                  <a href="/#elevage" className="mt-8 px-8 py-3 bg-white border border-stone-200 text-stone-800 font-bold text-xs rounded-full hover:bg-stone-50 hover:shadow-md transition-all">
+                    Découvrir nos services
+                  </a>
                 </div>
-
-                {selectedEduItem.homework && (
-                  <div className="bg-white p-4 rounded-xl border border-orange-200/70 shadow-2xs">
-                    <span className="text-[11px] font-bold text-orange-600 uppercase tracking-wider block">
-                      Exercices recommandés à la maison
-                    </span>
-                    <p className="text-sm text-stone-700 font-medium mt-1">
-                      {selectedEduItem.homework}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {displayedEduList.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedEduItem(item)}
-                className="group flex items-center justify-between p-3.5 rounded-2xl bg-stone-50/70 hover:bg-orange-50/70 border border-stone-100 hover:border-orange-200 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      item.status === "validé"
-                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                        : item.status === "en cours"
-                        ? "bg-orange-500 animate-pulse"
-                        : "bg-stone-300"
-                    }`}
-                  />
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-stone-900 group-hover:text-orange-950 transition-colors">
-                      {item.title}
-                    </h4>
-                    <span className="text-[11px] text-stone-400 font-medium">
-                      {item.date}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full hidden sm:inline-block ${
-                      item.status === "validé"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : item.status === "en cours"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-stone-100 text-stone-600"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                  <svg
-                    className="w-4 h-4 text-stone-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* BOUTON "VOIR TOUT / RÉDUIRE" */}
-        {!selectedEduItem && educationSessions.length > 3 && (
-          <div className="mt-4 pt-2 border-t border-stone-100 flex justify-center">
-            <button
-              onClick={() => setExpandedWidget(isEduExpanded ? null : "education")}
-              className="text-xs font-extrabold text-stone-500 hover:text-stone-900 hover:bg-stone-100 py-1.5 px-4 rounded-full transition-all flex items-center gap-1.5"
-            >
-              {isEduExpanded ? (
-                <>
-                  <span>Réduire la vue</span>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
-                </>
               ) : (
-                <>
-                  <span>Voir tout l'historique (+{educationSessions.length - 3})</span>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </>
+                /* --- BENTO HUB DYNAMIQUE --- */
+                <ClientDashboardHub />
               )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          WIDGET 2 : PENSION (EXEMPLE SECONDAIRE)
-          ========================================================================= */}
-      <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
-        <div className="flex items-center justify-between pb-6 border-b border-stone-100">
-          <div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-              Pension
-            </span>
-            <h2 className="text-xl font-extrabold text-stone-900 mt-2">
-              Séjours & Garde
-            </h2>
-          </div>
-          <div className="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center text-center shrink-0">
-            <span className="text-xs font-black text-emerald-700">1</span>
-            <span className="text-[8px] font-bold text-emerald-600 uppercase">À venir</span>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {pensionStays.map((stay) => (
-            <div
-              key={stay.id}
-              className="p-3.5 rounded-2xl bg-stone-50/70 border border-stone-100 flex items-center justify-between"
-            >
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-stone-900">{stay.title}</h4>
-                <span className="text-[11px] text-stone-400 font-medium">{stay.date}</span>
-              </div>
-              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-stone-200/60 text-stone-700 shrink-0">
-                {stay.status}
-              </span>
-            </div>
-          ))}
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
