@@ -1,6 +1,4 @@
-import Link from "next/link";
 import LiquidNavbar from "./components/LiquidNavbar";
-
 
 export default function Home() {
   const activities = [
@@ -31,21 +29,20 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
-      {/* Navigation */}
-      <LiquidNavbar>
-      </LiquidNavbar>
+    <div className="min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
+      {/* Navigation (Composant Liquid Glass) */}
+      <LiquidNavbar />
 
       {/* Hero Section */}
-      <section className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+      <section className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pt-32 pb-20 text-center sm:pt-40 sm:pb-28">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 shadow-sm">
           <span>Structure Canine & Artisanat</span>
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl sm:leading-tight">
+        <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-6xl sm:leading-tight">
           L'harmonie et l'expertise au service du{" "}
           <span className="text-amber-500">chien primitif</span>
         </h1>
-        <p className="mt-6 max-w-2xl text-base text-zinc-400 sm:text-lg">
+        <p className="mt-6 max-w-2xl text-base text-stone-500 sm:text-lg">
           Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
           humaine, accompagnement comportemental et sellerie sur-mesure.
         </p>
@@ -53,13 +50,13 @@ export default function Home() {
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <a
             href="#pension"
-            className="flex h-12 items-center justify-center rounded-xl bg-amber-500 px-6 font-semibold text-zinc-950 transition hover:bg-amber-400"
+            className="flex h-12 items-center justify-center rounded-xl bg-amber-500 px-6 font-bold text-stone-900 shadow-sm transition hover:bg-amber-400"
           >
             Réserver un séjour
           </a>
           <a
             href="#elevage"
-            className="flex h-12 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 px-6 font-medium text-zinc-300 transition hover:bg-zinc-800"
+            className="flex h-12 items-center justify-center rounded-xl border border-stone-200 bg-white px-6 font-semibold text-stone-600 shadow-sm transition hover:bg-stone-50 hover:text-stone-900"
           >
             Découvrir l'élevage
           </a>
@@ -67,13 +64,13 @@ export default function Home() {
       </section>
 
       {/* Activités Grid */}
-      <section className="border-t border-zinc-900 bg-zinc-900/40 py-20">
+      <section className="border-t border-stone-200 bg-[#F9F6F0] py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-12 text-center sm:text-left">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
               Nos Pôles d'Activité
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-stone-500">
               Un cadre dédié au bien-être, à la dépense saine et au confort de vos compagnons.
             </p>
           </div>
@@ -82,21 +79,21 @@ export default function Home() {
             {activities.map((act) => (
               <div
                 key={act.title}
-                className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 transition hover:border-amber-500/50 hover:bg-zinc-900"
+                className="group relative rounded-3xl border border-stone-200 bg-white p-8 shadow-sm transition duration-300 hover:border-amber-500/40 hover:shadow-md"
               >
-                <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-600">
                   {act.tag}
                 </span>
-                <h3 className="mt-3 text-xl font-bold tracking-tight text-zinc-100">
+                <h3 className="mt-3 text-xl font-bold tracking-tight text-stone-900">
                   {act.title}
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-3 text-sm leading-relaxed text-stone-500">
                   {act.desc}
                 </p>
                 <div className="mt-6">
                   <a
                     href={act.href}
-                    className="inline-flex items-center text-xs font-semibold text-amber-500 group-hover:underline"
+                    className="inline-flex items-center text-xs font-bold text-amber-500 group-hover:text-amber-600 group-hover:underline"
                   >
                     En savoir plus →
                   </a>
@@ -108,8 +105,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 py-10 text-center text-xs text-zinc-600">
-        <p>© {new Date().getFullYear()} Inochi Inu — Tous droits réservés.</p>
+      <footer className="border-t border-stone-200 bg-white py-10 text-center text-xs text-stone-400">
+        <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
     </div>
   );
