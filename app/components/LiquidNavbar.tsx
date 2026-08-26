@@ -69,14 +69,14 @@ export default function LiquidNavbar() {
           </div>
         </a>
 
-        {/* Menu Central avec la vraie bulle Liquid Glass */}
+        {/* Menu Central avec Bulle Liquid Glass ultra-transparente */}
         <div 
           className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle de survol : Verre pur ultra-translucide avec réfraction et reflets de tranche */}
+          {/* La bulle de survol : Opacité réduite à 12% + flou XL pour l'effet de verre réel */}
           <div
-            className="absolute top-1 bottom-1 rounded-full bg-white/40 backdrop-blur-md backdrop-saturate-[2] shadow-[0_4px_12px_rgba(0,0,0,0.08),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.03)] border border-white/90 transition-all duration-300 ease-out pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full bg-white/12 backdrop-blur-xl backdrop-saturate-[2.5] shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8),inset_0_-1px_1px_rgba(0,0,0,0.04)] border border-white/80 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
@@ -119,7 +119,7 @@ export default function LiquidNavbar() {
       </nav>
 
       <div
-        className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/50 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
+        className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
           isMobileMenuOpen
             ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
             : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
