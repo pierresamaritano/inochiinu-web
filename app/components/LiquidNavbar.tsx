@@ -38,12 +38,12 @@ export default function LiquidNavbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center p-4 transition-all duration-300">
-      {/* Barre de navigation principale (Ultra transparente + fort reflet) */}
+      {/* Barre de navigation principale (Opacité augmentée) */}
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
           scrolled || isMobileMenuOpen
-            ? "w-[96%] max-w-4xl bg-white/20 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
-            : "w-[98%] max-w-5xl bg-white/10 backdrop-blur-md shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/60"
+            ? "w-[96%] max-w-4xl bg-white/40 backdrop-blur-xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
+            : "w-[98%] max-w-5xl bg-white/25 backdrop-blur-md backdrop-saturate-[1.5] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/70"
         }`}
       >
         {/* Logo & Kanji */}
@@ -66,7 +66,7 @@ export default function LiquidNavbar() {
           className="hidden md:flex items-center relative rounded-full bg-black/[0.03] p-1 border border-black/[0.06] shadow-[inset_0_1px_4px_rgba(0,0,0,0.06)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle animée (Blanche avec ombre marquée) */}
+          {/* La bulle animée */}
           <div
             className="absolute top-1 bottom-1 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-black/[0.04] transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
@@ -121,13 +121,13 @@ export default function LiquidNavbar() {
             : "opacity-0 scale-95 -translate-y-4 invisible"
         }`}
       >
-        <div className="flex flex-col gap-2 p-4 mt-2 rounded-3xl bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
+        <div className="flex flex-col gap-2 p-4 mt-2 rounded-3xl bg-white/60 backdrop-blur-2xl backdrop-saturate-[2] border border-white shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
           {navItems.map((item) => (
              <a
              key={item.label}
              href={item.href}
              onClick={() => setIsMobileMenuOpen(false)}
-             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 hover:bg-white/50 rounded-2xl transition-all"
+             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 hover:bg-white/80 rounded-2xl transition-all"
            >
              {item.label}
            </a>

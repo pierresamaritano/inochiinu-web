@@ -42,9 +42,9 @@ export default function Home() {
             alt="Chien primitif dans la nature"
             className="h-full w-full object-cover"
           />
-          {/* Calques pour adoucir l'image et garder le texte lisible */}
-          <div className="absolute inset-0 bg-[#FDFCF8]/40 backdrop-blur-[2px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/20 to-transparent"></div>
+        {/* Calques pour adoucir l'image et garder le texte lisible */}
+        <div className="absolute inset-0 bg-[#FDFCF8]/15 backdrop-blur-[1px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/10 to-transparent"></div>
         </div>
 
         {/* Contenu textuel (au premier plan) */}
