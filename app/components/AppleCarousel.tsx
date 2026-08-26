@@ -87,7 +87,6 @@ export default function AppleCarousel() {
 
   return (
     <section 
-      {/* Z-INDEX DYNAMIQUE : z-40 au défilement (sous le menu), z-60 au centre (sur le menu) */}
       className={`relative w-full transition-all duration-300 ${
         isInCenter ? "z-[60]" : "z-40"
       }`}
