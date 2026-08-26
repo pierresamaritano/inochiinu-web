@@ -32,15 +32,20 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* --- NOUVEAU : Lumières d'ambiance "Fauve" sur les bords et angles --- */}
-      {/* Ces halos sont fixés au fond, ne gênent pas le clic, et teintent les contours */}
+      {/* --- HALOS FAUVE (Accentoués sur les bords, haut et angles, et restreints vers le centre) --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Halo Angle Supérieur Gauche (Donne vie au Liquid Glass) */}
-        <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full bg-orange-500/10 blur-[100px]"></div>
-        {/* Halo Angle Supérieur Droit */}
-        <div className="absolute top-[20%] -right-[15%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full bg-orange-400/10 blur-[100px]"></div>
-        {/* Halo Bas Gauche */}
-        <div className="absolute top-[60%] -left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full bg-orange-500/10 blur-[120px]"></div>
+        {/* Bande lumineuse sur tout le haut et les angles supérieurs */}
+        <div className="absolute -top-[15%] left-0 right-0 h-[40vh] bg-gradient-to-b from-orange-500/15 via-orange-500/5 to-transparent blur-[80px]"></div>
+        
+        {/* Bordure latérale Gauche */}
+        <div className="absolute top-[30%] -left-[10%] w-[35vw] h-[50vh] rounded-full bg-orange-500/12 blur-[90px]"></div>
+        
+        {/* Bordure latérale Droite */}
+        <div className="absolute top-[30%] -right-[10%] w-[35vw] h-[50vh] rounded-full bg-orange-500/12 blur-[90px]"></div>
+        
+        {/* Angles Inférieurs */}
+        <div className="absolute -bottom-[10%] -left-[10%] w-[40vw] h-[40vh] rounded-full bg-orange-600/10 blur-[100px]"></div>
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40vw] h-[40vh] rounded-full bg-orange-600/10 blur-[100px]"></div>
       </div>
 
       <LiquidNavbar />
