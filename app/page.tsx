@@ -38,7 +38,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
           <img
             // Image provisoire d'un chien dans la nature (tu pourras mettre une de tes photos)
-            src="/public/hero-akita.jpg"
+            src="public/hero-akita.jpg"
             alt="Chien primitif dans la nature"
             className="h-full w-full object-cover"
           />
