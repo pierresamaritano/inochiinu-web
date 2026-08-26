@@ -29,7 +29,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
+    <div className="min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       <LiquidNavbar />
 
       {/* Hero Section avec Image de fond */}
@@ -37,30 +37,31 @@ export default function Home() {
         {/* L'image de fond */}
         <div className="absolute inset-0 z-0">
           <img
-            // Image provisoire d'un chien dans la nature (tu pourras mettre une de tes photos)
-            src="hero-akita.jpg"
+            src="/hero-akita.jpg"
             alt="Chien primitif dans la nature"
             className="h-full w-full object-cover"
           />
-        {/* Calques pour adoucir l'image et garder le texte lisible */}
-        <div className="absolute inset-0 bg-[#FDFCF8]/15 backdrop-blur-[1px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/10 to-transparent"></div>
+          {/* Calques d'adoucissement */}
+          <div className="absolute inset-0 bg-[#FDFCF8]/15 backdrop-blur-[1px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/10 to-transparent"></div>
         </div>
 
-        {/* Contenu textuel (au premier plan) */}
+        {/* Contenu textuel avec HALO CRÈME */}
         <div className="relative z-10 mx-auto max-w-5xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-white/60 px-4 py-1.5 text-xs font-bold text-amber-700 shadow-sm backdrop-blur-md">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-white/60 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm backdrop-blur-md">
             <span>Structure Canine & Artisanat</span>
           </div>
           
-          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1]">
+          {/* Titre avec ombre crème très diffuse pour le faire ressortir */}
+          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1] [text-shadow:0_0_40px_rgba(253,252,248,1),0_0_15px_rgba(253,252,248,0.9)]">
             L'harmonie et l'expertise au service du{" "}
-            <span className="bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent [filter:drop-shadow(0_0_10px_rgba(253,252,248,0.9))]">
               chien primitif
             </span>
           </h1>
           
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-medium text-stone-700 sm:text-xl">
+          {/* Sous-titre avec ombre crème */}
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl [text-shadow:0_0_20px_rgba(253,252,248,1),0_0_8px_rgba(253,252,248,0.8)]">
             Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
             humaine, accompagnement comportemental et sellerie sur-mesure.
           </p>
@@ -68,7 +69,7 @@ export default function Home() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
               href="#pension"
-              className="flex h-14 items-center justify-center rounded-full bg-gradient-to-b from-amber-400 to-amber-500 px-8 font-bold text-stone-900 shadow-[0_4px_14px_rgba(245,158,11,0.4),inset_0_1px_1px_rgba(255,255,255,0.6)] transition hover:scale-105 hover:brightness-105"
+              className="flex h-14 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-8 font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105"
             >
               Réserver un séjour
             </a>
@@ -98,9 +99,9 @@ export default function Home() {
             {activities.map((act) => (
               <div
                 key={act.title}
-                className="group relative rounded-[2rem] border border-stone-200/80 bg-white p-10 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-amber-400/50 hover:shadow-xl hover:shadow-amber-900/5"
+                className="group relative rounded-[2rem] border border-stone-200/80 bg-white p-10 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-400/50 hover:shadow-xl hover:shadow-orange-900/5"
               >
-                <span className="text-xs font-black uppercase tracking-wider text-amber-500">
+                <span className="text-xs font-black uppercase tracking-wider text-orange-600">
                   {act.tag}
                 </span>
                 <h3 className="mt-4 text-2xl font-bold tracking-tight text-stone-900">
@@ -112,7 +113,7 @@ export default function Home() {
                 <div className="mt-8">
                   <a
                     href={act.href}
-                    className="inline-flex items-center text-sm font-bold text-amber-500 transition-colors group-hover:text-amber-600"
+                    className="inline-flex items-center text-sm font-bold text-orange-500 transition-colors group-hover:text-orange-600"
                   >
                     En savoir plus <span className="ml-2 translate-x-0 transition-transform group-hover:translate-x-1">→</span>
                   </a>

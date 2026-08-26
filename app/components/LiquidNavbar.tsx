@@ -48,7 +48,6 @@ export default function LiquidNavbar() {
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 flex flex-col items-center pt-4 transition-all duration-300">
-      {/* Barre de navigation principale */}
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-300 ease-out z-50 ${
           scrolled || isMobileMenuOpen
@@ -56,13 +55,13 @@ export default function LiquidNavbar() {
             : "w-[96%] max-w-5xl bg-white/25 backdrop-blur-md backdrop-saturate-[1.5] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/70"
         }`}
       >
-        {/* Logo & Kanji */}
         <a href="#" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-900 font-black text-xs shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_2px_4px_rgba(245,158,11,0.3)]">
+          {/* Logo en orange fauve */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-stone-900 font-black text-xs shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_2px_4px_rgba(249,115,22,0.3)]">
             犬
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-tight text-stone-900 group-hover:text-amber-600 transition-colors">
+            <span className="text-sm font-black tracking-tight text-stone-900 group-hover:text-orange-600 transition-colors">
               INOCHI INU
             </span>
             <span className="text-[10px] text-stone-500 font-bold tracking-widest -mt-1 hidden sm:block">
@@ -71,18 +70,15 @@ export default function LiquidNavbar() {
           </div>
         </a>
 
-        {/* Menu Central avec Bulle de suivi (Desktop) */}
         <div 
           className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle animée */}
           <div
             className="absolute top-1 bottom-1 rounded-full bg-white/30 backdrop-blur-lg backdrop-saturate-[2.5] shadow-[0_4px_10px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.05)] border border-white/70 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
-          {/* Les Liens */}
           {navItems.map((item) => (
             <a
               key={item.label}
@@ -95,16 +91,15 @@ export default function LiquidNavbar() {
           ))}
         </div>
 
-        {/* Actions de droite */}
         <div className="flex items-center gap-2">
+          {/* Bouton de réservation en orange fauve */}
           <a
             href="#reservation"
-            className="hidden sm:inline-flex relative items-center justify-center px-4 py-2 text-xs font-bold text-stone-900 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 shadow-[0_4px_12px_rgba(245,158,11,0.3),inset_0_1px_1px_rgba(255,255,255,0.8)] hover:brightness-105 active:scale-95 transition-all duration-200"
+            className="hidden sm:inline-flex relative items-center justify-center px-4 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-orange-400 to-orange-500 shadow-[0_4px_12px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-105 active:scale-95 transition-all duration-200"
           >
             Réserver
           </a>
 
-          {/* Menu Hamburger / Croix pour Mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-black/5 border border-black/10 text-stone-800 hover:bg-black/10 active:bg-black/15 active:scale-95 transition-all shadow-sm"
@@ -123,7 +118,6 @@ export default function LiquidNavbar() {
         </div>
       </nav>
 
-      {/* Panneau du menu mobile (Accélération GPU & Structure plate) */}
       <div
         className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
           isMobileMenuOpen
@@ -145,7 +139,7 @@ export default function LiquidNavbar() {
         <a
           href="#reservation"
           onClick={() => setIsMobileMenuOpen(false)}
-          className="px-4 py-3 text-sm font-bold text-amber-600 active:bg-amber-100/50 hover:bg-amber-100/50 hover:shadow-[inset_0_1px_2px_rgba(255,255,255,1)] border border-transparent hover:border-white/70 rounded-2xl transition-all duration-200 text-center"
+          className="px-4 py-3 text-sm font-bold text-orange-600 active:bg-orange-100/50 hover:bg-orange-100/50 hover:shadow-[inset_0_1px_2px_rgba(255,255,255,1)] border border-transparent hover:border-white/70 rounded-2xl transition-all duration-200 text-center"
         >
           Réserver un séjour
         </a>
