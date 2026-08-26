@@ -32,12 +32,17 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* --- HALOS FAUVE --- */}
+      {/* --- HALOS FAUVE : Repoussés à l'extrême bord, centre totalement dégagé --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 inset-x-0 h-[12vh] bg-gradient-to-b from-orange-600/15 via-orange-500/5 to-transparent blur-[40px]"></div>
-        <div className="absolute top-[15%] -left-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
-        <div className="absolute top-[15%] -right-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
-        <div className="absolute -bottom-10 inset-x-0 h-[15vh] bg-gradient-to-t from-orange-600/10 to-transparent blur-[60px]"></div>
+        {/* Bande supérieure très fine juste pour le menu */}
+        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]"></div>
+        
+        {/* Côtés : repoussés hors champ (-25%) avec un flou très large pour un effet de lueur ambiante */}
+        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]"></div>
+        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]"></div>
+
+        {/* Rappel très discret en bas */}
+        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]"></div>
       </div>
 
       <LiquidNavbar />
@@ -76,7 +81,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Carrousel Style Apple (Libéré de son z-index statique) */}
+      {/* Carrousel Style Apple (Toujours libre de son z-index statique) */}
       <div className="relative">
         <AppleCarousel />
       </div>
