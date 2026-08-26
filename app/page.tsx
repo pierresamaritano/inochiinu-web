@@ -1,4 +1,6 @@
 import Link from "next/link";
+import LiquidNavbar from "./components/LiquidNavbar";
+
 
 export default function Home() {
   const activities = [
@@ -31,7 +33,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
       {/* Navigation */}
-      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
+      <LiquidNavbar className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-amber-500">
@@ -52,7 +54,7 @@ export default function Home() {
             Nous contacter
           </a>
         </div>
-      </header>
+      </LiquidNavbar>
 
       {/* Hero Section */}
       <section className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
