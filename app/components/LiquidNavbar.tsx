@@ -8,13 +8,25 @@ export default function LiquidNavbar() {
   
   const [bubbleStyle, setBubbleStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
+  // Gère l'effet de la barre de navigation au défilement
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Ferme automatiquement le menu mobile dès qu'on fait défiler la page
+  useEffect(() => {
+    const closeMenuOnScroll = () => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("scroll", closeMenuOnScroll, { passive: true });
+    return () => window.removeEventListener("scroll", closeMenuOnScroll);
+  }, [isMobileMenuOpen]);
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const target = e.currentTarget;
@@ -37,13 +49,13 @@ export default function LiquidNavbar() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center p-4 transition-all duration-300">
+    <header className="fixed top-0 inset-x-0 z-50 flex flex-col items-center pt-4 transition-all duration-300">
       {/* Barre de navigation principale */}
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
           scrolled || isMobileMenuOpen
-            ? "w-[96%] max-w-4xl bg-white/40 backdrop-blur-xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
-            : "w-[98%] max-w-5xl bg-white/25 backdrop-blur-md backdrop-saturate-[1.5] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/70"
+            ? "w-[92%] max-w-4xl bg-white/40 backdrop-blur-xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
+            : "w-[96%] max-w-5xl bg-white/25 backdrop-blur-md backdrop-saturate-[1.5] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/70"
         }`}
       >
         {/* Logo & Kanji */}
@@ -94,7 +106,7 @@ export default function LiquidNavbar() {
             Réserver
           </a>
 
-          {/* Menu Hamburger pour Mobile */}
+          {/* Menu Hamburger / Croix pour Mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-black/5 border border-black/10 text-stone-800 hover:bg-black/10 hover:text-stone-900 transition-colors shadow-sm"
@@ -113,9 +125,9 @@ export default function LiquidNavbar() {
         </div>
       </nav>
 
-      {/* Panneau du menu mobile */}
+      {/* Panneau du menu mobile (Alignement corrigé) */}
       <div
-        className={`md:hidden absolute top-[72px] w-[96%] max-w-4xl transition-all duration-300 ease-out origin-top ${
+        className={`md:hidden absolute top-[76px] w-[92%] max-w-4xl transition-all duration-300 ease-out origin-top ${
           isMobileMenuOpen
             ? "opacity-100 scale-100 translate-y-0 visible"
             : "opacity-0 scale-95 -translate-y-4 invisible"
