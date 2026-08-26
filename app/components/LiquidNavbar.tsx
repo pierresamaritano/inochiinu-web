@@ -51,12 +51,12 @@ export default function LiquidNavbar() {
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-300 ease-out z-50 ${
           scrolled || isMobileMenuOpen
-            ? "w-[92%] max-w-4xl bg-white/40 backdrop-blur-xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
-            : "w-[96%] max-w-5xl bg-white/25 backdrop-blur-md backdrop-saturate-[1.5] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/70"
+            ? "w-[92%] max-w-4xl bg-white/50 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
+            /* ICI : L'état au repos a été renforcé en flou (blur-2xl) et en brillance (inset_0_1px_2px) */
+            : "w-[96%] max-w-5xl bg-white/30 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1)] border border-white/70"
         }`}
       >
         <a href="#" className="flex items-center gap-2.5 group">
-          {/* Logo en orange fauve */}
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-stone-900 font-black text-xs shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_2px_4px_rgba(249,115,22,0.3)]">
             犬
           </div>
@@ -92,7 +92,6 @@ export default function LiquidNavbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Bouton de réservation en orange fauve */}
           <a
             href="#reservation"
             className="hidden sm:inline-flex relative items-center justify-center px-4 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-orange-400 to-orange-500 shadow-[0_4px_12px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-105 active:scale-95 transition-all duration-200"

@@ -30,12 +30,24 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
+    <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
+      
+      {/* --- NOUVEAU : Lumières d'ambiance "Fauve" sur les bords et angles --- */}
+      {/* Ces halos sont fixés au fond, ne gênent pas le clic, et teintent les contours */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Halo Angle Supérieur Gauche (Donne vie au Liquid Glass) */}
+        <div className="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full bg-orange-500/10 blur-[100px]"></div>
+        {/* Halo Angle Supérieur Droit */}
+        <div className="absolute top-[20%] -right-[15%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] rounded-full bg-orange-400/10 blur-[100px]"></div>
+        {/* Halo Bas Gauche */}
+        <div className="absolute top-[60%] -left-[10%] w-[50vw] h-[50vw] max-w-[600px] max-h-[600px] rounded-full bg-orange-500/10 blur-[120px]"></div>
+      </div>
+
       <LiquidNavbar />
 
       {/* Hero Section */}
-      <section className="relative flex w-full flex-col items-center pt-36 pb-12 text-center px-4">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/50 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
+      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-12 text-center px-4">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
           <span>Structure Canine & Artisanat</span>
         </div>
         
@@ -60,7 +72,7 @@ export default function Home() {
           </a>
           <a
             href="#elevage"
-            className="flex h-14 items-center justify-center rounded-full border border-stone-300 bg-[#FDFCF8] px-8 font-bold text-stone-700 shadow-sm transition hover:scale-105 hover:bg-stone-100 hover:text-stone-900"
+            className="flex h-14 items-center justify-center rounded-full border border-stone-300 bg-white/60 backdrop-blur-md px-8 font-bold text-stone-700 shadow-sm transition hover:scale-105 hover:bg-white hover:text-stone-900"
           >
             Découvrir l'élevage
           </a>
@@ -68,10 +80,12 @@ export default function Home() {
       </section>
 
       {/* Carrousel Style Apple */}
-      <AppleCarousel />
+      <div className="relative z-10">
+        <AppleCarousel />
+      </div>
 
-      {/* Activités Grid (Même fond crème #FDFCF8) */}
-      <section className="relative z-10 border-t border-stone-200/60 bg-[#FDFCF8] py-24">
+      {/* Activités Grid */}
+      <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-14 text-center sm:text-left">
             <h2 className="text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
@@ -86,7 +100,7 @@ export default function Home() {
             {activities.map((act) => (
               <div
                 key={act.title}
-                className="group relative rounded-[2rem] border border-stone-200/80 bg-[#FDFCF8] p-10 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-400/50 hover:shadow-xl hover:shadow-orange-900/5"
+                className="group relative rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-10 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-orange-400/50 hover:shadow-xl hover:shadow-orange-900/5"
               >
                 <span className="text-xs font-black uppercase tracking-wider text-orange-600">
                   {act.tag}
@@ -111,8 +125,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer (Même fond crème #FDFCF8) */}
-      <footer className="border-t border-stone-200/60 bg-[#FDFCF8] py-12 text-center text-sm text-stone-400">
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
     </div>
