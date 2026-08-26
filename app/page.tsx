@@ -1,65 +1,134 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
+  const activities = [
+    {
+      title: "Élevage d'Akita & Shiba Inu",
+      desc: "Sélection rigoureuse, respect des standards et socialisation bienveillante dès le plus jeune âge.",
+      tag: "Passion & Éthique",
+      href: "#elevage",
+    },
+    {
+      title: "Pension Canine Familiale",
+      desc: "Accueil chaleureux en petit comité, espaces de détente sécurisés et suivi personnalisé au quotidien.",
+      tag: "Capacité limitée",
+      href: "#pension",
+    },
+    {
+      title: "Éducation & Comportement",
+      desc: "Accompagnement individualisé basé sur la compréhension canine et les méthodes positives.",
+      tag: "Sur-mesure",
+      href: "#education",
+    },
+    {
+      title: "Sellerie & Équipements",
+      desc: "Accessoires modulaires, laisses et harnais techniques pensés pour les chiens primitifs et le plein air.",
+      tag: "Fabrication artisanale",
+      href: "#sellerie",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 antialiased">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold tracking-tight text-amber-500">
+              INOCHI INU
+            </span>
+            <span className="text-xs text-zinc-500">命犬</span>
+          </div>
+          <nav className="hidden gap-6 text-sm font-medium text-zinc-400 sm:flex">
+            <a href="#elevage" className="hover:text-zinc-100 transition-colors">Élevage</a>
+            <a href="#pension" className="hover:text-zinc-100 transition-colors">Pension</a>
+            <a href="#education" className="hover:text-zinc-100 transition-colors">Éducation</a>
+            <a href="#sellerie" className="hover:text-zinc-100 transition-colors">Sellerie</a>
+          </nav>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#contact"
+            className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            Nous contacter
           </a>
         </div>
-      </main>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative mx-auto flex max-w-5xl flex-col items-center px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-28">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+          <span>Structure Canine & Artisanat</span>
+        </div>
+        <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl sm:leading-tight">
+          L'harmonie et l'expertise au service du{" "}
+          <span className="text-amber-500">chien primitif</span>
+        </h1>
+        <p className="mt-6 max-w-2xl text-base text-zinc-400 sm:text-lg">
+          Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
+          humaine, accompagnement comportemental et sellerie sur-mesure.
+        </p>
+
+        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <a
+            href="#pension"
+            className="flex h-12 items-center justify-center rounded-xl bg-amber-500 px-6 font-semibold text-zinc-950 transition hover:bg-amber-400"
+          >
+            Réserver un séjour
+          </a>
+          <a
+            href="#elevage"
+            className="flex h-12 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 px-6 font-medium text-zinc-300 transition hover:bg-zinc-800"
+          >
+            Découvrir l'élevage
+          </a>
+        </div>
+      </section>
+
+      {/* Activités Grid */}
+      <section className="border-t border-zinc-900 bg-zinc-900/40 py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mb-12 text-center sm:text-left">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Nos Pôles d'Activité
+            </h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Un cadre dédié au bien-être, à la dépense saine et au confort de vos compagnons.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {activities.map((act) => (
+              <div
+                key={act.title}
+                className="group relative rounded-2xl border border-zinc-800 bg-zinc-900/80 p-8 transition hover:border-amber-500/50 hover:bg-zinc-900"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider text-amber-500">
+                  {act.tag}
+                </span>
+                <h3 className="mt-3 text-xl font-bold tracking-tight text-zinc-100">
+                  {act.title}
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                  {act.desc}
+                </p>
+                <div className="mt-6">
+                  <a
+                    href={act.href}
+                    className="inline-flex items-center text-xs font-semibold text-amber-500 group-hover:underline"
+                  >
+                    En savoir plus →
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-800 py-10 text-center text-xs text-zinc-600">
+        <p>© {new Date().getFullYear()} Inochi Inu — Tous droits réservés.</p>
+      </footer>
     </div>
   );
 }
