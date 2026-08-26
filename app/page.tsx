@@ -32,17 +32,17 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* --- HALOS FAUVE : Réduit en haut, accentué sur les côtés, discret en bas, centre vide --- */}
+      {/* --- HALOS FAUVE : Repoussés à l'extrême bord, centre totalement dégagé --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Bande supérieure légèrement réduite */}
-        <div className="absolute top-0 inset-x-0 h-[12vh] bg-gradient-to-b from-orange-600/15 via-orange-500/5 to-transparent blur-[40px]"></div>
+        {/* Bande supérieure très fine juste pour le menu */}
+        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]"></div>
         
-        {/* Côtés (latéraux) accentués */}
-        <div className="absolute top-[15%] -left-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
-        <div className="absolute top-[15%] -right-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
+        {/* Côtés : repoussés hors champ avec un flou très large pour un effet de lueur ambiante */}
+        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]"></div>
+        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]"></div>
 
-        {/* Léger rappel strict en bas */}
-        <div className="absolute -bottom-10 inset-x-0 h-[15vh] bg-gradient-to-t from-orange-600/10 to-transparent blur-[60px]"></div>
+        {/* Rappel très discret en bas */}
+        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]"></div>
       </div>
 
       <LiquidNavbar />
