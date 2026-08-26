@@ -74,9 +74,9 @@ export default function LiquidNavbar() {
           className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle de survol : Opacité réduite à 12% + flou XL pour l'effet de verre réel */}
+          {/* La bulle de survol : Verre cristallin fin (6% d'opacité) avec bordure lumineuse nette */}
           <div
-            className="absolute top-1 bottom-1 rounded-full bg-white/12 backdrop-blur-xl backdrop-saturate-[2.5] shadow-[0_4px_16px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.8),inset_0_-1px_1px_rgba(0,0,0,0.04)] border border-white/80 transition-all duration-300 ease-out pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full bg-white/[0.06] backdrop-blur-md backdrop-saturate-[2.5] shadow-[0_2px_10px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.9)] border border-white/90 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
