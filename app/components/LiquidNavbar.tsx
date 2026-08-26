@@ -38,21 +38,21 @@ export default function LiquidNavbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center p-4 transition-all duration-300">
-      {/* Barre de navigation principale (Verre givré blanc) */}
+      {/* Barre de navigation principale (Ultra transparente + fort reflet) */}
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
           scrolled || isMobileMenuOpen
-            ? "w-[96%] max-w-4xl bg-white/70 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,1)] border border-white/60 backdrop-blur-xl"
-            : "w-[98%] max-w-5xl bg-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.04),inset_0_1px_1px_rgba(255,255,255,0.5)] border border-white/40 backdrop-blur-md"
+            ? "w-[96%] max-w-4xl bg-white/20 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
+            : "w-[98%] max-w-5xl bg-white/10 backdrop-blur-md shadow-[0_8px_24px_-8px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.8)] border border-white/60"
         }`}
       >
         {/* Logo & Kanji */}
         <a href="#" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-900 font-black text-xs shadow-inner">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-stone-900 font-black text-xs shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_2px_4px_rgba(245,158,11,0.3)]">
             犬
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-black tracking-tight text-stone-900 group-hover:text-amber-500 transition-colors">
+            <span className="text-sm font-black tracking-tight text-stone-900 group-hover:text-amber-600 transition-colors">
               INOCHI INU
             </span>
             <span className="text-[10px] text-stone-500 font-bold tracking-widest -mt-1 hidden sm:block">
@@ -63,12 +63,12 @@ export default function LiquidNavbar() {
 
         {/* Menu Central avec Bulle de suivi */}
         <div 
-          className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_3px_rgba(0,0,0,0.05)]"
+          className="hidden md:flex items-center relative rounded-full bg-black/[0.03] p-1 border border-black/[0.06] shadow-[inset_0_1px_4px_rgba(0,0,0,0.06)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle animée (Blanche avec ombre) */}
+          {/* La bulle animée (Blanche avec ombre marquée) */}
           <div
-            className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm border border-black/5 transition-all duration-300 ease-out pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-black/[0.04] transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
@@ -89,7 +89,7 @@ export default function LiquidNavbar() {
         <div className="flex items-center gap-2">
           <a
             href="#reservation"
-            className="hidden sm:inline-flex relative items-center justify-center px-4 py-2 text-xs font-bold text-stone-900 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 shadow-[0_2px_10px_rgba(245,158,11,0.2),inset_0_1px_1px_rgba(255,255,255,0.8)] hover:brightness-105 active:scale-95 transition-all duration-200"
+            className="hidden sm:inline-flex relative items-center justify-center px-4 py-2 text-xs font-bold text-stone-900 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 shadow-[0_4px_12px_rgba(245,158,11,0.3),inset_0_1px_1px_rgba(255,255,255,0.8)] hover:brightness-105 active:scale-95 transition-all duration-200"
           >
             Réserver
           </a>
@@ -97,7 +97,7 @@ export default function LiquidNavbar() {
           {/* Menu Hamburger pour Mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-black/5 border border-black/10 text-stone-800 hover:bg-black/10 hover:text-stone-900 transition-colors"
+            className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-black/5 border border-black/10 text-stone-800 hover:bg-black/10 hover:text-stone-900 transition-colors shadow-sm"
             aria-label="Ouvrir le menu"
           >
             {isMobileMenuOpen ? (
@@ -121,13 +121,13 @@ export default function LiquidNavbar() {
             : "opacity-0 scale-95 -translate-y-4 invisible"
         }`}
       >
-        <div className="flex flex-col gap-2 p-4 mt-2 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,1)]">
+        <div className="flex flex-col gap-2 p-4 mt-2 rounded-3xl bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
           {navItems.map((item) => (
              <a
              key={item.label}
              href={item.href}
              onClick={() => setIsMobileMenuOpen(false)}
-             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 hover:bg-black/5 rounded-2xl transition-all"
+             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 hover:bg-white/50 rounded-2xl transition-all"
            >
              {item.label}
            </a>
@@ -136,7 +136,7 @@ export default function LiquidNavbar() {
           <a
             href="#reservation"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50 rounded-2xl transition-all text-center"
+            className="px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50/80 rounded-2xl transition-all text-center"
           >
             Réserver un séjour
           </a>
