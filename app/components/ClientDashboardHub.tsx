@@ -20,9 +20,13 @@ interface PensionItem {
 }
 
 export default function ClientDashboardHub() {
+  // Gestion de l'expansion du widget (col-span-full ou hauteur)
   const [expandedWidget, setExpandedWidget] = useState<string | null>(null);
-  const [selectedEduItem, setSelectedEduItem] = useState<EducationItem | null>(null);
 
+  // Gestion de la sélection d'une ligne spécifique ("Gros Widget" ouvert)
+  const [selectedItem, setSelectedItem] = useState<EducationItem | null>(null);
+
+  // Données mockées pour l'éducation
   const educationSessions: EducationItem[] = [
     {
       id: "edu-1",
@@ -64,6 +68,7 @@ export default function ClientDashboardHub() {
     },
   ];
 
+  // Données mockées pour la pension
   const pensionStays: PensionItem[] = [
     {
       id: "pen-1",
@@ -81,7 +86,7 @@ export default function ClientDashboardHub() {
     },
   ];
 
-  // Calcul de la jauge circulaire
+  // Pourcentage global d'apprentissage
   const progressPercent = 65;
   const radius = 32;
   const circumference = 2 * Math.PI * radius;
@@ -91,16 +96,16 @@ export default function ClientDashboardHub() {
   const displayedEduList = isEduExpanded ? educationSessions : educationSessions.slice(0, 3);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
       {/* =========================================================================
-          WIDGET 1 : ÉDUCATION (JAUGE CIRCULAIRE & EXPANSION GRILLE)
+          WIDGET 1 : ÉDUCATION (AVEC JAUGE CIRCULAIRE & EXPANSION EN LONGUEUR/LARGEUR)
           ========================================================================= */}
       <div
         className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${
           isEduExpanded ? "lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100" : ""
         }`}
       >
-        {/* EN-TÊTE : TITRE + JAUGE SVG */}
+        {/* EN-TÊTE DU WIDGET : TITRE + JAUGE CIRCULAIRE */}
         <div className="flex items-center justify-between gap-4 pb-6 border-b border-stone-100">
           <div>
             <div className="flex items-center gap-2">
@@ -116,9 +121,10 @@ export default function ClientDashboardHub() {
             </h2>
           </div>
 
-          {/* JAUGE CIRCULAIRE */}
-          <div className="relative flex items-center justify-center shrink-0">
+          {/* JAUGE CIRCULAIRE SVG */}
+          <div className="relative flex items-center justify-center">
             <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
+              {/* Cercle d'arrière-plan */}
               <circle
                 cx="40"
                 cy="40"
@@ -127,6 +133,7 @@ export default function ClientDashboardHub() {
                 strokeWidth="7"
                 fill="transparent"
               />
+              {/* Cercle de progression */}
               <circle
                 cx="40"
                 cy="40"
@@ -150,12 +157,13 @@ export default function ClientDashboardHub() {
           </div>
         </div>
 
-        {/* PANNEAU DÉTAILLÉ ("GROS WIDGET") OU LISTE DES LIGNES */}
-        {selectedEduItem ? (
-          <div className="mt-6 p-6 rounded-2xl bg-orange-50/40 border border-orange-100 animate-in fade-in duration-200">
+        {/* CONTENU PRINCIPAL : VUE STANDARD OU DÉTAIL D'UNE LIGNE SÉLECTIONNÉE */}
+        {selectedItem ? (
+          /* --- GROS WIDGET : DÉTAIL DE LA LIGNE CLIQUEE --- */
+          <div className="mt-6 p-6 rounded-2xl bg-orange-50/40 border border-orange-100">
             <div className="flex items-center justify-between pb-4 border-b border-orange-200/50">
               <button
-                onClick={() => setSelectedEduItem(null)}
+                onClick={() => setSelectedItem(null)}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 hover:text-orange-900 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -165,20 +173,20 @@ export default function ClientDashboardHub() {
               </button>
               <span
                 className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                  selectedEduItem.status === "validé"
+                  selectedItem.status === "validé"
                     ? "bg-emerald-100 text-emerald-800"
-                    : selectedEduItem.status === "en cours"
+                    : selectedItem.status === "en cours"
                     ? "bg-amber-100 text-amber-800"
                     : "bg-stone-100 text-stone-600"
                 }`}
               >
-                {selectedEduItem.status}
+                {selectedItem.status}
               </span>
             </div>
 
             <div className="mt-4">
-              <span className="text-xs text-stone-500 font-semibold">{selectedEduItem.date}</span>
-              <h3 className="text-lg font-black text-stone-900 mt-0.5">{selectedEduItem.title}</h3>
+              <span className="text-xs text-stone-500 font-semibold">{selectedItem.date}</span>
+              <h3 className="text-lg font-black text-stone-900 mt-0.5">{selectedItem.title}</h3>
               
               <div className="mt-4 space-y-3">
                 <div className="bg-white p-4 rounded-xl border border-stone-200/60 shadow-2xs">
@@ -186,17 +194,17 @@ export default function ClientDashboardHub() {
                     Observations de séance
                   </span>
                   <p className="text-sm text-stone-700 font-medium mt-1">
-                    {selectedEduItem.notes}
+                    {selectedItem.notes}
                   </p>
                 </div>
 
-                {selectedEduItem.homework && (
+                {selectedItem.homework && (
                   <div className="bg-white p-4 rounded-xl border border-orange-200/70 shadow-2xs">
                     <span className="text-[11px] font-bold text-orange-600 uppercase tracking-wider block">
                       Exercices recommandés à la maison
                     </span>
                     <p className="text-sm text-stone-700 font-medium mt-1">
-                      {selectedEduItem.homework}
+                      {selectedItem.homework}
                     </p>
                   </div>
                 )}
@@ -204,16 +212,17 @@ export default function ClientDashboardHub() {
             </div>
           </div>
         ) : (
+          /* --- LISTE DES LIGNES CLICQUABLES --- */
           <div className="mt-4 space-y-2">
             {displayedEduList.map((item) => (
               <div
                 key={item.id}
-                onClick={() => setSelectedEduItem(item)}
+                onClick={() => setSelectedItem(item)}
                 className="group flex items-center justify-between p-3.5 rounded-2xl bg-stone-50/70 hover:bg-orange-50/70 border border-stone-100 hover:border-orange-200 transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-2 h-2 rounded-full shrink-0 ${
+                    className={`w-2 h-2 rounded-full ${
                       item.status === "validé"
                         ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                         : item.status === "en cours"
@@ -231,7 +240,7 @@ export default function ClientDashboardHub() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2">
                   <span
                     className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full hidden sm:inline-block ${
                       item.status === "validé"
@@ -257,8 +266,8 @@ export default function ClientDashboardHub() {
           </div>
         )}
 
-        {/* BOUTON "VOIR TOUT / RÉDUIRE" */}
-        {!selectedEduItem && educationSessions.length > 3 && (
+        {/* BOUTON "VOIR PLUS / VOIR MOINS" POUR AGRANDIR LE WIDGET */}
+        {!selectedItem && educationSessions.length > 3 && (
           <div className="mt-4 pt-2 border-t border-stone-100 flex justify-center">
             <button
               onClick={() => setExpandedWidget(isEduExpanded ? null : "education")}
@@ -285,7 +294,7 @@ export default function ClientDashboardHub() {
       </div>
 
       {/* =========================================================================
-          WIDGET 2 : PENSION (EXEMPLE SECONDAIRE)
+          WIDGET 2 : PENSION (EXEMPLE COMPACT POUR OBSERVER LE REAGENCEMENT)
           ========================================================================= */}
       <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
         <div className="flex items-center justify-between pb-6 border-b border-stone-100">
@@ -297,7 +306,7 @@ export default function ClientDashboardHub() {
               Séjours & Garde
             </h2>
           </div>
-          <div className="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center text-center shrink-0">
+          <div className="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center text-center">
             <span className="text-xs font-black text-emerald-700">1</span>
             <span className="text-[8px] font-bold text-emerald-600 uppercase">À venir</span>
           </div>
@@ -313,7 +322,7 @@ export default function ClientDashboardHub() {
                 <h4 className="text-xs sm:text-sm font-bold text-stone-900">{stay.title}</h4>
                 <span className="text-[11px] text-stone-400 font-medium">{stay.date}</span>
               </div>
-              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-stone-200/60 text-stone-700 shrink-0">
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-stone-200/60 text-stone-700">
                 {stay.status}
               </span>
             </div>
