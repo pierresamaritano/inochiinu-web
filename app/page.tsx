@@ -33,42 +33,34 @@ export default function Home() {
       <LiquidNavbar />
 
       {/* Hero Section avec Image de fond */}
-      <section className="relative flex min-h-[90vh] w-full flex-col items-center justify-center overflow-hidden px-6 pt-32 pb-20 text-center">
+      <section className="relative flex min-h-[90vh] w-full flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-20 text-center">
         
-        {/* L'image de fond et ses calques */}
+        {/* L'image de fond 100% nette (aucun flou global) */}
         <div className="absolute inset-0 z-0">
           <img
             src="/hero-akita.jpg"
             alt="Chien primitif dans la nature"
             className="h-full w-full object-cover"
           />
-          
-          {/* Voile global presque invisible pour garder l'image nette (opacité 10%, flou 1px) */}
-          <div className="absolute inset-0 bg-[#FDFCF8]/10 backdrop-blur-[1px]"></div>
-          
-          {/* NOUVEAU : Diffuseur de lumière central pour détacher le texte */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[80vw] max-w-[800px] h-[50vh] bg-[#FDFCF8] rounded-[100%] blur-[80px] opacity-70"></div>
-          </div>
-
-          {/* Dégradé en bas pour fondre l'image avec la section suivante */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/30 to-transparent"></div>
+          {/* Dégradé léger uniquement tout en bas pour fondre l'image avec la section d'en dessous */}
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#FDFCF8] to-transparent"></div>
         </div>
 
-        {/* Contenu textuel */}
-        <div className="relative z-10 mx-auto max-w-5xl">
+        {/* Le bloc "Liquid Glass" collé autour du texte */}
+        <div className="relative z-10 mx-auto max-w-4xl p-8 sm:p-12 mt-8 rounded-[2.5rem] bg-white/30 backdrop-blur-xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.1),inset_0_1px_3px_rgba(255,255,255,1)]">
+          
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-white/70 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm backdrop-blur-md">
             <span>Structure Canine & Artisanat</span>
           </div>
           
-          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1] drop-shadow-md">
+          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1]">
             L'harmonie et l'expertise au service du{" "}
             <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
               chien primitif
             </span>
           </h1>
           
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl drop-shadow-md">
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl">
             Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
             humaine, accompagnement comportemental et sellerie sur-mesure.
           </p>
