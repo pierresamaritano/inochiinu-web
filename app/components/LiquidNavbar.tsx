@@ -123,34 +123,32 @@ export default function LiquidNavbar() {
         </div>
       </nav>
 
-      {/* Panneau du menu mobile (Animation ultra-rapide) */}
+      {/* Panneau du menu mobile (Accélération GPU & Structure plate) */}
       <div
-        className={`md:hidden absolute top-[76px] w-[92%] max-w-4xl transition-[opacity,transform,visibility] duration-150 ease-out origin-top ${
+        className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
           isMobileMenuOpen
-            ? "opacity-100 scale-100 translate-y-0 visible"
-            : "opacity-0 scale-95 -translate-y-2 invisible"
+            ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col gap-2 p-4 mt-2 rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
-          {navItems.map((item) => (
-             <a
-             key={item.label}
-             href={item.href}
-             onClick={() => setIsMobileMenuOpen(false)}
-             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 active:text-stone-900 active:bg-white/40 hover:bg-white/40 hover:shadow-[0_4px_10px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.02)] border border-transparent hover:border-white/70 active:border-white/70 rounded-2xl transition-all duration-200"
-           >
-             {item.label}
-           </a>
-          ))}
-          <div className="h-px w-full bg-black/5 my-1"></div>
+        {navItems.map((item) => (
           <a
-            href="#reservation"
+            key={item.label}
+            href={item.href}
             onClick={() => setIsMobileMenuOpen(false)}
-            className="px-4 py-3 text-sm font-bold text-amber-600 active:bg-amber-100/50 hover:bg-amber-100/50 hover:shadow-[inset_0_1px_2px_rgba(255,255,255,1)] border border-transparent hover:border-white/70 rounded-2xl transition-all duration-200 text-center"
+            className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 active:text-stone-900 active:bg-white/40 hover:bg-white/40 hover:shadow-[0_4px_10px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.02)] border border-transparent hover:border-white/70 active:border-white/70 rounded-2xl transition-all duration-200"
           >
-            Réserver un séjour
+            {item.label}
           </a>
-        </div>
+        ))}
+        <div className="h-px w-full bg-black/5 my-1"></div>
+        <a
+          href="#reservation"
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="px-4 py-3 text-sm font-bold text-amber-600 active:bg-amber-100/50 hover:bg-amber-100/50 hover:shadow-[inset_0_1px_2px_rgba(255,255,255,1)] border border-transparent hover:border-white/70 rounded-2xl transition-all duration-200 text-center"
+        >
+          Réserver un séjour
+        </a>
       </div>
     </header>
   );
