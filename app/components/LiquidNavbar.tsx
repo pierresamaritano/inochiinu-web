@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { usePathname } from "next/navigation"; // 1. Ajout de l'outil pour lire l'URL
 
 // --- COMPOSANT MODALE D'AUTHENTIFICATION INTÉGRÉ ---
 function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -87,9 +88,9 @@ export default function LiquidNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [bubbleStyle, setBubbleStyle] = useState({ left: 0, width: 0, opacity: 0 });
-  
-  // Nouvel état pour stocker la session de l'utilisateur
   const [user, setUser] = useState<any>(null);
+  
+  const pathname = usePathname(); // 2. On récupère la route actuelle
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -97,18 +98,15 @@ export default function LiquidNavbar() {
   );
 
   useEffect(() => {
-    // 1. Gérer le défilement
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
 
-    // 2. Vérifier si l'utilisateur est connecté au chargement
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data.session?.user || null);
     };
     checkUser();
 
-    // 3. Écouter les changements (s'il se déconnecte ou se connecte)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
     });
@@ -132,7 +130,6 @@ export default function LiquidNavbar() {
     setBubbleStyle((prev) => ({ ...prev, opacity: 0 }));
   };
 
-  // Ajout du slash (/) pour forcer le retour à l'accueil depuis n'importe quelle page
   const navItems = [
     { label: "Élevage", href: "/#elevage" },
     { label: "Pension", href: "/#pension" },
@@ -188,13 +185,27 @@ export default function LiquidNavbar() {
           <div className="flex items-center gap-2">
             {/* BOUTON DYNAMIQUE DESKTOP */}
             {user ? (
-              <a
-                href="/espace-membre"
-                className="hidden sm:inline-flex relative items-center justify-center px-5 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-stone-700 to-stone-900 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:brightness-110 active:scale-95 transition-all duration-200"
-              >
-                Mon Espace
-              </a>
+              pathname === "/espace-membre" ? (
+                // On est connecté ET on est sur l'espace membre : bouton Déconnexion discret
+                <form action="/auth/signout" method="post" className="hidden sm:flex">
+                  <button
+                    type="submit"
+                    className="relative items-center justify-center px-5 py-2 text-xs font-bold text-stone-600 bg-black/5 hover:bg-black/10 active:scale-95 rounded-full transition-all duration-200"
+                  >
+                    Déconnexion
+                  </button>
+                </form>
+              ) : (
+                // On est connecté mais sur la page d'accueil : bouton Mon Espace
+                <a
+                  href="/espace-membre"
+                  className="hidden sm:inline-flex relative items-center justify-center px-5 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-stone-700 to-stone-900 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:brightness-110 active:scale-95 transition-all duration-200"
+                >
+                  Mon Espace
+                </a>
+              )
             ) : (
+              // Pas connecté : bouton Connexion
               <button
                 onClick={() => setIsAuthOpen(true)}
                 className="hidden sm:inline-flex relative items-center justify-center px-5 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-orange-400 to-orange-500 shadow-[0_4px_12px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-105 active:scale-95 transition-all duration-200"
@@ -241,12 +252,23 @@ export default function LiquidNavbar() {
           
           {/* BOUTON DYNAMIQUE MOBILE */}
           {user ? (
-            <a
-              href="/espace-membre"
-              className="px-4 py-3 text-sm font-bold text-white bg-stone-800 active:bg-stone-700 hover:bg-stone-700 rounded-2xl transition-all text-center block"
-            >
-              Mon Espace
-            </a>
+            pathname === "/espace-membre" ? (
+              <form action="/auth/signout" method="post" className="w-full">
+                <button
+                  type="submit"
+                  className="w-full px-4 py-3 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl transition-all text-center block"
+                >
+                  Déconnexion
+                </button>
+              </form>
+            ) : (
+              <a
+                href="/espace-membre"
+                className="px-4 py-3 text-sm font-bold text-white bg-stone-800 active:bg-stone-700 hover:bg-stone-700 rounded-2xl transition-all text-center block"
+              >
+                Mon Espace
+              </a>
+            )
           ) : (
             <button
               onClick={() => {

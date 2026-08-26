@@ -46,15 +46,6 @@ export default async function EspaceMembre() {
                 Bonjour, {profile?.full_name || user.email}
               </h1>
             </div>
-
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="px-4 py-2 text-xs font-bold text-stone-600 bg-stone-200/60 hover:bg-stone-200 rounded-full transition-all"
-              >
-                Se déconnecter
-              </button>
-            </form>
           </div>
 
           {isAdmin ? (
