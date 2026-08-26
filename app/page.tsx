@@ -76,12 +76,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Carrousel Style Apple (Z-50 pour que le voile couvre bien tout le site) */}
-      <div className="relative z-50">
+      {/* Carrousel Style Apple (Libéré de son z-index statique) */}
+      <div className="relative">
         <AppleCarousel />
       </div>
 
-      {/* Activités Grid (Z-10 pour rester sous le voile du carrousel) */}
+      {/* Activités Grid */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-24">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-14 text-center sm:text-left">

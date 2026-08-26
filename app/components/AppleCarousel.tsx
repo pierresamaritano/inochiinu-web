@@ -86,13 +86,14 @@ export default function AppleCarousel() {
   };
 
   return (
-    <section className="relative w-full z-50">
+    <section 
+      {/* Z-INDEX DYNAMIQUE : z-40 au défilement (sous le menu), z-60 au centre (sur le menu) */}
+      className={`relative w-full transition-all duration-300 ${
+        isInCenter ? "z-[60]" : "z-40"
+      }`}
+    >
       
-      {/* 
-        OVERLAY EFFET CINÉMA (Immersif)
-        Le 'fixed inset-0' garantit la couverture parfaite de tout l'écran.
-        Flou plus puissant (md) et fond semi-opaque noir élégant (40%).
-      */}
+      {/* OVERLAY EFFET CINÉMA */}
       <div
         className={`fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-700 ease-out pointer-events-none ${
           isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"
@@ -125,7 +126,6 @@ export default function AppleCarousel() {
                   className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-stone-200/80 ${
                     isActive
                       ? "z-20 scale-100 opacity-100 translate-x-0"
-                      /* IMMERSION : Les images sur les côtés sont beaucoup plus sombres et petites (scale 0.85, opacité 25%) */
                       : offset === 1 || offset === -(slides.length - 1)
                       ? "z-10 scale-[0.85] opacity-25 brightness-75 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-50"
                       : offset === -1 || offset === slides.length - 1
