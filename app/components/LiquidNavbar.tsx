@@ -38,7 +38,7 @@ export default function LiquidNavbar() {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center p-4 transition-all duration-300">
-      {/* Barre de navigation principale (Opacité augmentée) */}
+      {/* Barre de navigation principale */}
       <nav
         className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
           scrolled || isMobileMenuOpen
@@ -63,12 +63,12 @@ export default function LiquidNavbar() {
 
         {/* Menu Central avec Bulle de suivi */}
         <div 
-          className="hidden md:flex items-center relative rounded-full bg-black/[0.03] p-1 border border-black/[0.06] shadow-[inset_0_1px_4px_rgba(0,0,0,0.06)]"
+          className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle animée */}
+          {/* La bulle animée (Effet Loupe & Glace) */}
           <div
-            className="absolute top-1 bottom-1 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-black/[0.04] transition-all duration-300 ease-out pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full bg-white/30 backdrop-blur-lg backdrop-saturate-[2.5] shadow-[0_4px_10px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.05)] border border-white/70 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
