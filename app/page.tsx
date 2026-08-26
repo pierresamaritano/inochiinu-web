@@ -30,7 +30,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
       {/* --- HALOS FAUVE : Repoussés à l'extrême bord, centre totalement dégagé --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">

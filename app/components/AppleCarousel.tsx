@@ -38,7 +38,7 @@ export default function AppleCarousel() {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Détection du passage au centre (beaucoup plus strict sur le milieu de l'écran)
+  // Détection EXTRÊMEMENT stricte : uniquement au centre absolu de l'écran
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -46,9 +46,9 @@ export default function AppleCarousel() {
       },
       {
         root: null,
-        // Restreint la zone de détection strictement au centre absolu de l'écran (marge de 40% en haut et en bas)
-        rootMargin: "-40% 0px -40% 0px", 
-        threshold: 0.1 
+        // Crée une ligne de détection très fine au milieu de l'écran (-45% en haut, -45% en bas = reste 10% au centre)
+        rootMargin: "-45% 0px -45% 0px", 
+        threshold: 0 
       }
     );
 
@@ -91,9 +91,9 @@ export default function AppleCarousel() {
       ref={carouselRef}
       className="relative w-full overflow-visible py-6 z-40"
     >
-      {/* OVERLAY EFFET CINÉMA CORRIGÉ : Prend tout l'écran, couleur moins agressive */}
+      {/* OVERLAY EFFET CINÉMA : Beaucoup plus doux (25% d'opacité) avec un flou léger, fixé sur l'écran total */}
       <div
-        className={`fixed top-0 left-0 w-screen h-[100dvh] bg-[#292524]/60 backdrop-blur-[4px] transition-all duration-1000 ease-out pointer-events-none -z-10 ${
+        className={`fixed inset-0 w-full h-full bg-[#292524]/25 backdrop-blur-[2px] transition-all duration-1000 ease-out pointer-events-none -z-10 ${
           isInCenter ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -171,7 +171,7 @@ export default function AppleCarousel() {
         </button>
       </div>
 
-      {/* Indicateurs de pagination adaptatifs (marchent bien le jour comme la nuit) */}
+      {/* Indicateurs de pagination adaptatifs */}
       <div className="flex justify-center items-center gap-2 mt-8 relative z-20">
         {slides.map((_, i) => (
           <button
