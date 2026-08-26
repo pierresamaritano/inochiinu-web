@@ -32,14 +32,17 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* --- HALOS FAUVE : Très accentué sur le haut/coins, totalement évidé au centre --- */}
+      {/* --- HALOS FAUVE : Réduit en haut, accentué sur les côtés, discret en bas, centre vide --- */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* Bande supérieure très marquée pour le Liquid Glass (accentuée) */}
-        <div className="absolute top-0 inset-x-0 h-[18vh] bg-gradient-to-b from-orange-600/20 via-orange-500/8 to-transparent blur-[50px]"></div>
+        {/* Bande supérieure légèrement réduite */}
+        <div className="absolute top-0 inset-x-0 h-[12vh] bg-gradient-to-b from-orange-600/15 via-orange-500/5 to-transparent blur-[40px]"></div>
         
-        {/* Coins supérieurs très resserrés */}
-        <div className="absolute -top-10 -left-10 w-[25vw] h-[35vh] rounded-full bg-orange-600/15 blur-[90px]"></div>
-        <div className="absolute -top-10 -right-10 w-[25vw] h-[35vh] rounded-full bg-orange-600/15 blur-[90px]"></div>
+        {/* Côtés (latéraux) accentués */}
+        <div className="absolute top-[15%] -left-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
+        <div className="absolute top-[15%] -right-[10%] w-[35vw] h-[70vh] rounded-full bg-orange-600/15 blur-[110px]"></div>
+
+        {/* Léger rappel strict en bas */}
+        <div className="absolute -bottom-10 inset-x-0 h-[15vh] bg-gradient-to-t from-orange-600/10 to-transparent blur-[60px]"></div>
       </div>
 
       <LiquidNavbar />
