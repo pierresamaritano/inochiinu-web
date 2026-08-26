@@ -61,12 +61,12 @@ export default function LiquidNavbar() {
           </div>
         </a>
 
-        {/* Menu Central avec Bulle de suivi */}
+        {/* Menu Central avec Bulle de suivi (Desktop) */}
         <div 
           className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle animée (Effet Loupe & Glace) */}
+          {/* La bulle animée */}
           <div
             className="absolute top-1 bottom-1 rounded-full bg-white/30 backdrop-blur-lg backdrop-saturate-[2.5] shadow-[0_4px_10px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.05)] border border-white/70 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
@@ -115,19 +115,19 @@ export default function LiquidNavbar() {
 
       {/* Panneau du menu mobile */}
       <div
-        className={`md:hidden absolute top-[72px] w-[92%] transition-all duration-300 ease-out origin-top ${
+        className={`md:hidden absolute top-[72px] w-[96%] max-w-4xl transition-all duration-300 ease-out origin-top ${
           isMobileMenuOpen
             ? "opacity-100 scale-100 translate-y-0 visible"
             : "opacity-0 scale-95 -translate-y-4 invisible"
         }`}
       >
-        <div className="flex flex-col gap-2 p-4 mt-2 rounded-3xl bg-white/60 backdrop-blur-2xl backdrop-saturate-[2] border border-white shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
+        <div className="flex flex-col gap-2 p-4 mt-2 rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)]">
           {navItems.map((item) => (
              <a
              key={item.label}
              href={item.href}
              onClick={() => setIsMobileMenuOpen(false)}
-             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 hover:bg-white/80 rounded-2xl transition-all"
+             className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 active:text-stone-900 active:bg-white/40 hover:bg-white/40 hover:shadow-[0_4px_10px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1),inset_0_-1px_1px_rgba(0,0,0,0.02)] border border-transparent hover:border-white/70 active:border-white/70 rounded-2xl transition-all duration-300"
            >
              {item.label}
            </a>
@@ -136,7 +136,7 @@ export default function LiquidNavbar() {
           <a
             href="#reservation"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50/80 rounded-2xl transition-all text-center"
+            className="px-4 py-3 text-sm font-bold text-amber-600 active:bg-amber-100/50 hover:bg-amber-100/50 hover:shadow-[inset_0_1px_2px_rgba(255,255,255,1)] border border-transparent hover:border-white/70 rounded-2xl transition-all duration-300 text-center"
           >
             Réserver un séjour
           </a>
