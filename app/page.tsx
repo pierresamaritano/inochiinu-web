@@ -32,53 +32,74 @@ export default function Home() {
     <div className="min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       <LiquidNavbar />
 
-      {/* Hero Section avec Image de fond */}
-      <section className="relative flex min-h-[90vh] w-full flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-20 text-center">
-        
-        {/* L'image de fond 100% nette (aucun flou global) */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/hero-akita.jpg"
-            alt="Chien primitif dans la nature"
-            className="h-full w-full object-cover"
-          />
-          {/* Dégradé léger uniquement tout en bas pour fondre l'image avec la section d'en dessous */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#FDFCF8] to-transparent"></div>
+      {/* Hero Section - Text Only (Apple Style) */}
+      <section className="relative flex w-full flex-col items-center pt-40 pb-16 text-center px-4">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/50 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
+          <span>Structure Canine & Artisanat</span>
         </div>
+        
+        <h1 className="max-w-4xl text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1]">
+          L'harmonie et l'expertise au service du{" "}
+          <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+            chien primitif
+          </span>
+        </h1>
+        
+        <p className="mx-auto mt-6 max-w-2xl text-lg font-medium text-stone-600 sm:text-xl">
+          Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
+          humaine, accompagnement comportemental et sellerie sur-mesure.
+        </p>
 
-        {/* Le bloc "Liquid Glass" collé autour du texte */}
-        <div className="relative z-10 mx-auto max-w-4xl p-8 sm:p-12 mt-8 rounded-[2.5rem] bg-white/30 backdrop-blur-xl backdrop-saturate-[1.5] border border-white/60 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.1),inset_0_1px_3px_rgba(255,255,255,1)]">
+        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <a
+            href="#pension"
+            className="flex h-14 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-8 font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105"
+          >
+            Réserver un séjour
+          </a>
+          <a
+            href="#elevage"
+            className="flex h-14 items-center justify-center rounded-full border border-stone-300 bg-white px-8 font-bold text-stone-700 shadow-sm transition hover:scale-105 hover:bg-stone-50 hover:text-stone-900"
+          >
+            Découvrir l'élevage
+          </a>
+        </div>
+      </section>
+
+      {/* Hero Carousel - Images Only */}
+      <section className="relative w-full pb-24">
+        {/* Conteneur défilant horizontalement (Snap Scroll) et masquage de la barre de défilement */}
+        <div className="flex w-full snap-x snap-mandatory overflow-x-auto gap-4 sm:gap-6 px-4 sm:px-12 pb-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-white/70 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm backdrop-blur-md">
-            <span>Structure Canine & Artisanat</span>
+          {/* Image 1 : Ta photo principale */}
+          <div className="snap-center shrink-0 w-[85vw] max-w-[800px] aspect-[4/3] sm:aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-lg border border-stone-200/50 relative">
+            <img
+              src="/hero-akita.jpg"
+              alt="Akita Inu"
+              className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+            />
+          </div>
+
+          {/* Image 2 : Image provisoire (à remplacer plus tard) */}
+          <div className="snap-center shrink-0 w-[85vw] max-w-[800px] aspect-[4/3] sm:aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-lg border border-stone-200/50 relative">
+            <img
+              src="https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop"
+              alt="Shiba Inu"
+              className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+            />
+          </div>
+
+          {/* Image 3 : Image provisoire d'extérieur/nature */}
+          <div className="snap-center shrink-0 w-[85vw] max-w-[800px] aspect-[4/3] sm:aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-lg border border-stone-200/50 relative pr-4">
+            <img
+              src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop"
+              alt="Balade canine"
+              className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+            />
           </div>
           
-          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1]">
-            L'harmonie et l'expertise au service du{" "}
-            <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-              chien primitif
-            </span>
-          </h1>
-          
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl">
-            Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
-            humaine, accompagnement comportemental et sellerie sur-mesure.
-          </p>
-
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <a
-              href="#pension"
-              className="flex h-14 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-8 font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105"
-            >
-              Réserver un séjour
-            </a>
-            <a
-              href="#elevage"
-              className="flex h-14 items-center justify-center rounded-full border border-stone-300 bg-white/80 px-8 font-bold text-stone-700 shadow-sm backdrop-blur-md transition hover:scale-105 hover:bg-white hover:text-stone-900"
-            >
-              Découvrir l'élevage
-            </a>
-          </div>
+          {/* Espace vide à la fin pour permettre un beau défilement jusqu'au bout */}
+          <div className="snap-center shrink-0 w-[5vw]"></div>
         </div>
       </section>
 
