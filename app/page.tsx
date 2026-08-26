@@ -41,27 +41,25 @@ export default function Home() {
             alt="Chien primitif dans la nature"
             className="h-full w-full object-cover"
           />
-          {/* Calques d'adoucissement */}
-          <div className="absolute inset-0 bg-[#FDFCF8]/15 backdrop-blur-[1px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/10 to-transparent"></div>
+          {/* Calques d'adoucissement : uniformisés pour un rendu naturel */}
+          <div className="absolute inset-0 bg-[#FDFCF8]/30 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-[#FDFCF8]/40 to-transparent"></div>
         </div>
 
-        {/* Contenu textuel avec HALO CRÈME */}
+        {/* Contenu textuel - Épuré, sans ombres artificielles */}
         <div className="relative z-10 mx-auto max-w-5xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-white/60 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm backdrop-blur-md">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-white/70 px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm backdrop-blur-md">
             <span>Structure Canine & Artisanat</span>
           </div>
           
-          {/* Titre avec ombre crème très diffuse pour le faire ressortir */}
-          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1] [text-shadow:0_0_40px_rgba(253,252,248,1),0_0_15px_rgba(253,252,248,0.9)]">
+          <h1 className="text-5xl font-black tracking-tight text-stone-900 sm:text-7xl sm:leading-[1.1] drop-shadow-sm">
             L'harmonie et l'expertise au service du{" "}
-            <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent [filter:drop-shadow(0_0_10px_rgba(253,252,248,0.9))]">
+            <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
               chien primitif
             </span>
           </h1>
           
-          {/* Sous-titre avec ombre crème */}
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl [text-shadow:0_0_20px_rgba(253,252,248,1),0_0_8px_rgba(253,252,248,0.8)]">
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-bold text-stone-800 sm:text-xl drop-shadow-sm">
             Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
             humaine, accompagnement comportemental et sellerie sur-mesure.
           </p>
