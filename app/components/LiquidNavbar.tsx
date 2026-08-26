@@ -69,14 +69,14 @@ export default function LiquidNavbar() {
           </div>
         </a>
 
-        {/* Menu Central avec Bulle Liquid Glass ajustée à 10% d'opacité */}
+        {/* Menu Central avec Bulle Liquid Glass synchronisée sur le fond */}
         <div 
           className="hidden md:flex items-center relative rounded-full bg-black/[0.04] p-1 border border-black/[0.05] shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)]"
           onMouseLeave={handleMouseLeave}
         >
-          {/* La bulle de survol : Verre cristallin finement dosé (bg-white/10) */}
+          {/* La bulle de survol : Verre optique transparent (sans blanc opaque) qui absorbe les nuances orange du dessous */}
           <div
-            className="absolute top-1 bottom-1 rounded-full bg-white/[0.10] backdrop-blur-xl backdrop-saturate-[2.5] shadow-[0_3px_12px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,0.9)] border border-white/90 transition-all duration-300 ease-out pointer-events-none"
+            className="absolute top-1 bottom-1 rounded-full bg-white/[0.04] backdrop-blur-md backdrop-saturate-[3] shadow-[0_2px_12px_rgba(0,0,0,0.06),inset_0_1px_2px_rgba(255,255,255,0.7),inset_0_-1px_1px_rgba(0,0,0,0.05)] border border-white/70 transition-all duration-300 ease-out pointer-events-none"
             style={bubbleStyle}
           />
 
