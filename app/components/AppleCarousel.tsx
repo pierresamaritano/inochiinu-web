@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface CarouselSlide {
   src: string;
@@ -32,8 +32,33 @@ const slides: CarouselSlide[] = [
 
 export default function AppleCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInCenter, setIsInCenter] = useState(false);
+  
+  const carouselRef = useRef<HTMLElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+
+  // Détection du passage au centre
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInCenter(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: "-25% 0px -25% 0px", 
+        threshold: 0.4 
+      }
+    );
+
+    if (carouselRef.current) {
+      observer.observe(carouselRef.current);
+    }
+
+    return () => {
+      if (carouselRef.current) observer.unobserve(carouselRef.current);
+    };
+  }, []);
 
   const prevSlide = () => {
     setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
@@ -61,7 +86,17 @@ export default function AppleCarousel() {
   };
 
   return (
-    <section className="relative w-full overflow-hidden py-6">
+    <section 
+      ref={carouselRef}
+      className="relative w-full overflow-visible py-6 z-40"
+    >
+      {/* OVERLAY EFFET CINÉMA MAXIMAL : Noir profond (90%) et flou moyen */}
+      <div
+        className={`fixed inset-0 bg-black/90 backdrop-blur-md transition-all duration-1000 ease-out pointer-events-none -z-10 ${
+          isInCenter ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
       {/* Conteneur principal du slider */}
       <div
         className="relative flex items-center justify-center min-h-[380px] sm:min-h-[520px] px-4"
@@ -78,13 +113,13 @@ export default function AppleCarousel() {
               <div
                 key={slide.tag}
                 onClick={() => setCurrentIndex(index)}
-                className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-stone-200/80 ${
+                className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-stone-200/20 ${
                   isActive
                     ? "z-20 scale-100 opacity-100 translate-x-0"
                     : offset === 1 || offset === -(slides.length - 1)
-                    ? "z-10 scale-[0.88] opacity-35 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto"
+                    ? "z-10 scale-[0.88] opacity-30 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto"
                     : offset === -1 || offset === slides.length - 1
-                    ? "z-10 scale-[0.88] opacity-35 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto"
+                    ? "z-10 scale-[0.88] opacity-30 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto"
                     : "z-0 scale-75 opacity-0 pointer-events-none"
                 }`}
               >
@@ -94,8 +129,8 @@ export default function AppleCarousel() {
                   className="h-full w-full object-cover select-none pointer-events-none"
                 />
                 
-                {/* Légende en verre poli en bas de l'image active */}
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                {/* Légende en verre poli */}
+                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/80 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">
                       {slide.tag}
@@ -117,7 +152,7 @@ export default function AppleCarousel() {
         <button
           onClick={prevSlide}
           aria-label="Image précédente"
-          className="hidden md:flex absolute left-8 z-30 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
+          className="hidden md:flex absolute left-8 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg text-white hover:scale-110 hover:bg-white/20 active:scale-95 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -127,7 +162,7 @@ export default function AppleCarousel() {
         <button
           onClick={nextSlide}
           aria-label="Image suivante"
-          className="hidden md:flex absolute right-8 z-30 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
+          className="hidden md:flex absolute right-8 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg text-white hover:scale-110 hover:bg-white/20 active:scale-95 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -135,8 +170,8 @@ export default function AppleCarousel() {
         </button>
       </div>
 
-      {/* Indicateurs de pagination pill (Style Apple) */}
-      <div className="flex justify-center items-center gap-2 mt-8">
+      {/* Indicateurs de pagination */}
+      <div className="flex justify-center items-center gap-2 mt-8 relative z-20">
         {slides.map((_, i) => (
           <button
             key={i}
@@ -144,8 +179,8 @@ export default function AppleCarousel() {
             aria-label={`Aller à la photo ${i + 1}`}
             className={`h-2 rounded-full transition-all duration-300 ${
               i === currentIndex
-                ? "w-8 bg-stone-900"
-                : "w-2 bg-stone-300 hover:bg-stone-400"
+                ? "w-8 bg-white"
+                : "w-2 bg-white/30 hover:bg-white/50"
             }`}
           />
         ))}
