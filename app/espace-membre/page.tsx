@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function EspaceMembre() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,7 +22,6 @@ export default async function EspaceMembre() {
     redirect("/");
   }
 
-  // Récupération du profil utilisateur
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -52,37 +51,30 @@ export default async function EspaceMembre() {
           </form>
         </div>
 
-        {/* Grille des 4 modules de l'espace membre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          
-          {/* Module Pension */}
           <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm">
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">Pension</span>
             <h2 className="text-xl font-bold text-stone-900 mt-2">Mes Séjours & Calendrier</h2>
             <p className="text-sm text-stone-500 mt-2">Consultez les dates réservées et le journal de bord photo.</p>
           </div>
 
-          {/* Module Éducation */}
           <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm">
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">Éducation</span>
             <h2 className="text-xl font-bold text-stone-900 mt-2">Suivi des Progrès</h2>
             <p className="text-sm text-stone-500 mt-2">Grille des acquis comportementaux et devoirs de séances.</p>
           </div>
 
-          {/* Module Élevage */}
           <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm">
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">Élevage</span>
             <h2 className="text-xl font-bold text-stone-900 mt-2">Croissance du Chiot</h2>
             <p className="text-sm text-stone-500 mt-2">Courbe de poids interactive et timeline de développement.</p>
           </div>
 
-          {/* Module Sellerie */}
           <div className="p-8 rounded-[2rem] bg-white/70 border border-stone-200/80 shadow-sm">
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">Sellerie</span>
             <h2 className="text-xl font-bold text-stone-900 mt-2">Configurateur Sur-Mesure</h2>
             <p className="text-sm text-stone-500 mt-2">Personnalisation de laisses et suivi de fabrication atelier.</p>
           </div>
-
         </div>
       </div>
     </div>
