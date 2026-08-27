@@ -124,15 +124,21 @@ export default function PensionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
+  const [hasSecondDog, setHasSecondDog] = useState(false);
+  
   const [formData, setFormData] = useState({
     dog_id: "",
     dogName: "",
     dogBreed: "",
+    dog2_id: "",
+    dog2Name: "",
+    dog2Breed: "",
     startDate: "",
     endDate: "",
     clientPhone: "",
     specialNeeds: "",
   });
+
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -226,8 +232,49 @@ export default function PensionPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!formData.dog_id) {
+      alert("Veuillez sélectionner au moins un premier chien.");
+      return;
+    }
+    if (hasSecondDog && !formData.dog2_id) {
+      alert("Veuillez sélectionner le deuxième chien, ou décochez l'option.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // On regroupe les infos si deux chiens partagent le box
+      const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
+      const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
+      
+      const { error } = await supabase.from("pension_requests").insert([
+        {
+          user_id: user.id,
+          dog_id: formData.dog_id, // L'ID du chien principal sert de référence
+          client_name: user.user_metadata?.full_name || "Client",
+          client_email: user.email,
+          client_phone: formData.clientPhone,
+          dog_name: finalDogName,
+          dog_breed: finalDogBreed,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          special_needs: formData.specialNeeds,
+          status: "en_attente",
+        },
+      ]);
+      if (error) throw error;
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
 
     if (!formData.dog_id) {
       alert("Veuillez sélectionner ou ajouter un chien pour la réservation.");
@@ -606,6 +653,42 @@ export default function PensionPage() {
                         }
                       />
                     )}
+                    {/* OPTION CHIEN 2 */}
+                    {user && (
+                      <div className="mt-2">
+                        {!hasSecondDog ? (
+                          <button
+                            type="button"
+                            onClick={() => setHasSecondDog(true)}
+                            className="text-[11px] font-black text-orange-600 hover:text-orange-700 cursor-pointer flex items-center gap-1"
+                          >
+                            + Ajouter un deuxième chien (même box)
+                          </button>
+                        ) : (
+                          <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 relative mt-4">
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                setHasSecondDog(false);
+                                setFormData({ ...formData, dog2_id: "", dog2Name: "", dog2Breed: "" });
+                              }}
+                              className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
+                            >
+                              ✕ Retirer
+                            </button>
+                            <p className="text-[10px] font-black uppercase text-orange-700 mb-3">Deuxième pensionnaire</p>
+                            <ClientDogSelector
+                              isAdmin={false}
+                              currentUserId={user.id}
+                              onDogSelected={(dog) =>
+                                setFormData({ ...formData, dog2_id: dog.id, dog2Name: dog.name, dog2Breed: dog.breed })
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
 
                     <div className="pt-4 flex justify-end">
                       <button 

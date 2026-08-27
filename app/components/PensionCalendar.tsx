@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 
 interface PensionCalendarProps {
   startDate: string;
@@ -10,64 +11,83 @@ interface PensionCalendarProps {
 
 export default function PensionCalendar({ startDate, endDate, onChange }: PensionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [reservations, setReservations] = useState<any[]>([]);
 
-  // Navigation des mois
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // Jours du mois
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
-  // Ajuster pour que la semaine commence le lundi (0 = Lundi, 6 = Dimanche)
   const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
   // =========================================================================
-  // SIMULATEUR DE DISPONIBILITÉ (À remplacer plus tard par Supabase)
+  // RÉCUPÉRATION SUPABASE EN TEMPS RÉEL
   // =========================================================================
-  const getAvailability = (day: number) => {
-    const date = new Date(year, month, day);
-    const dayOfWeek = date.getDay();
-    
-    // Simulation : Les week-ends sont très demandés (Forte affluence)
-    if (dayOfWeek === 0 || dayOfWeek === 6) return { available: 2, status: "haute" };
-    // Simulation : Le 15 et 16 du mois sont complets
-    if (day === 15 || day === 16) return { available: 0, status: "complet" };
-    
-    // Le reste du temps, c'est calme
-    return { available: 5, status: "basse" }; 
-  };
+  useEffect(() => {
+    const fetchReservations = async () => {
+      const { data } = await supabase
+        .from("pension_requests")
+        .select("start_date, end_date")
+        .eq("status", "validée"); // ➔ Modifiez ici si votre statut s'appelle autrement (ex: 'acceptee')
+      
+      setReservations(data || []);
+    };
+    fetchReservations();
+  }, [month, year, supabase]);
 
   // =========================================================================
-  // GESTION DU CLIC ET DE LA SÉLECTION (Plage de dates)
+  // CALCUL DES DISPONIBILITÉS (Max 6 boxs)
   // =========================================================================
+  const getAvailability = (day: number) => {
+    // Formatage sécurisé de la date en YYYY-MM-DD
+    const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
+    
+    let boxesOccupes = 0;
+    
+    reservations.forEach((res) => {
+      // Si la date du calendrier tombe pendant le séjour d'un chien
+      if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
+        boxesOccupes++;
+      }
+    });
+
+    const available = Math.max(0, 6 - boxesOccupes);
+    
+    let status = "basse";
+    if (available === 0) status = "complet";
+    else if (available <= 3) status = "haute";
+    
+    return { available, status };
+  };
+
   const handleDayClick = (day: number) => {
     const { status } = getAvailability(day);
-    if (status === "complet") return; // On empêche le clic si c'est complet
+    if (status === "complet") return; 
 
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
 
     if (!startDate || (startDate && endDate)) {
-      // Nouvelle sélection
       onChange(clickedDate, "");
     } else {
-      // Sélection de la date de fin
       if (clickedDate > startDate) {
         onChange(startDate, clickedDate);
       } else {
-        onChange(clickedDate, ""); // Si on clique avant, ça devient la nouvelle date de début
+        onChange(clickedDate, ""); 
       }
     }
   };
 
-  // =========================================================================
-  // GÉNÉRATION DE LA LÉGENDE DU MOIS EN COURS
-  // =========================================================================
   const getBusyPeriodsText = () => {
     let hauteAffluence = [];
     let complets = [];
@@ -90,23 +110,19 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
         {hauteAffluence.length > 0 && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0 mt-0.5"></span>
-            <p><strong>Forte demande (1 à 3 boxs) :</strong> Les {hauteAffluence.join(", ")}.</p>
+            <p><strong>Forte demande (1 à 3 boxs restants) :</strong> Les {hauteAffluence.join(", ")}.</p>
           </div>
         )}
         <div className="flex items-start gap-2 mt-2 pt-2 border-t border-stone-200/60">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 mt-0.5"></span>
-          <p>Le reste du mois bénéficie d'une disponibilité optimale (4 à 6 boxs).</p>
+          <p>Le reste du mois bénéficie d'une disponibilité optimale.</p>
         </div>
       </div>
     );
   };
 
-  // =========================================================================
-  // RENDU DU CALENDRIER
-  // =========================================================================
   return (
     <div className="w-full">
-      {/* En-tête du calendrier */}
       <div className="flex items-center justify-between mb-4 px-2">
         <button type="button" onClick={prevMonth} className="p-2 hover:bg-stone-100 rounded-full cursor-pointer text-stone-600 font-bold">←</button>
         <span className="text-sm font-black text-stone-900 uppercase tracking-wide">
@@ -115,39 +131,30 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
         <button type="button" onClick={nextMonth} className="p-2 hover:bg-stone-100 rounded-full cursor-pointer text-stone-600 font-bold">→</button>
       </div>
 
-      {/* Jours de la semaine */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {dayNames.map(day => (
-          <div key={day} className="text-center text-[10px] font-black uppercase text-stone-400">
-            {day}
-          </div>
+          <div key={day} className="text-center text-[10px] font-black uppercase text-stone-400">{day}</div>
         ))}
       </div>
 
-      {/* Grille des jours */}
       <div className="grid grid-cols-7 gap-1">
-        {/* Cases vides pour décaler le 1er du mois */}
         {Array.from({ length: startDay }).map((_, i) => (
           <div key={`empty-${i}`} className="h-12 rounded-xl bg-transparent" />
         ))}
 
-        {/* Cases des jours */}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
-          const { available, status } = getAvailability(day);
-          
+          const { status } = getAvailability(day);
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           
           const isSelectedStart = startDate === currentISODate;
           const isSelectedEnd = endDate === currentISODate;
           const isBetween = startDate && endDate && currentISODate > startDate && currentISODate < endDate;
-          
           const isComplet = status === "complet";
 
-          // Définition des couleurs de fond et bordures selon l'état et la sélection
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
           let textClass = "text-stone-700";
-          let badgeColor = "bg-emerald-400"; // Basse affluence par défaut
+          let badgeColor = "bg-emerald-400"; 
 
           if (status === "haute") badgeColor = "bg-orange-400";
           if (status === "complet") badgeColor = "bg-red-500";
@@ -158,7 +165,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
           } else if (isSelectedStart || isSelectedEnd) {
             bgClass = "bg-orange-600 border border-orange-600 shadow-md";
             textClass = "text-white font-black";
-            badgeColor = "bg-white"; // On met le badge en blanc si la case est orange
+            badgeColor = "bg-white"; 
           } else if (isBetween) {
             bgClass = "bg-orange-50 border border-orange-100";
             textClass = "text-orange-900 font-bold";
@@ -173,25 +180,15 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
               className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
             >
               <span className={`text-xs ${textClass}`}>{day}</span>
-              
-              {/* Petit point de couleur pour l'affluence */}
               <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${badgeColor}`}></span>
-
-              {/* Mention "Complet" sur la case */}
-              {isComplet && (
-                <span className="absolute bottom-1 text-[8px] font-bold text-red-500 uppercase tracking-tighter">
-                  Plein
-                </span>
-              )}
+              {isComplet && <span className="absolute bottom-1 text-[8px] font-bold text-red-500 uppercase tracking-tighter">Plein</span>}
             </button>
           );
         })}
       </div>
 
-      {/* Affichage de la légende calculée */}
       {getBusyPeriodsText()}
       
-      {/* Rappel des dates sélectionnées */}
       <div className="mt-4 flex items-center justify-between text-xs font-bold text-stone-600 bg-white p-3 rounded-2xl border border-stone-200">
         <div>
           <span className="block text-[10px] uppercase text-stone-400">Arrivée</span>
