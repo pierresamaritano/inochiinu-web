@@ -130,7 +130,6 @@ export default function LiquidNavbar() {
     setBubbleStyle((prev) => ({ ...prev, opacity: 0 }));
   };
 
-  // Liens pointant vers les vraies pages dédiées
   const navItems = [
     { label: "Élevage", href: "/elevage" },
     { label: "Pension", href: "/pension" },
@@ -142,13 +141,13 @@ export default function LiquidNavbar() {
     <>
       <header className="fixed top-0 inset-x-0 z-50 flex flex-col items-center pt-4 transition-all duration-300">
         <nav
-          className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-300 ease-out z-50 ${
+          className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
             scrolled || isMobileMenuOpen
-              ? "w-[92%] max-w-4xl bg-white/50 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
-              : "w-[96%] max-w-5xl bg-white/30 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1)] border border-white/70"
+              ? "w-[92%] max-w-5xl bg-white/50 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
+              : "w-[96%] max-w-[calc(64rem+20vw)] xl:max-w-7xl bg-white/30 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1)] border border-white/70"
           }`}
         >
-          <a href="/" className="flex items-center gap-2.5 group">
+          <a href="/" className="flex items-center gap-2.5 group shrink-0">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-stone-900 font-black text-xs shadow-[inset_0_1px_2px_rgba(255,255,255,0.5),0_2px_4px_rgba(249,115,22,0.3)]">
               犬
             </div>
@@ -177,7 +176,7 @@ export default function LiquidNavbar() {
                 href={item.href}
                 onMouseEnter={handleMouseEnter}
                 className={`relative z-10 px-4 py-1.5 text-xs font-bold transition-colors duration-200 ${
-                  pathname === item.href ? "text-orange-600" : "text-stone-600 hover:text-stone-900"
+                  pathname === item.href ? "text-orange-600 font-black" : "text-stone-600 hover:text-stone-900"
                 }`}
               >
                 {item.label}
@@ -185,7 +184,7 @@ export default function LiquidNavbar() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* BOUTON DYNAMIQUE DESKTOP */}
             {user ? (
               pathname === "/espace-membre" ? (
@@ -233,7 +232,7 @@ export default function LiquidNavbar() {
 
         {/* MENU MOBILE DÉROULANT */}
         <div
-          className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
+          className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-5xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
             isMobileMenuOpen
               ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
               : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
