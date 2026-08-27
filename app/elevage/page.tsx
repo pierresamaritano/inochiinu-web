@@ -14,6 +14,9 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
+  // Onglet pour le type de reproducteur ("etalon" ou "lice")
+  const [activeTab, setActiveTab] = useState<"etalon" | "lices">("etalon");
+  // Index de la lice sélectionnée (2 au départ, extensible à 4)
   const [selectedLice, setSelectedLice] = useState(0);
 
   const [step, setStep] = useState(1);
@@ -68,98 +71,129 @@ export default function ElevagePage() {
     },
   ];
 
-  // CONFIGURATION DES LICES (Actuellement 2, extensible jusqu'à 4)
+  // DONNÉES DE L'ÉTALON (Baiko - Kazan No)
+  const etalon = {
+    name: "Baïko (Ryu)",
+    affixe: "Affixe Kazan No",
+    role: "Étalon Reproducteur",
+    titles: "Lignées de Champions Internationaux & Japonais",
+    description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
+    father: {
+      name: "Katsunori Go Senshi Shimai",
+      origin: "Import Pologne",
+      titles: "CH Junior France • Titré CACIB",
+      desc: "Descendant direct des illustres affixes Senshi No Inu et Isegumo Kensha. Construction robuste et expression typique.",
+      gParents: [
+        { role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" },
+        { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" },
+      ],
+      ggParents: [
+        "Hiryuu Go Rokkuhando Touwa",
+        "Aihime Go Amakusa Tajiri",
+        "Kou Zan Go Shun'You Kensha",
+        "Lignée Senshi No Inu",
+      ],
+    },
+    mother: {
+      name: "CH. Kazan No Teïumi",
+      origin: "Affixe Kazan No",
+      titles: "Championne de France • Junior World Winner",
+      desc: "Fille directe de CH. Kazan No Rumi (Championne de France et Hozonkai). Expression d'une grande noblesse et tempérament calme.",
+      gParents: [
+        { role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha", details: "Import Italie / Akiho" },
+        { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi", details: "CH France • Vainqueur Hozonkai" },
+      ],
+      ggParents: [
+        "Kanon Go Tamashi Kensha",
+        "Lignée Sara Hana",
+        "Kobe No Minami Go Tamashi",
+        "CH. Nayakiwa Go Tokimitsu",
+      ],
+    },
+  };
+
+  // MAQUETTE DES LICES (2 lices au départ, extensible à 4)
   const lices = [
     {
       id: "lice-1",
-      name: "Première Lice",
-      affixe: "Affixe Kazan No",
-      titles: "Lignée Haute Sélection",
-      description: "Notre lice fondatrice, réputée pour sa douceur, son équilibre mental irréprochable et sa conformité au standard japonais.",
+      name: "Lice 1 (À venir)",
+      affixe: "Affixe Officiel LOF",
+      role: "Lice Reproductrice",
+      titles: "Sélection LOF & Standard Japonais",
+      description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.",
       father: {
-        name: "Katsunori Go Senshi Shimai",
-        origin: "Import Pologne",
-        titles: "Champion Junior France • CACIB",
-        desc: "Excellente ossature, port altier et pelage dense conforme aux critères stricts du standard.",
+        name: "Père de la Lice 1",
+        origin: "Lignée Sélectionnée",
+        titles: "Certifié LOF • Cotation d'Élevage",
+        desc: "Excellente tête, aplombs parfaits et tempérament stable.",
         gParents: [
-          { role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" },
-          { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" },
+          { role: "Grand-Père Paternel", name: "Grand-Père Paternel L1" },
+          { role: "Grand-Mère Paternelle", name: "Grand-Mère Paternelle L1", details: "Cotation Recommandée" },
         ],
         ggParents: [
-          "Hiryuu Go Rokkuhando Touwa",
-          "Aihime Go Amakusa Tajiri",
-          "Kou Zan Go Shun'You Kensha",
-          "Lignée Senshi No Inu",
+          "Arrière-Grand-Père 1",
+          "Arrière-Grand-Mère 1",
+          "Arrière-Grand-Père 2",
+          "Arrière-Grand-Mère 2",
         ],
       },
       mother: {
-        name: "CH. Kazan No Teïumi",
-        origin: "Affixe Kazan No",
-        titles: "Championne de France • Junior World Winner",
-        desc: "Fille de CH. Kazan No Rumi, alliant noblesse du regard, stature harmonieuse et tempérament calme.",
+        name: "Mère de la Lice 1",
+        origin: "Lignée Reconnue",
+        titles: "Excellente en Exposition LOF",
+        desc: "Lignée indemne de dysplasie et testée génétiquement.",
         gParents: [
-          { role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha", details: "Import Italie / Akiho" },
-          { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi", details: "CH France • Vainqueur Hozonkai" },
+          { role: "Grand-Père Maternel", name: "Grand-Père Maternel L1", details: "Titré Exposition" },
+          { role: "Grand-Mère Maternelle", name: "Grand-Mère Maternelle L1", details: "Lignée Primée" },
         ],
         ggParents: [
-          "Kanon Go Tamashi Kensha",
-          "Lignée Sara Hana",
-          "Kobe No Minami Go Tamashi",
-          "CH. Nayakiwa Go Tokimitsu",
+          "Arrière-Grand-Père 3",
+          "Arrière-Grand-Mère 3",
+          "Arrière-Grand-Père 4",
+          "Arrière-Grand-Mère 4",
         ],
       },
     },
     {
       id: "lice-2",
-      name: "Deuxième Lice",
+      name: "Lice 2 (À venir)",
       affixe: "Affixe Officiel LOF",
-      titles: "Sélection Standard & Caractère",
-      description: "Une lice au tempérament doux et attentif, issue de lignées reconnues pour leur robustesse et leur stabilité émotionnelle.",
+      role: "Lice Reproductrice",
+      titles: "Sélection Caractère & Morphologie",
+      description: "Deuxième lice intégrant notre programme d'élevage familial. Éveil, câlins et socialisation assurés au salon.",
       father: {
-        name: "Étalon Sélectionné LOF",
-        origin: "Lignée Reconnue",
-        titles: "Certifié LOF • Cotation d'Élevage",
-        desc: "Morphologie puissante et tête typée avec un masque franc.",
+        name: "Père de la Lice 2",
+        origin: "Import / Sélection LOF",
+        titles: "Certifié LOF",
+        desc: "Ossature robuste et excellente qualité de fourrure.",
         gParents: [
-          { role: "Grand-Père Paternel", name: "Lignée Japonaise Pure" },
-          { role: "Grand-Mère Paternelle", name: "Lignée Européenne Titrée", details: "Recommandée LOF" },
+          { role: "Grand-Père Paternel", name: "Grand-Père Paternel L2" },
+          { role: "Grand-Mère Paternelle", name: "Grand-Mère Paternelle L2", details: "Recommandée LOF" },
         ],
         ggParents: [
-          "Ascendant Direct Japon",
-          "Lignée Sélectionnée",
-          "Champion National",
-          "Lignée Primée",
+          "Arrière-Grand-Père 5",
+          "Arrière-Grand-Mère 5",
+          "Arrière-Grand-Père 6",
+          "Arrière-Grand-Mère 6",
         ],
       },
       mother: {
-        name: "Lice Primée LOF",
-        origin: "Élevage Sélectionné",
-        titles: "Excellente en Exposition",
-        desc: "Tempérament posé et transmission d'une excellente construction osseuse.",
+        name: "Mère de la Lice 2",
+        origin: "Lignée Sélectionnée",
+        titles: "Confirmée LOF",
+        desc: "Tempérament posé et maternel.",
         gParents: [
-          { role: "Grand-Père Maternel", name: "Grand-Père LOF Primé", details: "Champion Régional" },
-          { role: "Grand-Mère Maternelle", name: "Grand-Mère Recommandée", details: "Cotation 4" },
+          { role: "Grand-Père Maternel", name: "Grand-Père Maternel L2", details: "Champion Régional" },
+          { role: "Grand-Mère Maternelle", name: "Grand-Mère Maternelle L2", details: "Cotation 4" },
         ],
         ggParents: [
-          "Lignée Importée",
-          "Sélection Beauté",
-          "Lignée Confirmée",
-          "Lignée Championne",
+          "Arrière-Grand-Père 7",
+          "Arrière-Grand-Mère 7",
+          "Arrière-Grand-Père 8",
+          "Arrière-Grand-Mère 8",
         ],
       },
     },
-    /* Pour ajouter une 3ème ou 4ème lice, décommentez et complétez les blocs suivants :
-    {
-      id: "lice-3",
-      name: "Troisième Lice",
-      ...
-    },
-    {
-      id: "lice-4",
-      name: "Quatrième Lice",
-      ...
-    }
-    */
   ];
 
   useEffect(() => {
@@ -241,7 +275,7 @@ export default function ElevagePage() {
     }
   };
 
-  const currentLiceData = lices[selectedLice];
+  const currentProfile = activeTab === "etalon" ? etalon : lices[selectedLice];
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -366,7 +400,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE & LIGNÉES DES LICES */}
+      {/* SECTION PEDIGREE : ÉTALON & LICES */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-10">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
@@ -375,32 +409,60 @@ export default function ElevagePage() {
                 Génétique & Standard Japonais
               </span>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-                Le pedigree de nos lices reproductrices
+                Pedigree de nos reproducteurs LOF
               </h2>
               <p className="mt-2 max-w-2xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
-                Consultez l'arbre généalogique et la sélection de nos chiennes reproductrices, alliant conformité au standard et tempérament d'une rare stabilité.
+                Consultez l'arbre généalogique certifié sur 3 générations de notre étalon et de nos lices reproductrices.
               </p>
             </div>
 
-            {/* SÉLECTEUR D'ONGLETS POUR LES LICES (2 AU DÉPART, EXTENSIBLE JUSQU'À 4) */}
-            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-stone-100 border border-stone-200 shrink-0">
-              {lices.map((lice, index) => (
+            {/* SÉLECTEUR ÉTALON / LICES */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-stone-100 border border-stone-200">
                 <button
-                  key={lice.id}
-                  onClick={() => setSelectedLice(index)}
+                  onClick={() => setActiveTab("etalon")}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    selectedLice === index
-                      ? "bg-white text-stone-900 shadow-sm border border-stone-200/60"
+                    activeTab === "etalon"
+                      ? "bg-stone-900 text-white shadow-sm"
                       : "text-stone-500 hover:text-stone-900"
                   }`}
                 >
-                  {lice.name}
+                  🐕 Étalon (Baïko)
                 </button>
-              ))}
+                <button
+                  onClick={() => setActiveTab("lices")}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "lices"
+                      ? "bg-stone-900 text-white shadow-sm"
+                      : "text-stone-500 hover:text-stone-900"
+                  }`}
+                >
+                  🌸 Nos Lices
+                </button>
+              </div>
+
+              {/* SOUS-ONGLETS POUR LES LICES (2 configurées, extensible à 4) */}
+              {activeTab === "lices" && (
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-orange-50 border border-orange-200/60 animate-fade-in">
+                  {lices.map((lice, index) => (
+                    <button
+                      key={lice.id}
+                      onClick={() => setSelectedLice(index)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        selectedLice === index
+                          ? "bg-orange-500 text-white shadow-xs"
+                          : "text-orange-700 hover:text-orange-950"
+                      }`}
+                    >
+                      {lice.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* PALMARÈS ET LIGNÉES DES PARENTS DE LA LICE SÉLECTIONNÉE */}
+          {/* PALMARÈS ET LIGNÉES DU REPRODUCTEUR SÉLECTIONNÉ */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* PÈRE */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
@@ -409,16 +471,16 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Paternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">{currentLiceData.father.origin}</span>
+                  <span className="text-xs font-bold text-stone-400">{currentProfile.father.origin}</span>
                 </div>
                 <h3 className="text-lg font-black text-stone-900">
-                  {currentLiceData.father.name}
+                  {currentProfile.father.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
-                  {currentLiceData.father.titles}
+                  {currentProfile.father.titles}
                 </p>
                 <p className="mt-3 text-xs text-stone-500 leading-relaxed">
-                  {currentLiceData.father.desc}
+                  {currentProfile.father.desc}
                 </p>
               </div>
             </div>
@@ -430,29 +492,31 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Maternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">{currentLiceData.mother.origin}</span>
+                  <span className="text-xs font-bold text-stone-400">{currentProfile.mother.origin}</span>
                 </div>
                 <h3 className="text-lg font-black text-stone-900">
-                  {currentLiceData.mother.name}
+                  {currentProfile.mother.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
-                  {currentLiceData.mother.titles}
+                  {currentProfile.mother.titles}
                 </p>
                 <p className="mt-3 text-xs text-stone-500 leading-relaxed">
-                  {currentLiceData.mother.desc}
+                  {currentProfile.mother.desc}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* ARBRE GÉNÉALOGIQUE INTERACTIF SUR 3 GÉNÉRATIONS */}
+          {/* ARBRE GÉNÉALOGIQUE SUR 3 GÉNÉRATIONS */}
           <div className="rounded-[2.5rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase text-orange-600">Arbre Généalogique Officiel</span>
-                <h3 className="text-lg font-black text-stone-900">Pedigree LOF certifié sur 3 générations — {currentLiceData.name}</h3>
+                <h3 className="text-lg font-black text-stone-900">
+                  Pedigree certifié — {currentProfile.name}
+                </h3>
               </div>
-              <span className="text-xs font-bold text-stone-400">{currentLiceData.affixe}</span>
+              <span className="text-xs font-bold text-stone-400">{currentProfile.affixe}</span>
             </div>
 
             <div className="overflow-x-auto pb-4">
@@ -463,14 +527,14 @@ export default function ElevagePage() {
                   
                   <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Père</span>
-                    <p className="font-black text-stone-900">{currentLiceData.father.name}</p>
-                    <p className="text-[10px] text-stone-500 font-medium">{currentLiceData.father.titles}</p>
+                    <p className="font-black text-stone-900">{currentProfile.father.name}</p>
+                    <p className="text-[10px] text-stone-500 font-medium">{currentProfile.father.titles}</p>
                   </div>
 
                   <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Mère</span>
-                    <p className="font-black text-stone-900">{currentLiceData.mother.name}</p>
-                    <p className="text-[10px] text-stone-500 font-medium">{currentLiceData.mother.titles}</p>
+                    <p className="font-black text-stone-900">{currentProfile.mother.name}</p>
+                    <p className="text-[10px] text-stone-500 font-medium">{currentProfile.mother.titles}</p>
                   </div>
                 </div>
 
@@ -479,31 +543,31 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">2ème Génération</span>
                   
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.father.gParents[0].role}</span>
-                    <p className="font-bold text-stone-800">{currentLiceData.father.gParents[0].name}</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.father.gParents[0].role}</span>
+                    <p className="font-bold text-stone-800">{currentProfile.father.gParents[0].name}</p>
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.father.gParents[1].role}</span>
-                    <p className="font-bold text-stone-800">{currentLiceData.father.gParents[1].name}</p>
-                    {currentLiceData.father.gParents[1].details && (
-                      <p className="text-[10px] text-stone-400">{currentLiceData.father.gParents[1].details}</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.father.gParents[1].role}</span>
+                    <p className="font-bold text-stone-800">{currentProfile.father.gParents[1].name}</p>
+                    {currentProfile.father.gParents[1].details && (
+                      <p className="text-[10px] text-stone-400">{currentProfile.father.gParents[1].details}</p>
                     )}
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.mother.gParents[0].role}</span>
-                    <p className="font-bold text-stone-800">{currentLiceData.mother.gParents[0].name}</p>
-                    {currentLiceData.mother.gParents[0].details && (
-                      <p className="text-[10px] text-stone-400">{currentLiceData.mother.gParents[0].details}</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.mother.gParents[0].role}</span>
+                    <p className="font-bold text-stone-800">{currentProfile.mother.gParents[0].name}</p>
+                    {currentProfile.mother.gParents[0].details && (
+                      <p className="text-[10px] text-stone-400">{currentProfile.mother.gParents[0].details}</p>
                     )}
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.mother.gParents[1].role}</span>
-                    <p className="font-bold text-stone-800">{currentLiceData.mother.gParents[1].name}</p>
-                    {currentLiceData.mother.gParents[1].details && (
-                      <p className="text-[10px] text-stone-400">{currentLiceData.mother.gParents[1].details}</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.mother.gParents[1].role}</span>
+                    <p className="font-bold text-stone-800">{currentProfile.mother.gParents[1].name}</p>
+                    {currentProfile.mother.gParents[1].details && (
+                      <p className="text-[10px] text-stone-400">{currentProfile.mother.gParents[1].details}</p>
                     )}
                   </div>
                 </div>
@@ -512,12 +576,12 @@ export default function ElevagePage() {
                 <div className="space-y-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">3ème Génération</span>
                   
-                  {currentLiceData.father.ggParents.map((name, i) => (
+                  {currentProfile.father.ggParents.map((name, i) => (
                     <div key={`f-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
                       {name}
                     </div>
                   ))}
-                  {currentLiceData.mother.ggParents.map((name, i) => (
+                  {currentProfile.mother.ggParents.map((name, i) => (
                     <div key={`m-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
                       {name}
                     </div>
@@ -530,20 +594,20 @@ export default function ElevagePage() {
           {/* POINTS CLÉS DU PEDIGREE */}
           <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md">
             <h3 className="text-base font-black tracking-tight text-white mb-4">
-              Les piliers de cette sélection :
+              Les piliers de notre élevage :
             </h3>
             <div className="grid gap-4 sm:grid-cols-3 text-xs text-stone-300 font-medium">
               <div className="border-l-2 border-orange-500 pl-3 space-y-1">
                 <span className="font-bold text-white block">Conformité au Standard</span>
-                <span>Têtes typées, expressions franches et constructions robustes reconnues en concours.</span>
+                <span>Têtes typées, expressions franches et constructions robustes certifiées LOF.</span>
               </div>
               <div className="border-l-2 border-orange-500 pl-3 space-y-1">
-                <span className="font-bold text-white block">Santé Contrôlée</span>
-                <span>Ascendants radiographiés hanches/coudes, indemnes de tares oculaires et testés ADN.</span>
+                <span className="font-bold text-white block">Santé & Tests Génétiques</span>
+                <span>Radiographies hanches/coudes, dépistages tares oculaires et identification ADN.</span>
               </div>
               <div className="border-l-2 border-orange-500 pl-3 space-y-1">
-                <span className="font-bold text-white block">Équilibre Mental</span>
-                <span>Des tempéraments stables, posés et sereins, transmis de génération en génération.</span>
+                <span className="font-bold text-white block">Stabilité Émotionnelle</span>
+                <span>Chiens élevés en famille, calmes, affectueux et équilibrés au quotidien.</span>
               </div>
             </div>
           </div>
