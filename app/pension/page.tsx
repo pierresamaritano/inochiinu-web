@@ -1,10 +1,112 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 
+// =========================================================================
+// TYPES ET COMPOSANT CARROUSEL PENSION (Style Apple)
+// =========================================================================
+interface CarouselSlide {
+  src: string;
+  alt: string;
+  tag: string;
+  caption: string;
+}
+
+const pensionSlides: CarouselSlide[] = [
+  {
+    src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo de vos parcs
+    alt: "Chiens jouant dans les parcs",
+    tag: "Jeux & Liberté",
+    caption: "Détente en plein air et interactions dans nos parcs arborés.",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo d'un box
+    alt: "Box confortable",
+    tag: "Confort Premium",
+    caption: "6 boxs spacieux, isolés et climatisés avec courette.",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo caméra/sécurité
+    alt: "Surveillance",
+    tag: "Sécurité 24/7",
+    caption: "Surveillance vidéo continue pour une tranquillité absolue.",
+  },
+];
+
+function PensionCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInCenter, setIsInCenter] = useState(false);
+  
+  const centerTargetRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { setIsInCenter(entry.isIntersecting); },
+      { root: null, rootMargin: "-45% 0px -45% 0px", threshold: 0 }
+    );
+    if (centerTargetRef.current) observer.observe(centerTargetRef.current);
+    return () => { if (centerTargetRef.current) observer.unobserve(centerTargetRef.current); };
+  }, []);
+
+  const prevSlide = () => setCurrentIndex((prev) => (prev === 0 ? pensionSlides.length - 1 : prev - 1));
+  const nextSlide = () => setCurrentIndex((prev) => (prev === pensionSlides.length - 1 ? 0 : prev + 1));
+
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
+  const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 50) nextSlide();
+    if (distance < -50) prevSlide();
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  return (
+    <section className={`relative w-full transition-all duration-300 ${isInCenter ? "z-[60]" : "z-40"}`}>
+      <div className={`fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-700 ease-out pointer-events-none ${isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"}`} />
+      <div className="relative w-full overflow-x-hidden py-10">
+        <div ref={centerTargetRef} className="absolute top-1/2 left-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="relative flex items-center justify-center min-h-[380px] sm:min-h-[520px] px-4" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+          <div className="relative flex w-full max-w-5xl items-center justify-center">
+            {pensionSlides.map((slide, index) => {
+              const offset = index - currentIndex;
+              const isActive = index === currentIndex;
+              return (
+                <div key={`${slide.tag}-${index}`} onClick={() => setCurrentIndex(index)} className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-stone-200/80 ${isActive ? "z-20 scale-100 opacity-100 translate-x-0" : offset === 1 || offset === -(pensionSlides.length - 1) ? "z-10 scale-[0.85] opacity-25 brightness-75 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-50" : offset === -1 || offset === pensionSlides.length - 1 ? "z-10 scale-[0.85] opacity-25 brightness-75 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto hover:opacity-50" : "z-0 scale-75 opacity-0 pointer-events-none"}`}>
+                  <img src={slide.src} alt={slide.alt} className="h-full w-full object-cover select-none pointer-events-none" />
+                  <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">{slide.tag}</span>
+                      <p className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5">{slide.caption}</p>
+                    </div>
+                    <span className="hidden sm:inline-flex text-[11px] font-bold text-stone-500 bg-white/70 px-3 py-1 rounded-full border border-stone-200">{index + 1} / {pensionSlides.length}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button onClick={prevSlide} className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>
+          <button onClick={nextSlide} className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>
+        </div>
+        <div className="flex justify-center items-center gap-2 mt-8 relative z-40">
+          {pensionSlides.map((_, i) => (
+            <button key={i} onClick={() => setCurrentIndex(i)} className={`h-2 rounded-full transition-all duration-300 ${i === currentIndex ? "w-8 bg-stone-700" : "w-2 bg-stone-300 hover:bg-stone-400"}`} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// =========================================================================
+// PAGE PRINCIPALE PENSION
+// =========================================================================
 export default function PensionPage() {
   const [user, setUser] = useState<any>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -51,7 +153,7 @@ export default function PensionPage() {
 
   const slides = [
     {
-      title: "12 Boxs Spacieux & Isolés",
+      title: "6 Boxs Spacieux & Isolés",
       subtitle: "Un confort thermique total été comme hiver avec accès direct à des courettes individuelles sécurisées.",
       tag: "Capacité Limitée",
       gradient: "from-emerald-950/90 via-stone-900/60 to-black/80",
@@ -155,7 +257,6 @@ export default function PensionPage() {
       setSubmitting(false);
     }
   };
-
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -167,6 +268,7 @@ export default function PensionPage() {
 
       <LiquidNavbar />
 
+      {/* HERO SECTION */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Garde Sérénité & Sécurité</span>
@@ -180,10 +282,11 @@ export default function PensionPage() {
         </h1>
         
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
-          Capacité limitée à 12 places pour un accueil personnalisé, attentif et respectueux du rythme naturel de votre animal.
+          Capacité limitée à 6 places pour un accueil ultra-personnalisé, attentif et respectueux du rythme naturel de votre animal.
         </p>
       </section>
 
+      {/* CARROUSEL VALEURS HERO */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           {slides.map((slide, index) => (
@@ -225,6 +328,7 @@ export default function PensionPage() {
         </div>
       </section>
 
+      {/* BANDEAU RÉSERVATION */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -232,11 +336,11 @@ export default function PensionPage() {
               Réserver un séjour en pension
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">
-              Vérifiez la disponibilité de nos 12 boxs et bloquez vos dates en toute tranquillité.
+              Vérifiez la disponibilité de nos 6 boxs et bloquez vos dates en toute tranquillité.
             </p>
           </div>
           <button
-            onClick={handleInitialClick} // <--- MODIFICATION ICI
+            onClick={handleInitialClick}
             className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
             Réserver un séjour
@@ -257,33 +361,35 @@ export default function PensionPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
+            {/* CARTE 1 : 6 BOXS */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                  12 Boxs Uniquement
+                  6 Boxs Uniquement
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
                   Espaces Individuels
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Boxs carrelés, isolés et nettoyés quotidiennement avec literie confortable et musique d'ambiance apaisante.
+                  Boxs carrelés, isolés et nettoyés quotidiennement avec literie confortable et accès direct à une courette privée.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-stone-400">
-                Isolation thermique renforcée
+                Hygiène rigoureuse
               </div>
             </div>
 
+            {/* CARTE 2 : DÉTENTE & LIBERTÉ */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                  Détente & Sécurité
+                  Détente & Liberté
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
                   Parcs Clôturés
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Plusieurs parcs arborés et sécurisés pour des moments de liberté, jeux de flair et baignades en été.
+                  Plusieurs parcs arborés et sécurisés pour des moments de liberté totale, des jeux de flair et des baignades en été.
                 </p>
               </div>
               <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-stone-400">
@@ -291,205 +397,17 @@ export default function PensionPage() {
               </div>
             </div>
 
+            {/* CARTE 3 : CAMÉRAS & CLIMATISATION */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                  Attention Quotidienne
+                  Caméras & Climatisation
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
-                  Soins Personnalisés
+                  Sécurité & Confort
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Administration des traitements médicaux, respect des régimes spécifiques (BARF / croquettes) et câlins réguliers.
+                  Surveillance vidéo continue 24h/24, espace intérieur thermorégulé avec chauffage l'hiver et climatisation l'été.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-stone-400">
-                Surveillance continue
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
-        <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
-      </footer>
-
-      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
-      {showInfoModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-            <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
-            
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">
-              ℹ️
-            </div>
-            <h3 className="text-xl font-black text-stone-900">Avant de réserver...</h3>
-            
-            <div className="mt-4 space-y-3 text-sm text-stone-600 leading-relaxed">
-              <p>Pour garantir la sécurité et le bien-être de tous nos pensionnaires, voici nos prérequis :</p>
-              <ul className="list-disc pl-5 space-y-1 font-medium text-stone-700">
-                <li><strong className="text-stone-900">Vaccins à jour obligatoires</strong> (incluant la toux du chenil).</li>
-                <li>Chien identifié (puce ou tatouage).</li>
-                <li>Traitement antiparasitaire de moins d'un mois.</li>
-              </ul>
-              <p className="text-xs text-stone-500 italic">Un justificatif vous sera demandé à votre arrivée.</p>
-            </div>
-
-            <label className="mt-6 flex items-center gap-3 p-3 rounded-2xl bg-stone-100 border border-stone-200 cursor-pointer hover:bg-stone-200/50 transition-colors">
-              <input 
-                type="checkbox" 
-                checked={dontShowAgain} 
-                onChange={(e) => setDontShowAgain(e.target.checked)} 
-                className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" 
-              />
-              <span className="text-xs font-bold text-stone-600">J'ai compris, ne plus afficher ce message.</span>
-            </label>
-
-            <button
-              onClick={handleContinueFromInfo}
-              className="mt-6 w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md"
-            >
-              Continuer vers la réservation
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODALE CONNEXION */}
-      {isAuthOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-            <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
-              <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
-              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation de pension et recevoir vos photos quotidiennes.</p>
-            </div>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={authLoading}
-              className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
-            >
-              <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODALE FORMULAIRE PENSION */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
-
-            {submitted ? (
-              <div className="text-center py-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Demande de séjour reçue !</h3>
-                <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des 12 boxs et validons votre demande rapidement.</p>
-                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 2</span>
-                    <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Dates & Chien" : "Besoins & Contact"}</h3>
-                  </div>
-                </div>
-
-                {step === 1 && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date d'arrivée *</label>
-                        <input 
-                          type="date" 
-                          required 
-                          value={formData.startDate} 
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
-                        />
-                      </div>
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date de départ *</label>
-                        <input 
-                          type="date" 
-                          required 
-                          value={formData.endDate} 
-                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
-                        />
-                      </div>
-                    </div>
-
-                    {user && (
-                      <ClientDogSelector
-                        isAdmin={false}
-                        currentUserId={user.id}
-                        onDogSelected={(dog) =>
-                          setFormData({
-                            ...formData,
-                            dog_id: dog.id,
-                            dogName: dog.name,
-                            dogBreed: dog.breed,
-                          })
-                        }
-                      />
-                    )}
-
-                    <div className="pt-4 flex justify-end">
-                      <button 
-                        type="button" 
-                        disabled={!formData.startDate || !formData.endDate || !formData.dog_id} 
-                        onClick={() => setStep(2)} 
-                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer"
-                      >
-                        Suivant ➔
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {step === 2 && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone de contact *</label>
-                      <input 
-                        type="tel" 
-                        required 
-                        placeholder="06 12 34 56 78" 
-                        value={formData.clientPhone} 
-                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
-                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Besoins spécifiques / Alimentation / Médicaments</label>
-                      <textarea 
-                        rows={3} 
-                        placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." 
-                        value={formData.specialNeeds} 
-                        onChange={(e) => setFormData({ ...formData, specialNeeds: e.target.value })} 
-                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                      />
-                    </div>
-
-                    <div className="pt-4 flex justify-between items-center">
-                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 cursor-pointer hover:text-stone-900">← Retour</button>
-                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
-                    </div>
-                  </div>
-                )}
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+              <div className
