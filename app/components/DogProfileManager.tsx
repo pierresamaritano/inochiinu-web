@@ -9,6 +9,9 @@ export default function DogProfileManager() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // État pour savoir si la section est ouverte ou fermée (fermée par défaut)
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [creatingDog, setCreatingDog] = useState(false);
   const [newDog, setNewDog] = useState({
@@ -70,6 +73,7 @@ export default function DogProfileManager() {
       if (error) throw error;
       
       setShowAddModal(false);
+      setIsExpanded(true); // Ouvre la bulle une fois le chien créé
       setNewDog({
         name: "", breed: "", birth_date: "", gender: "male",
         is_neutered: false, is_vaccinated: true, vaccine_expiry: "",
@@ -105,60 +109,76 @@ export default function DogProfileManager() {
   if (loading) return null;
 
   return (
-    <div className="mt-10 p-6 sm:p-8 rounded-[2.5rem] bg-white border border-stone-200/90 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-100 gap-4">
-        <div>
-          <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">
-            Mes Compagnons
-          </span>
-          <h3 className="text-xl font-black text-stone-900 mt-1">Fiches Chiens & Santé</h3>
+    <div className="mt-10 p-6 sm:p-8 rounded-[2.5rem] bg-white border border-stone-200/90 shadow-sm transition-all duration-300">
+      <div 
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer select-none ${isExpanded ? 'pb-4 border-b border-stone-100' : ''}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div>
+            <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">
+              Mes Compagnons
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <h3 className="text-xl font-black text-stone-900">Fiches Chiens & Santé</h3>
+              <span className="text-stone-400 text-xs">{isExpanded ? "▲" : "▼"}</span>
+            </div>
+          </div>
         </div>
         
         <button
-          onClick={() => setShowAddModal(true)}
-          className="flex h-10 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 text-xs font-bold text-white transition-all hover:bg-stone-800 cursor-pointer shadow-sm shrink-0"
+          onClick={(e) => { 
+            e.stopPropagation(); // Empêche le clic de fermer/ouvrir la bulle
+            setShowAddModal(true); 
+          }}
+          className="flex h-10 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 text-xs font-bold text-white transition-all hover:bg-stone-800 shadow-sm shrink-0"
         >
           <span>+ Ajouter un chien</span>
         </button>
       </div>
 
-      {dogs.length === 0 ? (
-        <div className="mt-6 p-6 rounded-2xl bg-stone-50 border border-stone-100 text-sm text-stone-500 text-center flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-200/50 text-xl">
-            🐕
-          </div>
-          <p>Aucun chien enregistré pour le moment.<br/>Créez une fiche pour faciliter vos futures réservations.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          {dogs.map((dog) => (
-            <div key={dog.id} className="p-5 rounded-2xl bg-stone-50 border border-stone-200/70 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-black text-stone-900">{dog.name}</h4>
-                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                    dog.is_vaccinated ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
-                  }`}>
-                    {dog.is_vaccinated ? "Vacciné ✓" : "Non à jour ⚠️"}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-500 mt-0.5">{dog.breed} • {dog.gender === "male" ? "Mâle" : "Femelle"}</p>
-                
-                <div className="mt-3 space-y-1 text-[11px] text-stone-600">
-                  <div>🎂 <strong>Anniversaire :</strong> {dog.birth_date || "Non renseigné"}</div>
-                  <div>✂️ <strong>Stérilisation :</strong> {dog.is_neutered ? "Oui" : "Non"}</div>
-                  <div>💉 <strong>Rappel vaccin :</strong> {dog.vaccine_expiry || "À renseigner"}</div>
-                </div>
+      {/* CONTENU AFFICHÉ UNIQUEMENT SI ÉTENDU */}
+      {isExpanded && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+          {dogs.length === 0 ? (
+            <div className="mt-6 p-6 rounded-2xl bg-stone-50 border border-stone-100 text-sm text-stone-500 text-center flex flex-col items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-200/50 text-xl">
+                🐕
               </div>
-
-              <button
-                onClick={() => { setSelectedDog(dog); setEditing(true); }}
-                className="mt-4 w-full py-2 bg-white border border-stone-200 hover:border-stone-400 font-bold text-xs rounded-xl transition-all cursor-pointer"
-              >
-                Modifier la fiche
-              </button>
+              <p>Aucun chien enregistré pour le moment.<br/>Créez une fiche pour faciliter vos futures réservations.</p>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              {dogs.map((dog) => (
+                <div key={dog.id} className="p-5 rounded-2xl bg-stone-50 border border-stone-200/70 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-base font-black text-stone-900">{dog.name}</h4>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        dog.is_vaccinated ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                      }`}>
+                        {dog.is_vaccinated ? "Vacciné ✓" : "Non à jour ⚠️"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-0.5">{dog.breed} • {dog.gender === "male" ? "Mâle" : "Femelle"}</p>
+                    
+                    <div className="mt-3 space-y-1 text-[11px] text-stone-600">
+                      <div>🎂 <strong>Anniversaire :</strong> {dog.birth_date || "Non renseigné"}</div>
+                      <div>✂️ <strong>Stérilisation :</strong> {dog.is_neutered ? "Oui" : "Non"}</div>
+                      <div>💉 <strong>Rappel vaccin :</strong> {dog.vaccine_expiry || "À renseigner"}</div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => { setSelectedDog(dog); setEditing(true); }}
+                    className="mt-4 w-full py-2 bg-white border border-stone-200 hover:border-stone-400 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Modifier la fiche
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

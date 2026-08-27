@@ -115,7 +115,7 @@ export default function ClientDashboardHub() {
         </select>
       </div>
 
-      {/* GESTIONNAIRE DE FICHES CHIENS (Toujours visible pour le client) */}
+      {/* GESTIONNAIRE DE FICHES CHIENS (Désormais rétractable par défaut) */}
       <DogProfileManager />
 
       {!hasAnyService ? (
@@ -148,7 +148,8 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 3)).map((item) => (
+                {/* LIMITÉ À 2 PAR DÉFAUT */}
+                {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -166,7 +167,7 @@ export default function ClientDashboardHub() {
                       {item.status !== "annulé" && item.status !== "terminé" && (
                         <button
                           onClick={() => setCancelModal({ table: "education_requests", id: item.id, title: `la séance de ${item.dog_name}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer"
+                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
                         >
                           Annuler
                         </button>
@@ -183,9 +184,9 @@ export default function ClientDashboardHub() {
                 ))}
               </div>
 
-              {filteredEdu.length > 3 && (
+              {filteredEdu.length > 2 && (
                 <button onClick={() => setExpandedWidget(expandedWidget === 'edu' ? null : 'edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 3})`}
+                  {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 2})`}
                 </button>
               )}
             </div>
@@ -205,7 +206,8 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 3)).map((item) => (
+                {/* LIMITÉ À 2 PAR DÉFAUT */}
+                {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -223,7 +225,7 @@ export default function ClientDashboardHub() {
                       {item.status !== "annulé" && item.status !== "terminé" && (
                         <button
                           onClick={() => setCancelModal({ table: "pension_requests", id: item.id, title: `le séjour de ${item.dog_name}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer"
+                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
                         >
                           Annuler
                         </button>
@@ -240,9 +242,9 @@ export default function ClientDashboardHub() {
                 ))}
               </div>
 
-              {filteredPension.length > 3 && (
+              {filteredPension.length > 2 && (
                 <button onClick={() => setExpandedWidget(expandedWidget === 'pen' ? null : 'pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 3})`}
+                  {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 2})`}
                 </button>
               )}
             </div>
@@ -250,16 +252,20 @@ export default function ClientDashboardHub() {
 
           {/* 3. WIDGET ÉLEVAGE */}
           {filteredAdoption.length > 0 && (
-            <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
+            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Candidature Chiot</h3>
                 </div>
+                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
+                  {filteredAdoption.length}
+                </div>
               </div>
 
               <div className="mt-4 space-y-3">
-                {filteredAdoption.map((item) => (
+                {/* LIMITÉ À 2 PAR DÉFAUT */}
+                {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -277,7 +283,7 @@ export default function ClientDashboardHub() {
                       {item.status !== "annulé" && (
                         <button
                           onClick={() => setCancelModal({ table: "adoption_requests", id: item.id, title: `votre candidature pour un ${item.preferred_breed}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer"
+                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
                         >
                           Annuler
                         </button>
@@ -293,21 +299,31 @@ export default function ClientDashboardHub() {
                   </div>
                 ))}
               </div>
+
+              {filteredAdoption.length > 2 && (
+                <button onClick={() => setExpandedWidget(expandedWidget === 'adp' ? null : 'adp')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                  {expandedWidget === 'adp' ? "Réduire" : `Voir tout (+${filteredAdoption.length - 2})`}
+                </button>
+              )}
             </div>
           )}
 
           {/* 4. WIDGET SELLERIE */}
           {filteredSellerie.length > 0 && (
-            <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
+            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Commandes Atelier</h3>
                 </div>
+                <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center font-black text-xs text-amber-700">
+                  {filteredSellerie.length}
+                </div>
               </div>
 
               <div className="mt-4 space-y-3">
-                {filteredSellerie.map((item) => (
+                {/* LIMITÉ À 2 PAR DÉFAUT */}
+                {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -325,7 +341,7 @@ export default function ClientDashboardHub() {
                       {item.status === "en_attente" && (
                         <button
                           onClick={() => setCancelModal({ table: "sellerie_orders", id: item.id, title: `la commande de ${item.item_type}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer"
+                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
                         >
                           Annuler
                         </button>
@@ -341,6 +357,12 @@ export default function ClientDashboardHub() {
                   </div>
                 ))}
               </div>
+
+              {filteredSellerie.length > 2 && (
+                <button onClick={() => setExpandedWidget(expandedWidget === 'sel' ? null : 'sel')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                  {expandedWidget === 'sel' ? "Réduire" : `Voir tout (+${filteredSellerie.length - 2})`}
+                </button>
+              )}
             </div>
           )}
 
