@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
-import AppleCarousel from "../components/AppleCarousel";
 
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -46,6 +46,42 @@ export default function EducationPage() {
       authListener.subscription.unsubscribe();
     };
   }, [supabase]);
+
+  // Slides compactes pour la page Éducation
+  const slides = [
+    {
+      title: "Bilan Comportemental & Analyse Éthologique",
+      subtitle: "Observer, comprendre les signaux d'apaisement et poser les fondations d'une relation sereine.",
+      tag: "Fondation",
+      gradient: "from-stone-900/90 via-stone-900/60 to-black/80",
+      accent: "border-orange-500/30",
+    },
+    {
+      title: "Gestion des Émotions & Réactivité",
+      subtitle: "Désensibilisation bienveillante face aux congénères, gestion de la longe et auto-contrôles.",
+      tag: "Spécialisation",
+      gradient: "from-orange-950/90 via-stone-900/60 to-black/80",
+      accent: "border-orange-500/40",
+    },
+    {
+      title: "École du Chiot & Socialisation Positive",
+      subtitle: "Apprentissage naturel du rappel, familiarisation aux bruits urbains et focus sur le maître.",
+      tag: "Chiots & Primitifs",
+      gradient: "from-amber-950/90 via-stone-900/60 to-black/80",
+      accent: "border-amber-500/30",
+    },
+  ];
+
+  // Défilement automatique
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   const availableIssues = [
     "Marche en laisse & tractions",
@@ -121,7 +157,7 @@ export default function EducationPage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* HALOS FAUVE (Identiques à la page principale) */}
+      {/* HALOS FAUVE D'AMBIANCE */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
@@ -131,58 +167,111 @@ export default function EducationPage() {
 
       <LiquidNavbar />
 
-      {/* Hero Section Éducation */}
-      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-8 text-center px-4">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
+      {/* Hero Section Éducation (Titre plus compact) */}
+      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Accompagnement Comportemental & Éthologie</span>
         </div>
         
-        <h1 className="max-w-3xl text-4xl font-black tracking-tight text-stone-900 sm:text-5xl sm:leading-tight">
+        <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
           Éducation Canine &{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
             Bilan Sur-Mesure
           </span>
         </h1>
         
-        <p className="mx-auto mt-4 max-w-2xl text-base font-medium text-stone-600 sm:text-lg">
-          Une méthode respectueuse et cohérente, axée sur la communication naturelle et l'équilibre de votre compagnon.
+        <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
+          Une approche respectueuse et cohérente, axée sur la communication naturelle et l'équilibre de votre compagnon.
         </p>
       </section>
 
-      {/* Carrousel Apple */}
-      <div className="relative">
-        <AppleCarousel />
-      </div>
+      {/* CARROUSEL COMPACT & CLASSIQUE (Hauteur contenue) */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
+          {slides.map((slide, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-700 flex flex-col justify-center px-8 sm:px-14 ${
+                index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+              }`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
+              
+              <div className="relative z-10 max-w-xl text-white">
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-white/10 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/10 inline-block mb-2">
+                  {slide.tag}
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">
+                  {slide.title}
+                </h2>
+                <p className="mt-2 text-xs sm:text-sm text-stone-300 font-medium leading-relaxed">
+                  {slide.subtitle}
+                </p>
+              </div>
+            </div>
+          ))}
 
-      {/* Section Appel à l'action sous le carrousel */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 -mt-4 mb-16">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-8 rounded-[2.5rem] bg-white/70 backdrop-blur-xl border border-stone-200/80 shadow-sm">
+          {/* Flèches de navigation discrètes */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all active:scale-95"
+            aria-label="Précédent"
+          >
+            ←
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all active:scale-95"
+            aria-label="Suivant"
+          >
+            →
+          </button>
+
+          {/* Pastilles de pagination en bas */}
+          <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-1.5">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"
+                }`}
+                aria-label={`Slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BANDEAU D'ACTION SOUS LE CARROUSEL */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-stone-900">
+            <h2 className="text-xl font-black tracking-tight text-stone-900">
               Réserver votre accompagnement
             </h2>
-            <p className="mt-1 text-sm text-stone-500 font-medium">
-              Prenez rendez-vous pour un bilan initial ou une séance individuelle sur terrain réel.
+            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">
+              Prenez rendez-vous pour un bilan initial ou réservez votre séance individuelle.
             </p>
           </div>
           <button
             onClick={handleActionClick}
-            className="w-full sm:w-auto shrink-0 flex h-14 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-8 font-bold text-white shadow-[0_4px_14px_rgba(249,115,22,0.4),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
+            className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
             Prendre un cours / Réserver
           </button>
         </div>
       </section>
 
-      {/* Détail des Formules & Pédagogie */}
-      <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-20">
-        <div className="mx-auto max-w-6xl px-6 space-y-16">
+      {/* PRÉSENTATION DES FORMULES & PÉDAGOGIE */}
+      <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-16">
+        <div className="mx-auto max-w-5xl px-6 space-y-12">
           
           <div>
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">
               Formules & Accompagnement
             </span>
-            <h2 className="text-3xl font-black tracking-tight text-stone-900 mt-2">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
               Des cours adaptés à chaque étape
             </h2>
           </div>
@@ -190,70 +279,70 @@ export default function EducationPage() {
           <div className="grid gap-6 md:grid-cols-3">
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
                   Étape Obligatoire
                 </span>
-                <h3 className="mt-4 text-xl font-bold text-stone-900">
+                <h3 className="mt-4 text-lg font-bold text-stone-900">
                   Bilan Comportemental
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-stone-500">
-                  Séance approfondie de 1h30 : observation de l'environnement, analyse des signaux de communication et mise en place d'un programme d'apprentissage personnalisé.
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
+                  Séance de 1h30 : analyse globale de l'environnement, lecture des postures et définition d'un programme d'apprentissage ciblé.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
+              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
                 <span>Durée : 1h30</span>
-                <span className="text-stone-800">À domicile / Extérieur</span>
+                <span className="text-stone-800">Terrain / Domicile</span>
               </div>
             </div>
 
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
                   Perfectionnement
                 </span>
-                <h3 className="mt-4 text-xl font-bold text-stone-900">
+                <h3 className="mt-4 text-lg font-bold text-stone-900">
                   Séances Individuelles
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-stone-500">
-                  Mise en pratique en conditions réelles (ville, parcs, forêt) : marche en laisse sans traction, rappel avec fortes distractions et auto-contrôles.
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
+                  Mise en pratique en situation réelle (ville, forêt) : rappel sous stimulus, marche sans traction et gestion des impulsions.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
+              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
                 <span>Durée : 1h00</span>
-                <span className="text-stone-800">Terrain varié</span>
+                <span className="text-stone-800">En extérieur</span>
               </div>
             </div>
 
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+                <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
                   Collectif
                 </span>
-                <h3 className="mt-4 text-xl font-bold text-stone-900">
+                <h3 className="mt-4 text-lg font-bold text-stone-900">
                   Balades Éducatives
                 </h3>
-                <p className="mt-3 text-sm leading-relaxed text-stone-500">
-                  Balades encadrées en petits comités pour développer les compétences sociales, la tolérance aux congénères et l'écoute en groupe.
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
+                  Sorties en petits groupes pour travailler les codes canins, la tolérance aux congénères et l'écoute en meute.
                 </p>
               </div>
-              <div className="mt-8 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
+              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
                 <span>Comité restreint</span>
                 <span className="text-stone-800">Tous niveaux</span>
               </div>
             </div>
           </div>
 
-          {/* Présentation de l'Approche / Éducateur */}
+          {/* PRÉSENTATION DE L'ÉDUCATEUR & APPROCHE */}
           <div className="rounded-[2.5rem] bg-stone-900 text-white p-8 sm:p-12 shadow-xl border border-stone-800">
             <div className="max-w-2xl">
               <span className="text-xs font-black uppercase tracking-wider text-orange-400">
                 La Méthode Inochi Inu
               </span>
-              <h3 className="text-2xl sm:text-3xl font-black mt-2">
+              <h3 className="text-2xl font-black mt-2">
                 Comprendre avant d'agir
               </h3>
-              <p className="text-stone-300 text-sm sm:text-base leading-relaxed mt-4">
-                Spécialisés dans les races primitives et les tempéraments affirmés, nous privilégions la lecture fine des postures, l'anticipation et la motivation. Pas de coercition inutile, mais un cadre clair et sécurisant pour vous et votre chien.
+              <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mt-3">
+                Spécialisés dans les races primitives et les tempéraments affirmés, nous privilégions la lecture fine des signaux, l'anticipation et la motivation. Un accompagnement bienveillant et structurant pour des résultats durables.
               </p>
             </div>
           </div>
@@ -267,7 +356,7 @@ export default function EducationPage() {
       </footer>
 
       {/* =========================================================================
-          MODALE DE CONNEXION GOOGLE (SI NON CONNECTÉ)
+          MODALE 1 : CONNEXION GOOGLE (SI NON CONNECTÉ)
           ========================================================================= */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -297,7 +386,7 @@ export default function EducationPage() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={authLoading}
-                className="group flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                className="group flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
@@ -313,7 +402,7 @@ export default function EducationPage() {
       )}
 
       {/* =========================================================================
-          MODALE DE RÉSERVATION INTERACTIVE (SI CONNECTÉ)
+          MODALE 2 : FORMULAIRE DE RÉSERVATION (SI CONNECTÉ)
           ========================================================================= */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
