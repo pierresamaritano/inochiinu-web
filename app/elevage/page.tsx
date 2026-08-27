@@ -162,15 +162,14 @@ export default function ElevagePage() {
         </div>
         
         <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
-          Chiots Akita Inu{" "}
+          Chiots Akita Inu LOF{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
             LOF
           </span>
         </h1>
         
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
-          Sélection attentive de nos reproducteurs Akita Inu, éveil dès la naissance et engagement pour le bien-être de nos chiots.
-        </p>
+          Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison, pour une socialisation dès leur plus jeune âge. </p>
       </section>
 
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
