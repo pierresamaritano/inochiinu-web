@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { usePathname } from "next/navigation";
 
-// --- COMPOSANT MODALE D'AUTHENTIFICATION INTÉGRÉ ---
 function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [loading, setLoading] = useState(false);
 
@@ -82,7 +81,6 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
   );
 }
 
-// --- NAVBAR PRINCIPALE ---
 export default function LiquidNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -98,8 +96,14 @@ export default function LiquidNavbar() {
   );
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 20 || document.documentElement.scrollTop > 20;
+      setScrolled(isScrolled);
+    };
+
+    // Écoute directe sur window et document pour Safari iPad
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
 
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -107,12 +111,13 @@ export default function LiquidNavbar() {
     };
     checkUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
       authListener.subscription.unsubscribe();
     };
   }, [supabase]);
@@ -139,12 +144,12 @@ export default function LiquidNavbar() {
 
   return (
     <>
-      <header className="fixed top-0 inset-x-0 z-50 flex flex-col items-center pt-4 transition-all duration-300">
+      <header className="fixed top-0 inset-x-0 z-50 flex flex-col items-center pt-4 transition-all duration-300 pointer-events-none">
         <nav
-          className={`flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out z-50 ${
+          className={`pointer-events-auto flex items-center justify-between gap-4 px-5 py-3 rounded-full transition-all duration-500 ease-out ${
             scrolled || isMobileMenuOpen
               ? "w-[92%] max-w-5xl bg-white/50 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),inset_0_1px_3px_rgba(255,255,255,1)] border border-white ring-1 ring-black/5"
-              : "w-[96%] max-w-[calc(64rem+20vw)] xl:max-w-7xl bg-white/30 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1)] border border-white/70"
+              : "w-[94%] max-w-[calc(64rem+20vw)] xl:max-w-7xl bg-white/30 backdrop-blur-2xl backdrop-saturate-[2] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_2px_rgba(255,255,255,1)] border border-white/70"
           }`}
         >
           <a href="/" className="flex items-center gap-2.5 group shrink-0">
@@ -185,7 +190,6 @@ export default function LiquidNavbar() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* BOUTON DYNAMIQUE DESKTOP */}
             {user ? (
               pathname === "/espace-membre" ? (
                 <form action="/auth/signout" method="post" className="hidden sm:flex">
@@ -232,7 +236,7 @@ export default function LiquidNavbar() {
 
         {/* MENU MOBILE DÉROULANT */}
         <div
-          className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-5xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
+          className={`pointer-events-auto md:hidden absolute top-[76px] mt-2 w-[92%] max-w-5xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
             isMobileMenuOpen
               ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
               : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
