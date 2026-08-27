@@ -410,4 +410,263 @@ export default function PensionPage() {
                   Surveillance vidéo continue 24h/24, espace intérieur thermorégulé avec chauffage l'hiver et climatisation l'été.
                 </p>
               </div>
-              <div className
+              <div className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-stone-400">
+                Technologie au service du chien
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CARROUSEL DES INSTALLATIONS PENSION (Style Apple) */}
+      <PensionCarousel />
+
+      {/* SECTION CONTACT & COORDONNÉES */}
+      <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/50">
+              Nous Contacter
+            </span>
+            <h2 className="text-3xl font-black text-stone-900 mt-4">
+              Restons en contact
+            </h2>
+            <p className="text-stone-500 text-sm mt-2">
+              Pour toute question sur nos portées, nos disponibilités en pension ou un accompagnement éducatif.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Téléphone */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
+              <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
+              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
+                06 00 00 00 00
+              </a>
+            </div>
+
+            {/* Email */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Email</h3>
+              <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
+              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
+                contact@inochi-inu.fr
+              </a>
+            </div>
+
+            {/* Réseaux Sociaux */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
+              <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
+              <div className="mt-4 flex gap-3">
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
+                  Instagram ➔
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
+                  Facebook ➔
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
+        <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
+      </footer>
+
+      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
+            
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">
+              ℹ️
+            </div>
+            <h3 className="text-xl font-black text-stone-900">Avant de réserver...</h3>
+            
+            <div className="mt-4 space-y-3 text-sm text-stone-600 leading-relaxed">
+              <p>Pour garantir la sécurité et le bien-être de tous nos pensionnaires, voici nos prérequis :</p>
+              <ul className="list-disc pl-5 space-y-1 font-medium text-stone-700">
+                <li><strong className="text-stone-900">Vaccins à jour obligatoires</strong> (incluant la toux du chenil).</li>
+                <li>Chien identifié (puce ou tatouage).</li>
+                <li>Traitement antiparasitaire de moins d'un mois.</li>
+              </ul>
+              <p className="text-xs text-stone-500 italic">Un justificatif vous sera demandé à votre arrivée.</p>
+            </div>
+
+            <label className="mt-6 flex items-center gap-3 p-3 rounded-2xl bg-stone-100 border border-stone-200 cursor-pointer hover:bg-stone-200/50 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={dontShowAgain} 
+                onChange={(e) => setDontShowAgain(e.target.checked)} 
+                className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" 
+              />
+              <span className="text-xs font-bold text-stone-600">J'ai compris, ne plus afficher ce message.</span>
+            </label>
+
+            <button
+              onClick={handleContinueFromInfo}
+              className="mt-6 w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md"
+            >
+              Continuer vers la réservation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE CONNEXION */}
+      {isAuthOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
+              <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
+              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation de pension et recevoir vos photos quotidiennes.</p>
+            </div>
+            <button
+              onClick={handleGoogleLogin}
+              disabled={authLoading}
+              className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
+            >
+              <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE FORMULAIRE PENSION */}
+      {isFormOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
+            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
+
+            {submitted ? (
+              <div className="text-center py-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
+                <h3 className="text-xl font-black text-stone-900">Demande de séjour reçue !</h3>
+                <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des 6 boxs et validons votre demande rapidement.</p>
+                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 2</span>
+                    <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Dates & Chien" : "Besoins & Contact"}</h3>
+                  </div>
+                </div>
+
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="w-full min-w-0">
+                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date d'arrivée *</label>
+                        <input 
+                          type="date" 
+                          required 
+                          value={formData.startDate} 
+                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
+                        />
+                      </div>
+                      <div className="w-full min-w-0">
+                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date de départ *</label>
+                        <input 
+                          type="date" 
+                          required 
+                          value={formData.endDate} 
+                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
+                        />
+                      </div>
+                    </div>
+
+                    {user && (
+                      <ClientDogSelector
+                        isAdmin={false}
+                        currentUserId={user.id}
+                        onDogSelected={(dog) =>
+                          setFormData({
+                            ...formData,
+                            dog_id: dog.id,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                          })
+                        }
+                      />
+                    )}
+
+                    <div className="pt-4 flex justify-end">
+                      <button 
+                        type="button" 
+                        disabled={!formData.startDate || !formData.endDate || !formData.dog_id} 
+                        onClick={() => setStep(2)} 
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer"
+                      >
+                        Suivant ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone de contact *</label>
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="06 12 34 56 78" 
+                        value={formData.clientPhone} 
+                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Besoins spécifiques / Alimentation / Médicaments</label>
+                      <textarea 
+                        rows={3} 
+                        placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." 
+                        value={formData.specialNeeds} 
+                        onChange={(e) => setFormData({ ...formData, specialNeeds: e.target.value })} 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
+                    </div>
+
+                    <div className="pt-4 flex justify-between items-center">
+                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 cursor-pointer hover:text-stone-900">← Retour</button>
+                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
+                    </div>
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
