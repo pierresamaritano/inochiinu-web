@@ -466,7 +466,7 @@ export default function ElevagePage() {
               Éthique & Bien-Être
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-              Des chiots Akita équilibrés pour des familles sereines
+              Préparés pour s’adapter naturellement à leur future foyer
             </h2>
           </div>
 
