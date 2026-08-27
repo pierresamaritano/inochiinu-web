@@ -58,13 +58,20 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
   });
   const [creatingDog, setCreatingDog] = useState(false);
 
+  // Helper pour formater les infos du client pour correspondre à TypeScript
+  const getClientInfo = () => {
+    return selectedClient
+      ? { name: selectedClient.full_name, email: selectedClient.email, phone: selectedClient.phone }
+      : undefined;
+  };
+
   // Charger les chiens du client cible
   const fetchDogs = async (uid: string) => {
     const { data } = await supabase.from("dogs").select("*").eq("user_id", uid).order("name");
     setDogs(data || []);
     if (data && data.length > 0) {
       setSelectedDogId(data[0].id);
-      onDogSelected(data[0], uid, selectedClient || undefined);
+      onDogSelected(data[0], uid, getClientInfo());
     } else {
       setSelectedDogId("");
     }
@@ -72,6 +79,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
   useEffect(() => {
     fetchDogs(targetUserId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId]);
 
   // Recherche avec auto-complétion client (Admin uniquement)
@@ -94,7 +102,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [clientSearch, isAdmin]);
+  }, [clientSearch, isAdmin, supabase]);
 
   const handleSelectClient = (client: ClientProfile) => {
     setSelectedClient(client);
@@ -106,7 +114,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
   const handleDogChange = (dogId: string) => {
     setSelectedDogId(dogId);
     const d = dogs.find((item) => item.id === dogId);
-    if (d) onDogSelected(d, targetUserId, selectedClient || undefined);
+    if (d) onDogSelected(d, targetUserId, getClientInfo());
   };
 
   const handleCreateDog = async (e: React.FormEvent) => {
@@ -128,7 +136,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
       await fetchDogs(targetUserId);
       if (data) {
         setSelectedDogId(data.id);
-        onDogSelected(data, targetUserId, selectedClient || undefined);
+        onDogSelected(data, targetUserId, getClientInfo());
       }
       setShowAddDogModal(false);
       setNewDog({
@@ -205,7 +213,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
             <button
               type="button"
               onClick={() => setShowAddDogModal(true)}
-              className="px-3 py-1 bg-amber-600 text-white font-black text-[10px] uppercase rounded-full"
+              className="px-3 py-1 bg-amber-600 text-white font-black text-[10px] uppercase rounded-full cursor-pointer"
             >
               Créer sa fiche
             </button>
@@ -284,7 +292,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                   <select
                     value={newDog.gender}
                     onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium cursor-pointer"
                   >
                     <option value="male">Mâle</option>
                     <option value="female">Femelle</option>
@@ -300,7 +308,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     type="checkbox"
                     checked={newDog.is_vaccinated}
                     onChange={(e) => setNewDog({ ...newDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
                   />
                 </div>
 
@@ -310,7 +318,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     type="checkbox"
                     checked={newDog.is_neutered}
                     onChange={(e) => setNewDog({ ...newDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
                   />
                 </div>
 
@@ -340,7 +348,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 <button
                   type="button"
                   onClick={() => setShowAddDogModal(false)}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500"
+                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500 hover:bg-stone-100 cursor-pointer"
                 >
                   Annuler
                 </button>
