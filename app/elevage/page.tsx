@@ -14,6 +14,8 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
+  const [selectedLice, setSelectedLice] = useState(0);
+
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -64,6 +66,100 @@ export default function ElevagePage() {
       tag: "Engagement Inochi",
       gradient: "from-amber-950/90 via-stone-900/60 to-black/80",
     },
+  ];
+
+  // CONFIGURATION DES LICES (Actuellement 2, extensible jusqu'à 4)
+  const lices = [
+    {
+      id: "lice-1",
+      name: "Première Lice",
+      affixe: "Affixe Kazan No",
+      titles: "Lignée Haute Sélection",
+      description: "Notre lice fondatrice, réputée pour sa douceur, son équilibre mental irréprochable et sa conformité au standard japonais.",
+      father: {
+        name: "Katsunori Go Senshi Shimai",
+        origin: "Import Pologne",
+        titles: "Champion Junior France • CACIB",
+        desc: "Excellente ossature, port altier et pelage dense conforme aux critères stricts du standard.",
+        gParents: [
+          { role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" },
+          { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" },
+        ],
+        ggParents: [
+          "Hiryuu Go Rokkuhando Touwa",
+          "Aihime Go Amakusa Tajiri",
+          "Kou Zan Go Shun'You Kensha",
+          "Lignée Senshi No Inu",
+        ],
+      },
+      mother: {
+        name: "CH. Kazan No Teïumi",
+        origin: "Affixe Kazan No",
+        titles: "Championne de France • Junior World Winner",
+        desc: "Fille de CH. Kazan No Rumi, alliant noblesse du regard, stature harmonieuse et tempérament calme.",
+        gParents: [
+          { role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha", details: "Import Italie / Akiho" },
+          { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi", details: "CH France • Vainqueur Hozonkai" },
+        ],
+        ggParents: [
+          "Kanon Go Tamashi Kensha",
+          "Lignée Sara Hana",
+          "Kobe No Minami Go Tamashi",
+          "CH. Nayakiwa Go Tokimitsu",
+        ],
+      },
+    },
+    {
+      id: "lice-2",
+      name: "Deuxième Lice",
+      affixe: "Affixe Officiel LOF",
+      titles: "Sélection Standard & Caractère",
+      description: "Une lice au tempérament doux et attentif, issue de lignées reconnues pour leur robustesse et leur stabilité émotionnelle.",
+      father: {
+        name: "Étalon Sélectionné LOF",
+        origin: "Lignée Reconnue",
+        titles: "Certifié LOF • Cotation d'Élevage",
+        desc: "Morphologie puissante et tête typée avec un masque franc.",
+        gParents: [
+          { role: "Grand-Père Paternel", name: "Lignée Japonaise Pure" },
+          { role: "Grand-Mère Paternelle", name: "Lignée Européenne Titrée", details: "Recommandée LOF" },
+        ],
+        ggParents: [
+          "Ascendant Direct Japon",
+          "Lignée Sélectionnée",
+          "Champion National",
+          "Lignée Primée",
+        ],
+      },
+      mother: {
+        name: "Lice Primée LOF",
+        origin: "Élevage Sélectionné",
+        titles: "Excellente en Exposition",
+        desc: "Tempérament posé et transmission d'une excellente construction osseuse.",
+        gParents: [
+          { role: "Grand-Père Maternel", name: "Grand-Père LOF Primé", details: "Champion Régional" },
+          { role: "Grand-Mère Maternelle", name: "Grand-Mère Recommandée", details: "Cotation 4" },
+        ],
+        ggParents: [
+          "Lignée Importée",
+          "Sélection Beauté",
+          "Lignée Confirmée",
+          "Lignée Championne",
+        ],
+      },
+    },
+    /* Pour ajouter une 3ème ou 4ème lice, décommentez et complétez les blocs suivants :
+    {
+      id: "lice-3",
+      name: "Troisième Lice",
+      ...
+    },
+    {
+      id: "lice-4",
+      name: "Quatrième Lice",
+      ...
+    }
+    */
   ];
 
   useEffect(() => {
@@ -144,6 +240,8 @@ export default function ElevagePage() {
       setSubmitting(false);
     }
   };
+
+  const currentLiceData = lices[selectedLice];
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -268,22 +366,41 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE & LIGNÉES D'EXCEPTION */}
+      {/* SECTION PEDIGREE & LIGNÉES DES LICES */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
-        <div className="mx-auto max-w-5xl px-6 space-y-12">
-          <div>
-            <span className="text-xs font-black uppercase tracking-wider text-orange-600">
-              Génétique & Standard Japonais
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-              Un pedigree d'exception issu de champions primés
-            </h2>
-            <p className="mt-2 max-w-3xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
-              La qualité d'une portée repose sur une sélection génétique rigoureuse. Nos chiots héritent directement des plus prestigieuses lignées japonaises et européennes, alliant morphologie idéale, santé et tempérament d'une rare stabilité.
-            </p>
+        <div className="mx-auto max-w-5xl px-6 space-y-10">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+                Génétique & Standard Japonais
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
+                Le pedigree de nos lices reproductrices
+              </h2>
+              <p className="mt-2 max-w-2xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
+                Consultez l'arbre généalogique et la sélection de nos chiennes reproductrices, alliant conformité au standard et tempérament d'une rare stabilité.
+              </p>
+            </div>
+
+            {/* SÉLECTEUR D'ONGLETS POUR LES LICES (2 AU DÉPART, EXTENSIBLE JUSQU'À 4) */}
+            <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-stone-100 border border-stone-200 shrink-0">
+              {lices.map((lice, index) => (
+                <button
+                  key={lice.id}
+                  onClick={() => setSelectedLice(index)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedLice === index
+                      ? "bg-white text-stone-900 shadow-sm border border-stone-200/60"
+                      : "text-stone-500 hover:text-stone-900"
+                  }`}
+                >
+                  {lice.name}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* PALMARÈS DES PARENTS */}
+          {/* PALMARÈS ET LIGNÉES DES PARENTS DE LA LICE SÉLECTIONNÉE */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* PÈRE */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
@@ -292,16 +409,16 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Paternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">Import Pologne</span>
+                  <span className="text-xs font-bold text-stone-400">{currentLiceData.father.origin}</span>
                 </div>
                 <h3 className="text-lg font-black text-stone-900">
-                  Katsunori Go Senshi Shimai
+                  {currentLiceData.father.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
-                  Champion Junior de France • Titré CACIB
+                  {currentLiceData.father.titles}
                 </p>
                 <p className="mt-3 text-xs text-stone-500 leading-relaxed">
-                  Descendant direct des affixes réputés <em>Senshi No Inu</em> et <em>Isegumo Kensha</em>, il transmet une ossature puissante, un port de tête altier et un pelage dense conforme aux standards stricts de la race.
+                  {currentLiceData.father.desc}
                 </p>
               </div>
             </div>
@@ -313,16 +430,16 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Maternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">Affixe Kazan No</span>
+                  <span className="text-xs font-bold text-stone-400">{currentLiceData.mother.origin}</span>
                 </div>
                 <h3 className="text-lg font-black text-stone-900">
-                  CH. Kazan No Teïumi
+                  {currentLiceData.mother.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
-                  Championne de France • Junior World Winner
+                  {currentLiceData.mother.titles}
                 </p>
                 <p className="mt-3 text-xs text-stone-500 leading-relaxed">
-                  Fille directe de <em>CH. Kazan No Rumi</em> (Championne de France et lauréate Hozonkai) et issue des prestigieuses lignées <em>Tamashi Kensha</em>. Elle apporte une expression noble et une grande douceur au quotidien.
+                  {currentLiceData.mother.desc}
                 </p>
               </div>
             </div>
@@ -333,9 +450,9 @@ export default function ElevagePage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase text-orange-600">Arbre Généalogique Officiel</span>
-                <h3 className="text-lg font-black text-stone-900">Pedigree LOF certifié sur 3 générations</h3>
+                <h3 className="text-lg font-black text-stone-900">Pedigree LOF certifié sur 3 générations — {currentLiceData.name}</h3>
               </div>
-              <span className="text-xs font-bold text-stone-400">Affixe Kazan No</span>
+              <span className="text-xs font-bold text-stone-400">{currentLiceData.affixe}</span>
             </div>
 
             <div className="overflow-x-auto pb-4">
@@ -346,14 +463,14 @@ export default function ElevagePage() {
                   
                   <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Père</span>
-                    <p className="font-black text-stone-900">Katsunori Go Senshi Shimai</p>
-                    <p className="text-[10px] text-stone-500 font-medium">CH Junior France • CACIB</p>
+                    <p className="font-black text-stone-900">{currentLiceData.father.name}</p>
+                    <p className="text-[10px] text-stone-500 font-medium">{currentLiceData.father.titles}</p>
                   </div>
 
                   <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Mère</span>
-                    <p className="font-black text-stone-900">CH. Kazan No Teïumi</p>
-                    <p className="text-[10px] text-stone-500 font-medium">CH France • Junior World Winner</p>
+                    <p className="font-black text-stone-900">{currentLiceData.mother.name}</p>
+                    <p className="text-[10px] text-stone-500 font-medium">{currentLiceData.mother.titles}</p>
                   </div>
                 </div>
 
@@ -362,26 +479,32 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">2ème Génération</span>
                   
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Père Paternel</span>
-                    <p className="font-bold text-stone-800">Ryuseimaru Go Isegumo Kensha</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.father.gParents[0].role}</span>
+                    <p className="font-bold text-stone-800">{currentLiceData.father.gParents[0].name}</p>
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Mère Paternelle</span>
-                    <p className="font-bold text-stone-800">Chikako Go Senshi No Inu</p>
-                    <p className="text-[10px] text-stone-400">Championne Pologne</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.father.gParents[1].role}</span>
+                    <p className="font-bold text-stone-800">{currentLiceData.father.gParents[1].name}</p>
+                    {currentLiceData.father.gParents[1].details && (
+                      <p className="text-[10px] text-stone-400">{currentLiceData.father.gParents[1].details}</p>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Père Maternel</span>
-                    <p className="font-bold text-stone-800">Kotei Go Sara Hana Kensha</p>
-                    <p className="text-[10px] text-stone-400">Import Italie / Akiho</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.mother.gParents[0].role}</span>
+                    <p className="font-bold text-stone-800">{currentLiceData.mother.gParents[0].name}</p>
+                    {currentLiceData.mother.gParents[0].details && (
+                      <p className="text-[10px] text-stone-400">{currentLiceData.mother.gParents[0].details}</p>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Mère Maternelle</span>
-                    <p className="font-bold text-stone-800">CH. Kazan No Rumi</p>
-                    <p className="text-[10px] text-stone-400">CH France • Vainqueur Hozonkai</p>
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentLiceData.mother.gParents[1].role}</span>
+                    <p className="font-bold text-stone-800">{currentLiceData.mother.gParents[1].name}</p>
+                    {currentLiceData.mother.gParents[1].details && (
+                      <p className="text-[10px] text-stone-400">{currentLiceData.mother.gParents[1].details}</p>
+                    )}
                   </div>
                 </div>
 
@@ -389,14 +512,16 @@ export default function ElevagePage() {
                 <div className="space-y-2">
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">3ème Génération</span>
                   
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Hiryuu Go Rokkuhando Touwa</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Aihime Go Amakusa Tajiri</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kou Zan Go Shun'You Kensha</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Lignée Senshi No Inu</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kanon Go Tamashi Kensha</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Lignée Sara Hana</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kobe No Minami Go Tamashi</div>
-                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">CH. Nayakiwa Go Tokimitsu</div>
+                  {currentLiceData.father.ggParents.map((name, i) => (
+                    <div key={`f-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
+                      {name}
+                    </div>
+                  ))}
+                  {currentLiceData.mother.ggParents.map((name, i) => (
+                    <div key={`m-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
+                      {name}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
