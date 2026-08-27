@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import DogProfileManager from "./DogProfileManager";
+
 
 export default function DogProfileManager() {
   const [dogs, setDogs] = useState<any[]>([]);

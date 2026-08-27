@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
+import ClientDogSelector from "../components/ClientDogSelector";
 
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
@@ -11,19 +12,28 @@ export default function EducationPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Formulaire & Réservation
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
+  
+  const [formData, setFormData] = useState<{
+    dog_id: string;
+    dogName: string;
+    dogBreed: string;
+    dogAge: string;
+    objectives: string;
+    issues: string[];
+    preferredSlot: string;
+    clientPhone: string;
+  }>({
+    dog_id: "",
     dogName: "",
     dogBreed: "",
     dogAge: "",
-    clientPhone: "",
-    formula: "Bilan Comportemental Initial",
-    issues: [] as string[],
     objectives: "",
+    issues: [],
     preferredSlot: "Semaine en matinée",
+    clientPhone: "",
   });
 
   const supabase = createBrowserClient(
@@ -42,37 +52,30 @@ export default function EducationPage() {
       setUser(session?.user || null);
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => authListener.subscription.unsubscribe();
   }, [supabase]);
 
-  // Slides compactes pour la page Éducation
   const slides = [
     {
-      title: "Bilan Comportemental & Analyse Éthologique",
-      subtitle: "Observer, comprendre les signaux d'apaisement et poser les fondations d'une relation sereine.",
-      tag: "Fondation",
-      gradient: "from-stone-900/90 via-stone-900/60 to-black/80",
-      accent: "border-orange-500/30",
-    },
-    {
-      title: "Gestion des Émotions & Réactivité",
-      subtitle: "Désensibilisation bienveillante face aux congénères, gestion de la longe et auto-contrôles.",
-      tag: "Spécialisation",
+      title: "Bilan Comportemental Initial",
+      subtitle: "Une analyse complète à domicile ou sur terrain pour comprendre les besoins spécifiques de votre chien.",
+      tag: "Évaluation",
       gradient: "from-orange-950/90 via-stone-900/60 to-black/80",
-      accent: "border-orange-500/40",
     },
     {
-      title: "École du Chiot & Socialisation Positive",
-      subtitle: "Apprentissage naturel du rappel, familiarisation aux bruits urbains et focus sur le maître.",
-      tag: "Chiots & Primitifs",
+      title: "Cours Individuels Sur-Mesure",
+      subtitle: "Travail des ordres de base, marche en laisse, rappel et gestion des troubles (réactivité, anxiété).",
+      tag: "Progression",
+      gradient: "from-stone-900/90 via-stone-900/60 to-black/80",
+    },
+    {
+      title: "Promenades Éducatives & Socialisation",
+      subtitle: "Mise en pratique en situation réelle avec des congénères codés pour renforcer les bons comportements.",
+      tag: "En groupe",
       gradient: "from-amber-950/90 via-stone-900/60 to-black/80",
-      accent: "border-amber-500/30",
     },
   ];
 
-  // Défilement automatique
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -82,24 +85,6 @@ export default function EducationPage() {
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-
-  const availableIssues = [
-    "Marche en laisse & tractions",
-    "Rappel & écoute en liberté",
-    "Réactivité congénères / humains",
-    "Destruction & anxiété de solitude",
-    "Saut & excitation intense",
-    "Éveil & socialisation du chiot",
-  ];
-
-  const toggleIssue = (issue: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      issues: prev.issues.includes(issue)
-        ? prev.issues.filter((i) => i !== issue)
-        : [...prev.issues, issue],
-    }));
-  };
 
   const handleActionClick = () => {
     if (user) {
@@ -119,28 +104,43 @@ export default function EducationPage() {
       });
       if (error) throw error;
     } catch (err) {
-      console.error("Erreur de connexion :", err);
+      console.error(err);
       setAuthLoading(false);
     }
+  };
+
+  const toggleIssue = (issue: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      issues: prev.issues.includes(issue)
+        ? prev.issues.filter((i) => i !== issue)
+        : [...prev.issues, issue],
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
+    if (!formData.dog_id) {
+      alert("Veuillez sélectionner ou ajouter un chien pour la réservation.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.from("education_requests").insert([
         {
           user_id: user.id,
+          dog_id: formData.dog_id,
           client_name: user.user_metadata?.full_name || "Client",
           client_email: user.email,
           client_phone: formData.clientPhone,
           dog_name: formData.dogName,
           dog_breed: formData.dogBreed,
           dog_age: formData.dogAge,
+          objectives: formData.objectives,
           issues: formData.issues,
-          objectives: `Formule: ${formData.formula} | ${formData.objectives}`,
           preferred_slot: formData.preferredSlot,
           status: "en_attente",
         },
@@ -156,8 +156,6 @@ export default function EducationPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      
-      {/* HALOS FAUVE D'AMBIANCE */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
@@ -167,25 +165,24 @@ export default function EducationPage() {
 
       <LiquidNavbar />
 
-      {/* Hero Section Éducation (Titre plus compact) */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
-          <span>Accompagnement Comportemental & Éthologie</span>
+          <span>Expertise Primitive & Japonaise</span>
         </div>
         
         <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
-          Éducation Canine &{" "}
+          Éducation &{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-            Bilan Sur-Mesure
+            Comportement Canin
           </span>
         </h1>
         
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
-          Une approche respectueuse et cohérente, axée sur la communication naturelle et l'équilibre de votre compagnon.
+          Des méthodes bienveillantes, claires et adaptées à la psychologie de votre chien pour bâtir une relation de confiance et de respect mutuel.
         </p>
       </section>
 
-      {/* CARROUSEL COMPACT & CLASSIQUE (Hauteur contenue) */}
+      {/* CARROUSEL COMPACT */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           {slides.map((slide, index) => (
@@ -196,7 +193,6 @@ export default function EducationPage() {
               }`}
             >
               <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
-              
               <div className="relative z-10 max-w-xl text-white">
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-white/10 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/10 inline-block mb-2">
                   {slide.tag}
@@ -211,68 +207,52 @@ export default function EducationPage() {
             </div>
           ))}
 
-          {/* Flèches de navigation discrètes */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all active:scale-95"
-            aria-label="Précédent"
-          >
-            ←
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-all active:scale-95"
-            aria-label="Suivant"
-          >
-            →
-          </button>
+          <button onClick={prevSlide} className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">←</button>
+          <button onClick={nextSlide} className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">→</button>
 
-          {/* Pastilles de pagination en bas */}
           <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-1.5">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"
                 }`}
-                aria-label={`Slide ${index + 1}`}
               />
             ))}
           </div>
         </div>
       </section>
 
-      {/* BANDEAU D'ACTION SOUS LE CARROUSEL */}
+      {/* BANDEAU D'ACTION */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
             <h2 className="text-xl font-black tracking-tight text-stone-900">
-              Réserver votre accompagnement
+              Réserver votre Bilan Initial
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">
-              Prenez rendez-vous pour un bilan initial ou réservez votre séance individuelle.
+              Première étape obligatoire. Nous analysons ensemble le comportement de votre chien pour établir un plan de travail.
             </p>
           </div>
           <button
             onClick={handleActionClick}
             className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
-            Prendre un cours / Réserver
+            Prendre rendez-vous
           </button>
         </div>
       </section>
 
-      {/* PRÉSENTATION DES FORMULES & PÉDAGOGIE */}
+      {/* MÉTHODOLOGIE & APPROCHE */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-12">
-          
           <div>
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">
-              Formules & Accompagnement
+              Notre Approche
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-              Des cours adaptés à chaque étape
+              Travailler avec la nature du chien
             </h2>
           </div>
 
@@ -280,267 +260,146 @@ export default function EducationPage() {
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                  Étape Obligatoire
+                  Étape 1
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
-                  Bilan Comportemental
+                  Comprendre & Analyser
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Séance de 1h30 : analyse globale de l'environnement, lecture des postures et définition d'un programme d'apprentissage ciblé.
+                  Le bilan permet d'identifier les causes profondes d'un comportement (peur, frustration, génétique) avant d'appliquer toute solution.
                 </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
-                <span>Durée : 1h30</span>
-                <span className="text-stone-800">Terrain / Domicile</span>
               </div>
             </div>
 
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                  Perfectionnement
+                  Étape 2
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
-                  Séances Individuelles
+                  Éduquer & Cadrer
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Mise en pratique en situation réelle (ville, forêt) : rappel sous stimulus, marche sans traction et gestion des impulsions.
+                  Mise en place de règles claires, apprentissage de la frustration et renforcement des comportements positifs.
                 </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
-                <span>Durée : 1h00</span>
-                <span className="text-stone-800">En extérieur</span>
               </div>
             </div>
 
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                  Collectif
+                  Étape 3
                 </span>
                 <h3 className="mt-4 text-lg font-bold text-stone-900">
-                  Balades Éducatives
+                  Socialiser & Généraliser
                 </h3>
                 <p className="mt-3 text-xs sm:text-sm leading-relaxed text-stone-500">
-                  Sorties en petits groupes pour travailler les codes canins, la tolérance aux congénères et l'écoute en meute.
+                  Travail en extérieur, en ville et en présence de chiens régulateurs pour assurer un comportement stable en toute circonstance.
                 </p>
               </div>
-              <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-400">
-                <span>Comité restreint</span>
-                <span className="text-stone-800">Tous niveaux</span>
-              </div>
             </div>
           </div>
-
-          {/* PRÉSENTATION DE L'ÉDUCATEUR & APPROCHE */}
-          <div className="rounded-[2.5rem] bg-stone-900 text-white p-8 sm:p-12 shadow-xl border border-stone-800">
-            <div className="max-w-2xl">
-              <span className="text-xs font-black uppercase tracking-wider text-orange-400">
-                La Méthode Inochi Inu
-              </span>
-              <h3 className="text-2xl font-black mt-2">
-                Comprendre avant d'agir
-              </h3>
-              <p className="text-stone-300 text-xs sm:text-sm leading-relaxed mt-3">
-                Spécialisés dans les races primitives et les tempéraments affirmés, nous privilégions la lecture fine des signaux, l'anticipation et la motivation. Un accompagnement bienveillant et structurant pour des résultats durables.
-              </p>
-            </div>
-          </div>
-
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* =========================================================================
-          MODALE 1 : CONNEXION GOOGLE (SI NON CONNECTÉ)
-          ========================================================================= */}
+      {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
-            onClick={() => setIsAuthOpen(false)}
-          />
-          <div className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-            <button
-              onClick={() => setIsAuthOpen(false)}
-              className="absolute top-6 right-6 flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-stone-600 hover:bg-black/10 transition-all"
-            >
-              ✕
-            </button>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm shadow-[0_4px_12px_rgba(249,115,22,0.3)]">
-                犬
-              </div>
-              <h3 className="text-2xl font-black text-stone-900">
-                Connexion requise
-              </h3>
-              <p className="mt-2 text-sm text-stone-500 font-medium">
-                Connectez-vous pour envoyer votre demande et synchroniser vos séances sur votre Espace Membre.
-              </p>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
+              <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
+              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour prendre un rendez-vous d'éducation et suivre l'évolution.</p>
             </div>
-            <div className="mt-8">
-              <button
-                onClick={handleGoogleLogin}
-                disabled={authLoading}
-                className="group flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
-                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
-                </svg>
-                <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
-              </button>
-            </div>
+            <button
+              onClick={handleGoogleLogin}
+              disabled={authLoading}
+              className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
+            >
+              <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* =========================================================================
-          MODALE 2 : FORMULAIRE DE RÉSERVATION (SI CONNECTÉ)
-          ========================================================================= */}
+      {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
-            onClick={() => setIsFormOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button
-              onClick={() => setIsFormOpen(false)}
-              className="absolute top-6 right-6 flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-stone-600 hover:bg-black/10 transition-all"
-            >
-              ✕
-            </button>
+            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
 
             {submitted ? (
               <div className="text-center py-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">
-                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black text-stone-900">Demande enregistrée !</h3>
-                <p className="text-xs text-stone-500 mt-2 leading-relaxed">
-                  Votre demande pour <strong>{formData.dogName}</strong> a bien été envoyée. Elle apparaîtra sur votre Espace Membre dès validation.
-                </p>
-                <div className="mt-6 flex justify-center gap-3">
-                  <a
-                    href="/espace-membre"
-                    className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 transition-all"
-                  >
-                    Voir mon Espace Membre
-                  </a>
-                </div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
+                <h3 className="text-xl font-black text-stone-900">Demande envoyée !</h3>
+                <p className="text-xs text-stone-500 mt-2">Nous allons vous recontacter très vite pour fixer la date de votre bilan.</p>
+                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Aller sur Mon Espace</a>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                   <div>
-                    <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">
-                      Étape {step} sur 2
-                    </span>
-                    <h3 className="text-lg font-black text-stone-900">
-                      {step === 1 ? "Profil du Chien & Formule" : "Objectifs & Disponibilités"}
-                    </h3>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {[1, 2].map((s) => (
-                      <div
-                        key={s}
-                        className={`h-1.5 rounded-full transition-all ${
-                          s === step ? "w-6 bg-orange-500" : "w-2 bg-stone-200"
-                        }`}
-                      />
-                    ))}
+                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 2</span>
+                    <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Chien & Objectifs" : "Problématiques & Dispos"}</h3>
                   </div>
                 </div>
 
                 {step === 1 && (
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                        Formule souhaitée
-                      </label>
-                      <select
-                        value={formData.formula}
-                        onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                      >
-                        <option value="Bilan Comportemental Initial">Bilan Comportemental Initial (1h30)</option>
-                        <option value="Séance Individuelle (Extérieur/Ville)">Séance Individuelle (Extérieur/Ville)</option>
-                        <option value="École du Chiot / Éveil">École du Chiot / Éveil</option>
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                          Nom du chien *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ex: Ryu"
-                          value={formData.dogName}
-                          onChange={(e) => setFormData({ ...formData, dogName: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                          Âge *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ex: 8 mois"
-                          value={formData.dogAge}
-                          onChange={(e) => setFormData({ ...formData, dogAge: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                        />
-                      </div>
-                    </div>
+                    
+                    {/* SÉLECTEUR DE CHIEN (Remplace les anciens inputs Nom/Race) */}
+                    {user && (
+                      <ClientDogSelector
+                        isAdmin={false}
+                        currentUserId={user.id}
+                        onDogSelected={(dog) =>
+                          setFormData({
+                            ...formData,
+                            dog_id: dog.id,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                          })
+                        }
+                      />
+                    )}
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                        Race ou type *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ex: Akita Inu, Shiba, Berger..."
-                        value={formData.dogBreed}
-                        onChange={(e) => setFormData({ ...formData, dogBreed: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Âge du chien *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="Ex: 8 mois, 2 ans..." 
+                        value={formData.dogAge} 
+                        onChange={(e) => setFormData({ ...formData, dogAge: e.target.value })} 
+                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                        Téléphone de contact *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="06 12 34 56 78"
-                        value={formData.clientPhone}
-                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Que souhaitez-vous travailler ? *</label>
+                      <textarea 
+                        required 
+                        rows={3} 
+                        placeholder="Expliquez brièvement vos attentes..." 
+                        value={formData.objectives} 
+                        onChange={(e) => setFormData({ ...formData, objectives: e.target.value })} 
+                        className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
                     <div className="pt-4 flex justify-end">
-                      <button
-                        type="button"
-                        disabled={!formData.dogName || !formData.dogBreed || !formData.dogAge || !formData.clientPhone}
-                        onClick={() => setStep(2)}
-                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-40 transition-all cursor-pointer"
+                      <button 
+                        type="button" 
+                        disabled={!formData.dog_id || !formData.dogAge || !formData.objectives} 
+                        onClick={() => setStep(2)} 
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer shadow-md"
                       >
                         Suivant ➔
                       </button>
@@ -549,76 +408,64 @@ export default function EducationPage() {
                 )}
 
                 {step === 2 && (
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">
-                        Thématiques ciblées
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {availableIssues.map((issue) => {
-                          const isSel = formData.issues.includes(issue);
-                          return (
-                            <button
-                              key={issue}
-                              type="button"
-                              onClick={() => toggleIssue(issue)}
-                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border cursor-pointer ${
-                                isSel
-                                  ? "bg-orange-500 text-white border-orange-500"
-                                  : "bg-stone-50 text-stone-700 border-stone-200"
-                              }`}
-                            >
-                              {isSel ? "✓ " : "+ "}
-                              {issue}
-                            </button>
-                          );
-                        })}
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-2">Avez-vous remarqué ces comportements ?</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {["Aboiements excessifs", "Destruction", "Malpropreté", "Tire en laisse", "Réactivité congénères", "Réactivité humains", "Anxiété de séparation", "Fugue / Rappel difficile"].map((issue) => (
+                          <label key={issue} className="flex items-center gap-2 p-2 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors">
+                            <input 
+                              type="checkbox" 
+                              checked={formData.issues.includes(issue)} 
+                              onChange={() => toggleIssue(issue)} 
+                              className="rounded text-orange-600 focus:ring-orange-500" 
+                            />
+                            <span className="text-[11px] font-medium text-stone-700">{issue}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                        Disponibilités souhaitées
-                      </label>
-                      <select
-                        value={formData.preferredSlot}
-                        onChange={(e) => setFormData({ ...formData, preferredSlot: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                      >
-                        <option value="Semaine en matinée">Semaine en matinée</option>
-                        <option value="Semaine en après-midi">Semaine en après-midi</option>
-                        <option value="Samedi">Samedi</option>
-                        <option value="Indifférent / À convenir">Indifférent / À convenir</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
-                        Précisions sur vos attentes
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder="Comportements particuliers à signaler..."
-                        value={formData.objectives}
-                        onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Disponibilité *</label>
+                        <select 
+                          value={formData.preferredSlot} 
+                          onChange={(e) => setFormData({ ...formData, preferredSlot: e.target.value })} 
+                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                        >
+                          <option value="Semaine en matinée">Semaine en matinée</option>
+                          <option value="Semaine en après-midi">Semaine en après-midi</option>
+                          <option value="Week-end">Week-end</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
+                        <input 
+                          type="tel" 
+                          required 
+                          placeholder="06 12 34 56 78" 
+                          value={formData.clientPhone} 
+                          onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
+                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        />
+                      </div>
                     </div>
 
                     <div className="pt-4 flex justify-between items-center">
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
+                      <button 
+                        type="button" 
+                        onClick={() => setStep(1)} 
                         className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer"
                       >
                         ← Retour
                       </button>
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full hover:brightness-105 shadow-md disabled:opacity-50 transition-all cursor-pointer"
+                      <button 
+                        type="submit" 
+                        disabled={submitting || !formData.clientPhone} 
+                        className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50"
                       >
-                        {submitting ? "Enregistrement..." : "Confirmer ma demande"}
+                        {submitting ? "Envoi..." : "Valider mon bilan"}
                       </button>
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
+import ClientDogSelector from "../components/ClientDogSelector";
 
 export default function PensionPage() {
   const [user, setUser] = useState<any>(null);
@@ -14,7 +15,9 @@ export default function PensionPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
   const [formData, setFormData] = useState({
+    dog_id: "",
     dogName: "",
     dogBreed: "",
     startDate: "",
@@ -100,11 +103,17 @@ export default function PensionPage() {
     e.preventDefault();
     if (!user) return;
 
+    if (!formData.dog_id) {
+      alert("Veuillez sélectionner ou ajouter un chien pour la réservation.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.from("pension_requests").insert([
         {
           user_id: user.id,
+          dog_id: formData.dog_id,
           client_name: user.user_metadata?.full_name || "Client",
           client_email: user.email,
           client_phone: formData.clientPhone,
@@ -344,19 +353,30 @@ export default function PensionPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Nom du chien *</label>
-                        <input type="text" required placeholder="Ryu" value={formData.dogName} onChange={(e) => setFormData({ ...formData, dogName: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Race *</label>
-                        <input type="text" required placeholder="Akita Inu" value={formData.dogBreed} onChange={(e) => setFormData({ ...formData, dogBreed: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
-                      </div>
-                    </div>
+                    {user && (
+                      <ClientDogSelector
+                        isAdmin={false}
+                        currentUserId={user.id}
+                        onDogSelected={(dog) =>
+                          setFormData({
+                            ...formData,
+                            dog_id: dog.id,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                          })
+                        }
+                      />
+                    )}
 
                     <div className="pt-4 flex justify-end">
-                      <button type="button" disabled={!formData.startDate || !formData.endDate || !formData.dogName} onClick={() => setStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer">Suivant ➔</button>
+                      <button 
+                        type="button" 
+                        disabled={!formData.startDate || !formData.endDate || !formData.dog_id} 
+                        onClick={() => setStep(2)} 
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer"
+                      >
+                        Suivant ➔
+                      </button>
                     </div>
                   </div>
                 )}
