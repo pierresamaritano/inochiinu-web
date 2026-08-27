@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
 interface CancelTarget {
@@ -9,6 +9,8 @@ interface CancelTarget {
   title: string;
 }
 
+type PeriodOption = "1m" | "6m" | "1y";
+
 export default function ClientDashboardHub() {
   const [expandedWidget, setExpandedWidget] = useState<string | null>(null);
   const [eduRequests, setEduRequests] = useState<any[]>([]);
@@ -16,6 +18,9 @@ export default function ClientDashboardHub() {
   const [adoptionRequests, setAdoptionRequests] = useState<any[]>([]);
   const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filtre de période côté client : 1 mois par défaut
+  const [period, setPeriod] = useState<PeriodOption>("1m");
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -46,6 +51,23 @@ export default function ClientDashboardHub() {
   useEffect(() => {
     fetchUserServices();
   }, []);
+
+  const filterByPeriod = (items: any[]) => {
+    const now = new Date().getTime();
+    return items.filter((item) => {
+      const itemDate = new Date(item.created_at || Date.now()).getTime();
+      const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+      if (period === "1m") return diffDays <= 31;
+      if (period === "6m") return diffDays <= 183;
+      if (period === "1y") return diffDays <= 365;
+      return true;
+    });
+  };
+
+  const filteredEdu = useMemo(() => filterByPeriod(eduRequests), [eduRequests, period]);
+  const filteredPension = useMemo(() => filterByPeriod(pensionRequests), [pensionRequests, period]);
+  const filteredAdoption = useMemo(() => filterByPeriod(adoptionRequests), [adoptionRequests, period]);
+  const filteredSellerie = useMemo(() => filterByPeriod(sellerieOrders), [sellerieOrders, period]);
 
   const handleConfirmCancel = async () => {
     if (!cancelModal) return;
@@ -92,10 +114,27 @@ export default function ClientDashboardHub() {
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 items-start">
+      {/* SÉLECTEUR DE PÉRIODE CÔTÉ CLIENT */}
+      <div className="flex items-center justify-end gap-2 mt-6">
+        <label htmlFor="client-period" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+          Période :
+        </label>
+        <select
+          id="client-period"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as PeriodOption)}
+          className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black text-stone-800 shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer"
+        >
+          <option value="1m">1 Mois (Défaut)</option>
+          <option value="6m">6 Mois</option>
+          <option value="1y">1 Année</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
         
         {/* 1. WIDGET ÉDUCATION */}
-        {eduRequests.length > 0 && (
+        {filteredEdu.length > 0 && (
           <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
               <div>
@@ -103,12 +142,12 @@ export default function ClientDashboardHub() {
                 <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
               </div>
               <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
-                {eduRequests.length}
+                {filteredEdu.length}
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
-              {(expandedWidget === 'edu' ? eduRequests : eduRequests.slice(0, 3)).map((item) => (
+              {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 3)).map((item) => (
                 <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -133,7 +172,6 @@ export default function ClientDashboardHub() {
                     )}
                   </div>
 
-                  {/* NOTE ADMINISTRATIVE AFFICHÉE AU CLIENT */}
                   {item.admin_notes && (
                     <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
                       <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
@@ -144,16 +182,16 @@ export default function ClientDashboardHub() {
               ))}
             </div>
 
-            {eduRequests.length > 3 && (
+            {filteredEdu.length > 3 && (
               <button onClick={() => setExpandedWidget(expandedWidget === 'edu' ? null : 'edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${eduRequests.length - 3})`}
+                {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 3})`}
               </button>
             )}
           </div>
         )}
 
         {/* 2. WIDGET PENSION */}
-        {pensionRequests.length > 0 && (
+        {filteredPension.length > 0 && (
           <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
               <div>
@@ -161,12 +199,12 @@ export default function ClientDashboardHub() {
                 <h3 className="text-xl font-black text-stone-900 mt-1.5">Séjours en Garde</h3>
               </div>
               <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700">
-                {pensionRequests.length}
+                {filteredPension.length}
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
-              {(expandedWidget === 'pen' ? pensionRequests : pensionRequests.slice(0, 3)).map((item) => (
+              {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 3)).map((item) => (
                 <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -201,16 +239,16 @@ export default function ClientDashboardHub() {
               ))}
             </div>
 
-            {pensionRequests.length > 3 && (
+            {filteredPension.length > 3 && (
               <button onClick={() => setExpandedWidget(expandedWidget === 'pen' ? null : 'pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${pensionRequests.length - 3})`}
+                {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 3})`}
               </button>
             )}
           </div>
         )}
 
         {/* 3. WIDGET ÉLEVAGE */}
-        {adoptionRequests.length > 0 && (
+        {filteredAdoption.length > 0 && (
           <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
               <div>
@@ -220,7 +258,7 @@ export default function ClientDashboardHub() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {adoptionRequests.map((item) => (
+              {filteredAdoption.map((item) => (
                 <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -258,7 +296,7 @@ export default function ClientDashboardHub() {
         )}
 
         {/* 4. WIDGET SELLERIE */}
-        {sellerieOrders.length > 0 && (
+        {filteredSellerie.length > 0 && (
           <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
               <div>
@@ -268,7 +306,7 @@ export default function ClientDashboardHub() {
             </div>
 
             <div className="mt-4 space-y-3">
-              {sellerieOrders.map((item) => (
+              {filteredSellerie.map((item) => (
                 <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>

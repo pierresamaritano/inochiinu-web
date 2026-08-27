@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
 interface ActionTarget {
@@ -12,6 +12,8 @@ interface ActionTarget {
   currentNote?: string;
 }
 
+type PeriodOption = "1m" | "6m" | "1y";
+
 export default function AdminManagerView() {
   const [eduList, setEduList] = useState<any[]>([]);
   const [pensionList, setPensionList] = useState<any[]>([]);
@@ -19,6 +21,9 @@ export default function AdminManagerView() {
   const [sellerieList, setSellerieList] = useState<any[]>([]);
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
   
+  // Filtre de période : "1m" par défaut
+  const [period, setPeriod] = useState<PeriodOption>("1m");
+
   // Modale d'action avec message
   const [actionModal, setActionModal] = useState<ActionTarget | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -45,6 +50,24 @@ export default function AdminManagerView() {
   useEffect(() => {
     fetchAll();
   }, []);
+
+  // Fonction de filtrage par période
+  const filterByPeriod = (items: any[]) => {
+    const now = new Date().getTime();
+    return items.filter((item) => {
+      const itemDate = new Date(item.created_at || Date.now()).getTime();
+      const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+      if (period === "1m") return diffDays <= 31;
+      if (period === "6m") return diffDays <= 183;
+      if (period === "1y") return diffDays <= 365;
+      return true;
+    });
+  };
+
+  const filteredEdu = useMemo(() => filterByPeriod(eduList), [eduList, period]);
+  const filteredPension = useMemo(() => filterByPeriod(pensionList), [pensionList, period]);
+  const filteredAdoption = useMemo(() => filterByPeriod(adoptionList), [adoptionList, period]);
+  const filteredSellerie = useMemo(() => filterByPeriod(sellerieList), [sellerieList, period]);
 
   const openAction = (table: string, id: string, newStatus: string, title: string, clientName: string, currentNote?: string) => {
     setActionModal({ table, id, newStatus, title, clientName, currentNote });
@@ -76,40 +99,65 @@ export default function AdminManagerView() {
 
   return (
     <div className="mt-8 space-y-6">
-      {/* ONGLETS SERVICES */}
-      <div className="flex flex-wrap gap-2 p-1.5 rounded-full bg-stone-100 w-fit">
-        <button
-          onClick={() => setTab("education")}
-          className={`px-5 py-2 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-            tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-600"
-          }`}
-        >
-          Éducation ({eduList.length})
-        </button>
-        <button
-          onClick={() => setTab("pension")}
-          className={`px-5 py-2 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-            tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-600"
-          }`}
-        >
-          Pension ({pensionList.length})
-        </button>
-        <button
-          onClick={() => setTab("elevage")}
-          className={`px-5 py-2 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-            tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-600"
-          }`}
-        >
-          Élevage ({adoptionList.length})
-        </button>
-        <button
-          onClick={() => setTab("sellerie")}
-          className={`px-5 py-2 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-            tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-600"
-          }`}
-        >
-          Sellerie ({sellerieList.length})
-        </button>
+      
+      {/* BARRE SUPÉRIEURE : ONGLETS RESPONSIVES + SÉLECTEUR DE PÉRIODE */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        
+        {/* MENU ONGLETS FLUIDE SUR MOBILE */}
+        <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
+            <button
+              onClick={() => setTab("education")}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
+                tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              Éducation ({filteredEdu.length})
+            </button>
+            <button
+              onClick={() => setTab("pension")}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
+                tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              Pension ({filteredPension.length})
+            </button>
+            <button
+              onClick={() => setTab("elevage")}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
+                tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              Élevage ({filteredAdoption.length})
+            </button>
+            <button
+              onClick={() => setTab("sellerie")}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
+                tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              Sellerie ({filteredSellerie.length})
+            </button>
+          </div>
+        </div>
+
+        {/* SÉLECTEUR DE PÉRIODE DÉROULANT */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <label htmlFor="period-select" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+            Période :
+          </label>
+          <select
+            id="period-select"
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as PeriodOption)}
+            className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black text-stone-800 shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer"
+          >
+            <option value="1m">1 Mois (Défaut)</option>
+            <option value="6m">6 Mois</option>
+            <option value="1y">1 Année</option>
+          </select>
+        </div>
+
       </div>
 
       {/* =========================================================================
@@ -117,10 +165,12 @@ export default function AdminManagerView() {
           ========================================================================= */}
       {tab === "education" && (
         <div className="space-y-4">
-          {eduList.length === 0 ? (
-            <p className="text-xs text-stone-400">Aucune demande d'éducation.</p>
+          {filteredEdu.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
+              Aucune demande d'éducation sur cette période.
+            </div>
           ) : (
-            eduList.map((item) => (
+            filteredEdu.map((item) => (
               <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
@@ -176,10 +226,12 @@ export default function AdminManagerView() {
           ========================================================================= */}
       {tab === "pension" && (
         <div className="space-y-4">
-          {pensionList.length === 0 ? (
-            <p className="text-xs text-stone-400">Aucune demande de pension.</p>
+          {filteredPension.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
+              Aucune demande de pension sur cette période.
+            </div>
           ) : (
-            pensionList.map((item) => (
+            filteredPension.map((item) => (
               <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
@@ -236,10 +288,12 @@ export default function AdminManagerView() {
           ========================================================================= */}
       {tab === "elevage" && (
         <div className="space-y-4">
-          {adoptionList.length === 0 ? (
-            <p className="text-xs text-stone-400">Aucune candidature d'adoption.</p>
+          {filteredAdoption.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
+              Aucune candidature sur cette période.
+            </div>
           ) : (
-            adoptionList.map((item) => (
+            filteredAdoption.map((item) => (
               <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
@@ -263,7 +317,7 @@ export default function AdminManagerView() {
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                   {item.status === "annulé" ? (
                     <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
-                      Candidature retirée / annulée
+                      Candidature annulée
                     </span>
                   ) : (
                     <>
@@ -299,10 +353,12 @@ export default function AdminManagerView() {
           ========================================================================= */}
       {tab === "sellerie" && (
         <div className="space-y-4">
-          {sellerieList.length === 0 ? (
-            <p className="text-xs text-stone-400">Aucune commande de sellerie.</p>
+          {filteredSellerie.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
+              Aucune commande de sellerie sur cette période.
+            </div>
           ) : (
-            sellerieList.map((item) => (
+            filteredSellerie.map((item) => (
               <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="max-w-xl">
                   <div className="flex items-center gap-2">
@@ -357,9 +413,7 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* =========================================================================
-          MODALE D'ACTION & ENVOI DU MESSAGE EXPLICATIF
-          ========================================================================= */}
+      {/* MODALE D'ACTION */}
       {actionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -388,19 +442,13 @@ export default function AdminManagerView() {
 
             <div className="mt-6">
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">
-                Message / Explication pour le client (visible sur son tableau de bord)
+                Message / Explication pour le client
               </label>
               <textarea
                 rows={3}
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
-                placeholder={
-                  actionModal.newStatus === "confirmé"
-                    ? "Ex: Rendez-vous validé au parc de détente. N'oubliez pas les friandises et la longe."
-                    : actionModal.newStatus === "annulé"
-                    ? "Ex: Malheureusement complet sur cette période, ou créneau indisponible."
-                    : "Ajoutez une consigne, un numéro de suivi ou une précision..."
-                }
+                placeholder="Ajoutez une consigne, un lieu ou la raison du changement..."
                 className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
               />
             </div>
@@ -426,6 +474,7 @@ export default function AdminManagerView() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
