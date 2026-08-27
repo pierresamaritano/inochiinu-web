@@ -142,21 +142,27 @@ export default function AdminManagerView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status !== "confirmé" && (
-                    <button
-                      onClick={() => openAction("education_requests", item.id, "confirmé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                    >
-                      Confirmer
-                    </button>
-                  )}
-                  {item.status !== "annulé" && (
-                    <button
-                      onClick={() => openAction("education_requests", item.id, "annulé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                    >
-                      {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
-                    </button>
+                  {item.status === "annulé" ? (
+                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
+                      Demande annulée
+                    </span>
+                  ) : (
+                    <>
+                      {item.status !== "confirmé" && (
+                        <button
+                          onClick={() => openAction("education_requests", item.id, "confirmé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)}
+                          className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                        >
+                          Confirmer
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openAction("education_requests", item.id, "annulé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -196,21 +202,27 @@ export default function AdminManagerView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status !== "confirmé" && (
-                    <button
-                      onClick={() => openAction("pension_requests", item.id, "confirmé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                    >
-                      Valider séjour
-                    </button>
-                  )}
-                  {item.status !== "annulé" && (
-                    <button
-                      onClick={() => openAction("pension_requests", item.id, "annulé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                    >
-                      {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
-                    </button>
+                  {item.status === "annulé" ? (
+                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
+                      Demande annulée
+                    </span>
+                  ) : (
+                    <>
+                      {item.status !== "confirmé" && (
+                        <button
+                          onClick={() => openAction("pension_requests", item.id, "confirmé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)}
+                          className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                        >
+                          Valider séjour
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openAction("pension_requests", item.id, "annulé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -249,25 +261,31 @@ export default function AdminManagerView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
-                    className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                  >
-                    Accepter
-                  </button>
-                  <button
-                    onClick={() => openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
-                    className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                  >
-                    Liste d'attente
-                  </button>
-                  {item.status !== "annulé" && (
-                    <button
-                      onClick={() => openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Annuler / Refuser
-                    </button>
+                  {item.status === "annulé" ? (
+                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
+                      Candidature retirée / annulée
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                      >
+                        Accepter
+                      </button>
+                      <button
+                        onClick={() => openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                      >
+                        Liste d'attente
+                      </button>
+                      <button
+                        onClick={() => openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Refuser
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -306,25 +324,31 @@ export default function AdminManagerView() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openAction("sellerie_orders", item.id, "en_atelier", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
-                    className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                  >
-                    En atelier
-                  </button>
-                  <button
-                    onClick={() => openAction("sellerie_orders", item.id, "expédié", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
-                    className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                  >
-                    Expédier
-                  </button>
-                  {item.status !== "annulé" && (
-                    <button
-                      onClick={() => openAction("sellerie_orders", item.id, "annulé", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
-                      className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Annuler
-                    </button>
+                  {item.status === "annulé" ? (
+                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
+                      Commande annulée
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => openAction("sellerie_orders", item.id, "en_atelier", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                      >
+                        En atelier
+                      </button>
+                      <button
+                        onClick={() => openAction("sellerie_orders", item.id, "expédié", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                      >
+                        Expédier
+                      </button>
+                      <button
+                        onClick={() => openAction("sellerie_orders", item.id, "annulé", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)}
+                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
