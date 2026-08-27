@@ -14,32 +14,67 @@ interface ActionTarget {
 
 type PeriodOption = "1m" | "6m" | "1y";
 
+interface Dog {
+  id: string;
+  user_id: string;
+  name: string;
+  breed: string;
+  birth_date?: string;
+  gender?: string;
+  is_neutered?: boolean;
+  is_vaccinated: boolean;
+  vaccine_expiry?: string;
+  identification_number?: string;
+  health_notes?: string;
+}
+
+interface ClientProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+}
+
 export default function AdminManagerView() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // --- LISTES PRINCIPALES ---
   const [eduList, setEduList] = useState<any[]>([]);
   const [pensionList, setPensionList] = useState<any[]>([]);
   const [adoptionList, setAdoptionList] = useState<any[]>([]);
   const [sellerieList, setSellerieList] = useState<any[]>([]);
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
 
-  // Filtre de période : "1m" par défaut
+  // --- FILTRES ---
   const [period, setPeriod] = useState<PeriodOption>("1m");
-
-  // Filtre Client & Chien (Auto-complétion)
-  const [selectedFilterClient, setSelectedFilterClient] = useState<any | null>(null);
+  const [selectedFilterClient, setSelectedFilterClient] = useState<ClientProfile | null>(null);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [clientDogs, setClientDogs] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<ClientProfile[]>([]);
+  const [clientDogs, setClientDogs] = useState<Dog[]>([]);
   const [selectedFilterDogId, setSelectedFilterDogId] = useState<string>("all");
 
-  // Modale d'action avec message
+  // --- MODALE D'ACTION / STATUT ADMIN ---
   const [actionModal, setActionModal] = useState<ActionTarget | null>(null);
   const [noteText, setNoteText] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // --- MODALE AJOUT RAPIDE CHIEN ---
+  const [showAddDogModal, setShowAddDogModal] = useState(false);
+  const [creatingDog, setCreatingDog] = useState(false);
+  const [newDog, setNewDog] = useState({
+    name: "",
+    breed: "",
+    birth_date: "",
+    gender: "male",
+    is_neutered: false,
+    is_vaccinated: true,
+    vaccine_expiry: "",
+    identification_number: "",
+    health_notes: "",
+  });
 
   const fetchAll = async () => {
     const [edu, pen, adp, sel] = await Promise.all([
@@ -58,24 +93,32 @@ export default function AdminManagerView() {
     fetchAll();
   }, []);
 
-  // Recherche auto-complétée de clients
+  // Recherche avec auto-complétion client CORRIGÉE (Plus de boucle infinie)
   useEffect(() => {
+    if (selectedFilterClient) {
+      setSearchResults([]);
+      return;
+    }
+
     if (clientSearchQuery.trim().length < 2) {
       setSearchResults([]);
       return;
     }
+
     const timer = setTimeout(async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, phone")
         .or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`)
         .limit(6);
       setSearchResults(data || []);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [clientSearchQuery, supabase]);
+    }, 250);
 
-  const handleFilterClient = async (client: any) => {
+    return () => clearTimeout(timer);
+  }, [clientSearchQuery, selectedFilterClient, supabase]);
+
+  // Sélection d'un client dans la recherche
+  const handleFilterClient = async (client: ClientProfile) => {
     setSelectedFilterClient(client);
     setClientSearchQuery(`${client.full_name || client.email}`);
     setSearchResults([]);
@@ -85,32 +128,81 @@ export default function AdminManagerView() {
     setSelectedFilterDogId("all");
   };
 
+  // Réinitialisation du filtre client
   const resetClientFilter = () => {
     setSelectedFilterClient(null);
     setClientSearchQuery("");
     setClientDogs([]);
     setSelectedFilterDogId("all");
+    setSearchResults([]);
   };
 
-  // Filtrage combiné : Période + Client sélectionné + Chien sélectionné
+  // Création rapide d'un chien
+  const handleCreateDog = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newDog.is_vaccinated) {
+      alert("Attention : Nous n'acceptons que les chiens à jour de vaccination.");
+      return;
+    }
+
+    const { data: authData } = await supabase.auth.getUser();
+    const targetId = selectedFilterClient?.id || authData.user?.id;
+
+    if (!targetId) {
+      alert("Veuillez sélectionner un client ou vous connecter.");
+      return;
+    }
+
+    setCreatingDog(true);
+    try {
+      const { data, error } = await supabase
+        .from("dogs")
+        .insert([{ ...newDog, user_id: targetId }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (selectedFilterClient) {
+        setClientDogs((prev) => [...prev, data]);
+        setSelectedFilterDogId(data.id);
+      }
+
+      setShowAddDogModal(false);
+      setNewDog({
+        name: "", breed: "", birth_date: "", gender: "male",
+        is_neutered: false, is_vaccinated: true, vaccine_expiry: "",
+        identification_number: "", health_notes: "",
+      });
+    } catch (err: any) {
+      alert(`Erreur : ${err.message}`);
+    } finally {
+      setCreatingDog(false);
+    }
+  };
+
+  // Application des filtres combinés CORRIGÉE (Filtre strict par ID)
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
-      // 1. Filtre période
+      // 1. Filtre Période
       const itemDate = new Date(item.created_at || Date.now()).getTime();
       const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
       if (period === "1m" && diffDays > 31) return false;
       if (period === "6m" && diffDays > 183) return false;
       if (period === "1y" && diffDays > 365) return false;
 
-      // 2. Filtre client
+      // 2. Filtre Client
       if (selectedFilterClient && item.user_id !== selectedFilterClient.id) {
         return false;
       }
 
-      // 3. Filtre chien (si applicable)
-      if (selectedFilterDogId !== "all" && item.dog_id && item.dog_id !== selectedFilterDogId) {
-        return false;
+      // 3. Filtre Chien strict (n'affiche que les réservations liées au chien sélectionné)
+      if (selectedFilterDogId !== "all") {
+        if (item.dog_id !== selectedFilterDogId) {
+          return false;
+        }
       }
 
       return true;
@@ -153,11 +245,13 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
       
-      {/* 1. DOUBLE BARRE DE FILTRE : CLIENT (AUTO-COMPLÉTION) & CHIEN */}
+      {/* =========================================================================
+          1. BARRE DE FILTRAGE : RECHERCHE CLIENT & AFFINAGE CHIEN
+          ========================================================================= */}
       <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           
-          {/* Recherche Client Auto-complétée */}
+          {/* Recherche Client */}
           <div className="relative w-full md:w-1/2">
             <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">
               Rechercher par Client (Auto-complétion) :
@@ -167,7 +261,15 @@ export default function AdminManagerView() {
                 type="text"
                 placeholder="Tapez un nom, prénom ou e-mail..."
                 value={clientSearchQuery}
-                onChange={(e) => setClientSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setClientSearchQuery(e.target.value);
+                  // Si on tape un nouveau texte, on annule la sélection précédente
+                  if (selectedFilterClient) {
+                    setSelectedFilterClient(null);
+                    setClientDogs([]);
+                    setSelectedFilterDogId("all");
+                  }
+                }}
                 className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-800 focus:outline-none focus:border-orange-500 pr-8"
               />
               {selectedFilterClient && (
@@ -175,35 +277,46 @@ export default function AdminManagerView() {
                   type="button"
                   onClick={resetClientFilter}
                   className="absolute right-3 top-2.5 text-xs font-bold text-stone-400 hover:text-stone-800 cursor-pointer"
-                  title="Réinitialiser le filtre"
                 >
                   ✕
                 </button>
               )}
             </div>
 
-            {searchResults.length > 0 && (
+            {/* Menu déroulant de résultats */}
+            {searchResults.length > 0 && !selectedFilterClient && (
               <div className="absolute top-full inset-x-0 mt-1.5 z-50 rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden divide-y divide-stone-100">
                 {searchResults.map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => handleFilterClient(c)}
-                    className="w-full px-4 py-2.5 text-left text-xs hover:bg-orange-50 flex justify-between items-center transition-colors cursor-pointer"
+                    className="w-full px-4 py-3 text-left text-xs hover:bg-orange-50 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-stone-800">{c.full_name || "Client"}</span>
-                    <span className="text-[11px] text-stone-400">{c.email}</span>
+                    <span className="text-[11px] text-stone-400 mt-0.5 sm:mt-0">{c.email}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Menu Déroulant Chiens du Client */}
+          {/* Menu Déroulant Chiens + Bouton Ajout rapide */}
           <div className="w-full md:w-1/2">
-            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">
-              Affiner par Chien :
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] font-black uppercase text-stone-500">
+                Affiner par Chien :
+              </label>
+              {selectedFilterClient && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddDogModal(true)}
+                  className="text-[10px] font-black uppercase text-orange-600 hover:text-orange-700 cursor-pointer"
+                >
+                  + Ajouter un chien
+                </button>
+              )}
+            </div>
             <select
               disabled={!selectedFilterClient}
               value={selectedFilterDogId}
@@ -229,6 +342,7 @@ export default function AdminManagerView() {
               Filtre actif : {selectedFilterClient.full_name || selectedFilterClient.email}
             </span>
             <button
+              type="button"
               onClick={resetClientFilter}
               className="text-stone-400 hover:text-stone-700 font-bold underline cursor-pointer"
             >
@@ -238,13 +352,14 @@ export default function AdminManagerView() {
         )}
       </div>
 
-      {/* 2. ONGLETS DE NAVIGATION MOBILE-FRIENDLY + SÉLECTEUR DE PÉRIODE */}
+      {/* =========================================================================
+          2. ONGLETS DE NAVIGATION MOBILE + PÉRIODE
+          ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        
-        {/* Menu scrollable horizontalement sans déformation */}
         <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
             <button
+              type="button"
               onClick={() => setTab("education")}
               className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
                 tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
@@ -253,6 +368,7 @@ export default function AdminManagerView() {
               Éducation ({filteredEdu.length})
             </button>
             <button
+              type="button"
               onClick={() => setTab("pension")}
               className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
                 tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
@@ -261,6 +377,7 @@ export default function AdminManagerView() {
               Pension ({filteredPension.length})
             </button>
             <button
+              type="button"
               onClick={() => setTab("elevage")}
               className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
                 tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
@@ -269,6 +386,7 @@ export default function AdminManagerView() {
               Élevage ({filteredAdoption.length})
             </button>
             <button
+              type="button"
               onClick={() => setTab("sellerie")}
               className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
                 tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
@@ -279,7 +397,6 @@ export default function AdminManagerView() {
           </div>
         </div>
 
-        {/* Sélecteur de période */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <label htmlFor="period-select" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
             Période :
@@ -295,11 +412,10 @@ export default function AdminManagerView() {
             <option value="1y">1 Année</option>
           </select>
         </div>
-
       </div>
 
       {/* =========================================================================
-          3. LISTE ÉDUCATION
+          3. CONTENU : ÉDUCATION
           ========================================================================= */}
       {tab === "education" && (
         <div className="space-y-4">
@@ -351,6 +467,7 @@ export default function AdminManagerView() {
                     <>
                       {item.status !== "confirmé" && (
                         <button
+                          type="button"
                           onClick={() =>
                             openAction("education_requests", item.id, "confirmé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)
                           }
@@ -360,6 +477,7 @@ export default function AdminManagerView() {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("education_requests", item.id, "annulé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)
                         }
@@ -377,7 +495,7 @@ export default function AdminManagerView() {
       )}
 
       {/* =========================================================================
-          4. LISTE PENSION
+          4. CONTENU : PENSION
           ========================================================================= */}
       {tab === "pension" && (
         <div className="space-y-4">
@@ -434,6 +552,7 @@ export default function AdminManagerView() {
                     <>
                       {item.status !== "confirmé" && (
                         <button
+                          type="button"
                           onClick={() =>
                             openAction("pension_requests", item.id, "confirmé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)
                           }
@@ -443,6 +562,7 @@ export default function AdminManagerView() {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("pension_requests", item.id, "annulé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)
                         }
@@ -460,7 +580,7 @@ export default function AdminManagerView() {
       )}
 
       {/* =========================================================================
-          5. LISTE ÉLEVAGE
+          5. CONTENU : ÉLEVAGE
           ========================================================================= */}
       {tab === "elevage" && (
         <div className="space-y-4">
@@ -511,6 +631,7 @@ export default function AdminManagerView() {
                   ) : (
                     <>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
                         }
@@ -519,6 +640,7 @@ export default function AdminManagerView() {
                         Accepter
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
                         }
@@ -527,6 +649,7 @@ export default function AdminManagerView() {
                         Liste d'attente
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
                         }
@@ -544,7 +667,7 @@ export default function AdminManagerView() {
       )}
 
       {/* =========================================================================
-          6. LISTE SELLERIE
+          6. CONTENU : SELLERIE
           ========================================================================= */}
       {tab === "sellerie" && (
         <div className="space-y-4">
@@ -597,6 +720,7 @@ export default function AdminManagerView() {
                   ) : (
                     <>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("sellerie_orders", item.id, "en_atelier", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
                         }
@@ -605,6 +729,7 @@ export default function AdminManagerView() {
                         En atelier
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("sellerie_orders", item.id, "expédié", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
                         }
@@ -613,6 +738,7 @@ export default function AdminManagerView() {
                         Expédier
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           openAction("sellerie_orders", item.id, "annulé", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
                         }
@@ -640,6 +766,7 @@ export default function AdminManagerView() {
           />
           <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-8 shadow-2xl backdrop-blur-2xl">
             <button
+              type="button"
               onClick={() => setActionModal(null)}
               className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 cursor-pointer"
             >
@@ -686,9 +813,153 @@ export default function AdminManagerView() {
                 disabled={updating}
                 className="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
               >
-                {updating ? "Mise à jour..." : "Confirmer et envoyer"}
+                {updating ? "Mise à jour..." : "Confirmer et enregistrer"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          8. MODALE D'AJOUT RAPIDE D'UN CHIEN (ADMIN)
+          ========================================================================= */}
+      {showAddDogModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-md"
+            onClick={() => !creatingDog && setShowAddDogModal(false)}
+          />
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] bg-[#FDFCF8] border border-white p-6 sm:p-8 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowAddDogModal(false)}
+              className="absolute top-6 right-6 text-stone-500 hover:text-stone-900 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <h3 className="text-xl font-black text-stone-900">Enregistrer une fiche chien</h3>
+            <p className="text-xs text-stone-500 mt-1">
+              Client concerné :{" "}
+              <strong className="text-stone-800">
+                {selectedFilterClient?.full_name || selectedFilterClient?.email || "Compte courant"}
+              </strong>
+            </p>
+
+            <form onSubmit={handleCreateDog} className="mt-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Nom *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Ryu"
+                    value={newDog.name}
+                    onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Race *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Akita Inu"
+                    value={newDog.breed}
+                    onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Date de naissance</label>
+                  <input
+                    type="date"
+                    value={newDog.birth_date}
+                    onChange={(e) => setNewDog({ ...newDog, birth_date: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Sexe</label>
+                  <select
+                    value={newDog.gender}
+                    onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                  >
+                    <option value="male">Mâle</option>
+                    <option value="female">Femelle</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Statut Médical & Vaccinal */}
+              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-stone-900">Vaccins à jour (Obligatoire) *</label>
+                  <input
+                    type="checkbox"
+                    checked={newDog.is_vaccinated}
+                    onChange={(e) => setNewDog({ ...newDog, is_vaccinated: e.target.checked })}
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-stone-700">Stérilisé / Castré</label>
+                  <input
+                    type="checkbox"
+                    checked={newDog.is_neutered}
+                    onChange={(e) => setNewDog({ ...newDog, is_neutered: e.target.checked })}
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
+                    Date d'échéance / rappel de vaccin
+                  </label>
+                  <input
+                    type="date"
+                    value={newDog.vaccine_expiry}
+                    onChange={(e) => setNewDog({ ...newDog, vaccine_expiry: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">
+                  Puce ou tatouage
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: 25026..."
+                  value={newDog.identification_number}
+                  onChange={(e) => setNewDog({ ...newDog, identification_number: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddDogModal(false)}
+                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500 hover:text-stone-800 cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingDog || !newDog.is_vaccinated}
+                  className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md"
+                >
+                  {creatingDog ? "Enregistrement..." : "Enregistrer et sélectionner"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
