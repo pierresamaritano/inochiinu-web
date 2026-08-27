@@ -156,6 +156,7 @@ export default function ElevagePage() {
 
       <LiquidNavbar />
 
+      {/* EN-TÊTE PRINCIPAL */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -164,14 +165,16 @@ export default function ElevagePage() {
         <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
           Chiots Akita Inu LOF{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-            Equilibrés
+            Équilibrés
           </span>
         </h1>
         
-        <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
-          Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison, pour une socialisation dès leur plus jeune âge. </p>
+        <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base leading-relaxed">
+          Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison, pour une socialisation dès leur plus jeune âge.
+        </p>
       </section>
 
+      {/* CARROUSEL VALEURS */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           {slides.map((slide, index) => (
@@ -260,6 +263,163 @@ export default function ElevagePage() {
               <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">Accompagnement</span>
               <h3 className="mt-4 text-lg font-bold text-stone-900">Suivi à Vie</h3>
               <p className="mt-2 text-xs text-stone-500">Conseils d'éducation personnalisés, kit chiot complet et accompagnement dans l'intégration.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION PEDIGREE & LIGNÉES D'EXCEPTION */}
+      <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
+        <div className="mx-auto max-w-5xl px-6 space-y-12">
+          <div>
+            <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+              Génétique & Standard Japonais
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
+              Un pedigree d'exception issu de champions primés
+            </h2>
+            <p className="mt-2 max-w-3xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
+              La qualité d'une portée repose sur une sélection génétique rigoureuse. Nos chiots héritent directement des plus prestigieuses lignées japonaises et européennes, alliant morphologie idéale, santé et tempérament d'une rare stabilité.
+            </p>
+          </div>
+
+          {/* PALMARÈS DES PARENTS */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* PÈRE */}
+            <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                    Lignée Paternelle
+                  </span>
+                  <span className="text-xs font-bold text-stone-400">Import Pologne</span>
+                </div>
+                <h3 className="text-lg font-black text-stone-900">
+                  Katsunori Go Senshi Shimai
+                </h3>
+                <p className="mt-1 text-xs font-bold text-orange-600">
+                  Champion Junior de France • Titré CACIB
+                </p>
+                <p className="mt-3 text-xs text-stone-500 leading-relaxed">
+                  Descendant direct des affixes réputés <em>Senshi No Inu</em> et <em>Isegumo Kensha</em>, il transmet une ossature puissante, un port de tête altier et un pelage dense conforme aux standards stricts de la race.
+                </p>
+              </div>
+            </div>
+
+            {/* MÈRE */}
+            <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                    Lignée Maternelle
+                  </span>
+                  <span className="text-xs font-bold text-stone-400">Affixe Kazan No</span>
+                </div>
+                <h3 className="text-lg font-black text-stone-900">
+                  CH. Kazan No Teïumi
+                </h3>
+                <p className="mt-1 text-xs font-bold text-orange-600">
+                  Championne de France • Junior World Winner
+                </p>
+                <p className="mt-3 text-xs text-stone-500 leading-relaxed">
+                  Fille directe de <em>CH. Kazan No Rumi</em> (Championne de France et lauréate Hozonkai) et issue des prestigieuses lignées <em>Tamashi Kensha</em>. Elle apporte une expression noble et une grande douceur au quotidien.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ARBRE GÉNÉALOGIQUE INTERACTIF SUR 3 GÉNÉRATIONS */}
+          <div className="rounded-[2.5rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-orange-600">Arbre Généalogique Officiel</span>
+                <h3 className="text-lg font-black text-stone-900">Pedigree LOF certifié sur 3 générations</h3>
+              </div>
+              <span className="text-xs font-bold text-stone-400">Affixe Kazan No</span>
+            </div>
+
+            <div className="overflow-x-auto pb-4">
+              <div className="min-w-[720px] grid grid-cols-3 gap-4 text-xs">
+                {/* COLONNE 1 : PARENTS */}
+                <div className="space-y-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">1ère Génération (Parents)</span>
+                  
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
+                    <span className="text-[9px] font-black text-orange-700 uppercase block">Père</span>
+                    <p className="font-black text-stone-900">Katsunori Go Senshi Shimai</p>
+                    <p className="text-[10px] text-stone-500 font-medium">CH Junior France • CACIB</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
+                    <span className="text-[9px] font-black text-orange-700 uppercase block">Mère</span>
+                    <p className="font-black text-stone-900">CH. Kazan No Teïumi</p>
+                    <p className="text-[10px] text-stone-500 font-medium">CH France • Junior World Winner</p>
+                  </div>
+                </div>
+
+                {/* COLONNE 2 : GRANDS-PARENTS */}
+                <div className="space-y-4">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">2ème Génération</span>
+                  
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Père Paternel</span>
+                    <p className="font-bold text-stone-800">Ryuseimaru Go Isegumo Kensha</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Mère Paternelle</span>
+                    <p className="font-bold text-stone-800">Chikako Go Senshi No Inu</p>
+                    <p className="text-[10px] text-stone-400">Championne Pologne</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Père Maternel</span>
+                    <p className="font-bold text-stone-800">Kotei Go Sara Hana Kensha</p>
+                    <p className="text-[10px] text-stone-400">Import Italie / Akiho</p>
+                  </div>
+
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase block">Grand-Mère Maternelle</span>
+                    <p className="font-bold text-stone-800">CH. Kazan No Rumi</p>
+                    <p className="text-[10px] text-stone-400">CH France • Vainqueur Hozonkai</p>
+                  </div>
+                </div>
+
+                {/* COLONNE 3 : ARRIÈRE-GRANDS-PARENTS */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">3ème Génération</span>
+                  
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Hiryuu Go Rokkuhando Touwa</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Aihime Go Amakusa Tajiri</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kou Zan Go Shun'You Kensha</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Lignée Senshi No Inu</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kanon Go Tamashi Kensha</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Lignée Sara Hana</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">Kobe No Minami Go Tamashi</div>
+                  <div className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">CH. Nayakiwa Go Tokimitsu</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* POINTS CLÉS DU PEDIGREE */}
+          <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md">
+            <h3 className="text-base font-black tracking-tight text-white mb-4">
+              Les piliers de cette sélection :
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-3 text-xs text-stone-300 font-medium">
+              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
+                <span className="font-bold text-white block">Conformité au Standard</span>
+                <span>Têtes typées, expressions franches et constructions robustes reconnues en concours.</span>
+              </div>
+              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
+                <span className="font-bold text-white block">Santé Contrôlée</span>
+                <span>Ascendants radiographiés hanches/coudes, indemnes de tares oculaires et testés ADN.</span>
+              </div>
+              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
+                <span className="font-bold text-white block">Équilibre Mental</span>
+                <span>Des tempéraments stables, posés et sereins, transmis de génération en génération.</span>
+              </div>
             </div>
           </div>
         </div>
