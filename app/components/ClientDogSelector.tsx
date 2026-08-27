@@ -107,7 +107,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
     if (d) onDogSelected(d, targetUserId, getClientInfo());
   };
 
-  // On écoute un MouseEvent car ce n'est plus un formulaire HTML natif
   const handleCreateDog = async (e: React.MouseEvent | React.FormEvent) => {
     e.preventDefault();
     if (!newDog.is_vaccinated) {
@@ -206,12 +205,12 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
         </div>
 
         {dogs.length === 0 ? (
-          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 flex justify-between items-center">
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 flex flex-col sm:flex-row gap-2 justify-between sm:items-center">
             <span>Aucun chien enregistré pour ce compte.</span>
             <button
               type="button"
               onClick={() => setShowAddDogModal(true)}
-              className="px-3 py-1 bg-amber-600 text-white font-black text-[10px] uppercase rounded-full cursor-pointer"
+              className="px-3 py-1.5 bg-amber-600 text-white font-black text-[10px] uppercase rounded-full cursor-pointer shrink-0"
             >
               Créer sa fiche
             </button>
@@ -246,10 +245,10 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
             <h3 className="text-xl font-black text-stone-900">Enregistrer une fiche chien</h3>
             <p className="text-xs text-stone-500 mt-1">Conformité vaccinale et profil pour le suivi.</p>
 
-            {/* REMPLACEMENT DE <form> PAR <div className="space-y-4"> */}
             <div className="mt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              {/* MODIFICATION ICI : Grille responsive (1 colonne mobile, 2 sur tablette) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Nom *</label>
                   <input
                     type="text"
@@ -257,10 +256,10 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     placeholder="Ex: Ryu"
                     value={newDog.name}
                     onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Race *</label>
                   <input
                     type="text"
@@ -268,27 +267,28 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     placeholder="Ex: Akita Inu"
                     value={newDog.breed}
                     onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              {/* MODIFICATION ICI : Grille responsive */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Date d'anniversaire</label>
                   <input
                     type="date"
                     value={newDog.birth_date}
                     onChange={(e) => setNewDog({ ...newDog, birth_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 appearance-none"
                   />
                 </div>
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Sexe</label>
                   <select
                     value={newDog.gender}
                     onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
                   >
                     <option value="male">Mâle</option>
                     <option value="female">Femelle</option>
@@ -296,50 +296,52 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
+              {/* MODIFICATION ICI : overflow-hidden pour forcer tout élément à rester à l'intérieur */}
+              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-stone-900">Vaccins à jour (Obligatoire) *</label>
+                  <label className="text-xs font-black text-stone-900 pr-2">Vaccins à jour (Obligatoire) *</label>
                   <input
                     type="checkbox"
                     checked={newDog.is_vaccinated}
                     onChange={(e) => setNewDog({ ...newDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-stone-700">Stérilisé / Castré</label>
+                  <label className="text-xs font-bold text-stone-700 pr-2">Stérilisé / Castré</label>
                   <input
                     type="checkbox"
                     checked={newDog.is_neutered}
                     onChange={(e) => setNewDog({ ...newDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Date d'échéance / rappel de vaccin</label>
+                <div className="w-full min-w-0">
+                  <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Date de rappel vaccinal</label>
+                  {/* MODIFICATION ICI : max-w-full appearance-none empêche le dépassement */}
                   <input
                     type="date"
                     value={newDog.vaccine_expiry}
                     onChange={(e) => setNewDog({ ...newDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500 appearance-none"
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Numéro d'identification / Puce</label>
                 <input
                   type="text"
                   placeholder="25026..."
                   value={newDog.identification_number}
                   onChange={(e) => setNewDog({ ...newDog, identification_number: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowAddDogModal(false)}
@@ -348,7 +350,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                   Annuler
                 </button>
                 <button
-                  type="button" // CHANGEMENT ICI POUR ÉVITER LE RELOAD
+                  type="button"
                   onClick={handleCreateDog}
                   disabled={creatingDog || !newDog.is_vaccinated || !newDog.name || !newDog.breed}
                   className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md"

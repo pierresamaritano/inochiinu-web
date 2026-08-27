@@ -9,7 +9,6 @@ export default function DogProfileManager() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // États pour la création d'un nouveau chien depuis l'espace membre
   const [showAddModal, setShowAddModal] = useState(false);
   const [creatingDog, setCreatingDog] = useState(false);
   const [newDog, setNewDog] = useState({
@@ -43,7 +42,6 @@ export default function DogProfileManager() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fonction pour créer un chien
   const handleCreateDog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDog.is_vaccinated) {
@@ -62,7 +60,12 @@ export default function DogProfileManager() {
     try {
       const { error } = await supabase
         .from("dogs")
-        .insert([{ ...newDog, user_id: user.id }]);
+        .insert([{ 
+          ...newDog, 
+          user_id: user.id,
+          birth_date: newDog.birth_date || null,
+          vaccine_expiry: newDog.vaccine_expiry || null
+        }]);
 
       if (error) throw error;
       
@@ -72,7 +75,7 @@ export default function DogProfileManager() {
         is_neutered: false, is_vaccinated: true, vaccine_expiry: "",
         identification_number: "", health_notes: "",
       });
-      fetchDogs(); // On rafraîchit la liste des chiens affichée
+      fetchDogs();
     } catch (err: any) {
       alert(`Erreur : ${err.message}`);
     } finally {
@@ -80,7 +83,6 @@ export default function DogProfileManager() {
     }
   };
 
-  // Fonction pour modifier un chien existant
   const handleSaveDog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDog) return;
@@ -88,10 +90,10 @@ export default function DogProfileManager() {
     await supabase.from("dogs").update({
       name: selectedDog.name,
       breed: selectedDog.breed,
-      birth_date: selectedDog.birth_date,
+      birth_date: selectedDog.birth_date || null,
       is_neutered: selectedDog.is_neutered,
       is_vaccinated: selectedDog.is_vaccinated,
-      vaccine_expiry: selectedDog.vaccine_expiry,
+      vaccine_expiry: selectedDog.vaccine_expiry || null,
       identification_number: selectedDog.identification_number,
       health_notes: selectedDog.health_notes,
     }).eq("id", selectedDog.id);
@@ -104,7 +106,7 @@ export default function DogProfileManager() {
 
   return (
     <div className="mt-10 p-6 sm:p-8 rounded-[2.5rem] bg-white border border-stone-200/90 shadow-sm">
-      <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-100 gap-4">
         <div>
           <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">
             Mes Compagnons
@@ -112,10 +114,9 @@ export default function DogProfileManager() {
           <h3 className="text-xl font-black text-stone-900 mt-1">Fiches Chiens & Santé</h3>
         </div>
         
-        {/* BOUTON D'AJOUT DE CHIEN DANS L'ESPACE MEMBRE */}
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex h-10 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 text-xs font-bold text-white transition-all hover:bg-stone-800 cursor-pointer shadow-sm"
+          className="flex h-10 items-center justify-center gap-2 rounded-full bg-stone-900 px-5 text-xs font-bold text-white transition-all hover:bg-stone-800 cursor-pointer shadow-sm shrink-0"
         >
           <span>+ Ajouter un chien</span>
         </button>
@@ -161,9 +162,7 @@ export default function DogProfileManager() {
         </div>
       )}
 
-      {/* =========================================================================
-          MODALE AJOUT RAPIDE D'UN CHIEN (CÔTÉ CLIENT)
-          ========================================================================= */}
+      {/* MODALE AJOUT RAPIDE */}
       {showAddModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => !creatingDog && setShowAddModal(false)} />
@@ -180,8 +179,8 @@ export default function DogProfileManager() {
             <p className="text-xs text-stone-500 mt-1">Gérez son carnet de santé digital.</p>
 
             <form onSubmit={handleCreateDog} className="mt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Nom *</label>
                   <input
                     type="text"
@@ -189,10 +188,10 @@ export default function DogProfileManager() {
                     placeholder="Ex: Ryu"
                     value={newDog.name}
                     onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Race *</label>
                   <input
                     type="text"
@@ -200,27 +199,27 @@ export default function DogProfileManager() {
                     placeholder="Ex: Akita Inu"
                     value={newDog.breed}
                     onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Date de naissance</label>
                   <input
                     type="date"
                     value={newDog.birth_date}
                     onChange={(e) => setNewDog({ ...newDog, birth_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 appearance-none"
                   />
                 </div>
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Sexe</label>
                   <select
                     value={newDog.gender}
                     onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                    className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
                   >
                     <option value="male">Mâle</option>
                     <option value="female">Femelle</option>
@@ -228,28 +227,28 @@ export default function DogProfileManager() {
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-stone-900">Vaccins à jour (Obligatoire) *</label>
+                  <label className="text-xs font-black text-stone-900 pr-2">Vaccins à jour (Obligatoire) *</label>
                   <input
                     type="checkbox"
                     checked={newDog.is_vaccinated}
                     onChange={(e) => setNewDog({ ...newDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-stone-700">Stérilisé / Castré</label>
+                  <label className="text-xs font-bold text-stone-700 pr-2">Stérilisé / Castré</label>
                   <input
                     type="checkbox"
                     checked={newDog.is_neutered}
                     onChange={(e) => setNewDog({ ...newDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </div>
 
-                <div>
+                <div className="w-full min-w-0">
                   <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
                     Date d'échéance / rappel de vaccin
                   </label>
@@ -257,12 +256,12 @@ export default function DogProfileManager() {
                     type="date"
                     value={newDog.vaccine_expiry}
                     onChange={(e) => setNewDog({ ...newDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500 appearance-none"
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">
                   Puce ou tatouage
                 </label>
@@ -271,11 +270,11 @@ export default function DogProfileManager() {
                   placeholder="Ex: 25026..."
                   value={newDog.identification_number}
                   onChange={(e) => setNewDog({ ...newDog, identification_number: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
+                  className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex justify-end gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -285,10 +284,10 @@ export default function DogProfileManager() {
                 </button>
                 <button
                   type="submit"
-                  disabled={creatingDog || !newDog.is_vaccinated}
+                  disabled={creatingDog || !newDog.is_vaccinated || !newDog.name || !newDog.breed}
                   className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md"
                 >
-                  {creatingDog ? "Enregistrement..." : "Créer la fiche"}
+                  {creatingDog ? "Création..." : "Créer la fiche"}
                 </button>
               </div>
             </form>
@@ -296,67 +295,65 @@ export default function DogProfileManager() {
         </div>
       )}
 
-      {/* =========================================================================
-          MODALE D'ÉDITION FICHE CHIEN
-          ========================================================================= */}
+      {/* MODALE D'ÉDITION FICHE CHIEN */}
       {editing && selectedDog && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setEditing(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] bg-[#FDFCF8] p-8 shadow-2xl border border-white">
             <h3 className="text-xl font-black text-stone-900">Mettre à jour {selectedDog.name}</h3>
             
-            <form onSubmit={handleSaveDog} className="mt-4 space-y-3">
-              <div>
+            <form onSubmit={handleSaveDog} className="mt-4 space-y-4">
+              <div className="w-full min-w-0">
                 <label className="block text-[10px] font-bold uppercase text-stone-600 mb-1">Date d'anniversaire</label>
                 <input
                   type="date"
                   value={selectedDog.birth_date || ""}
                   onChange={(e) => setSelectedDog({ ...selectedDog, birth_date: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                  className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500 appearance-none"
                 />
               </div>
 
-              <div className="p-4 bg-stone-100 rounded-2xl space-y-3">
-                <label className="flex items-center justify-between text-xs font-bold text-stone-800">
+              <div className="p-4 bg-stone-100 rounded-2xl space-y-3 overflow-hidden">
+                <label className="flex items-center justify-between text-xs font-bold text-stone-800 pr-2">
                   <span>Vaccins à jour (Obligatoire)</span>
                   <input
                     type="checkbox"
                     checked={selectedDog.is_vaccinated}
                     onChange={(e) => setSelectedDog({ ...selectedDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </label>
-                <label className="flex items-center justify-between text-xs font-bold text-stone-800">
+                <label className="flex items-center justify-between text-xs font-bold text-stone-800 pr-2">
                   <span>Stérilisé / Castré</span>
                   <input
                     type="checkbox"
                     checked={selectedDog.is_neutered}
                     onChange={(e) => setSelectedDog({ ...selectedDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer shrink-0"
                   />
                 </label>
-                <div className="pt-1">
+                <div className="pt-1 w-full min-w-0">
                   <label className="block text-[10px] font-bold text-stone-500 mb-1">Date de rappel vaccinal</label>
                   <input
                     type="date"
                     value={selectedDog.vaccine_expiry || ""}
                     onChange={(e) => setSelectedDog({ ...selectedDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                    className="w-full max-w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500 appearance-none"
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="block text-[10px] font-bold uppercase text-stone-600 mb-1">Puce ou tatouage</label>
                 <input
                   type="text"
                   value={selectedDog.identification_number || ""}
                   onChange={(e) => setSelectedDog({ ...selectedDog, identification_number: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
+                  className="w-full max-w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
                 />
               </div>
 
-              <div className="pt-3 flex justify-end gap-2">
+              <div className="pt-3 flex justify-end gap-2 flex-wrap">
                 <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 text-xs font-bold text-stone-500 hover:text-stone-800 cursor-pointer">Annuler</button>
                 <button type="submit" className="px-5 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 cursor-pointer shadow-md">Enregistrer</button>
               </div>
