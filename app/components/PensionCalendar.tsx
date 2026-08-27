@@ -39,7 +39,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
       const { data } = await supabase
         .from("pension_requests")
         .select("start_date, end_date")
-        .eq("status", "validée"); // ➔ Modifiez ici si votre statut s'appelle autrement (ex: 'acceptee')
+        .eq("status", "confirmé"); // ➔ Modifiez ici si votre statut s'appelle autrement (ex: 'acceptee')
       
       setReservations(data || []);
     };
