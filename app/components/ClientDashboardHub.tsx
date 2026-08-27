@@ -51,6 +51,7 @@ export default function ClientDashboardHub() {
 
   useEffect(() => {
     fetchUserServices();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filterByPeriod = (items: any[]) => {
@@ -90,6 +91,25 @@ export default function ClientDashboardHub() {
     }
   };
 
+  // FONCTION DE DÉFILEMENT AUTOMATIQUE
+  const toggleWidget = (widgetId: string) => {
+    const isExpanding = expandedWidget !== widgetId;
+    setExpandedWidget(isExpanding ? widgetId : null);
+
+    // Si on ouvre le widget, on attend un tout petit peu que l'animation CSS 
+    // fasse sauter le bloc à la ligne, puis on scrolle vers lui.
+    if (isExpanding) {
+      setTimeout(() => {
+        const element = document.getElementById(`widget-${widgetId}`);
+        if (element) {
+          // On calcule la position de l'élément moins 80 pixels pour laisser un peu d'espace au-dessus
+          const y = element.getBoundingClientRect().top + window.scrollY - 80;
+          window.scrollTo({ top: y, behavior: "smooth" });
+        }
+      }, 150);
+    }
+  };
+
   if (loading) {
     return <div className="mt-12 text-center text-xs font-bold text-stone-400">Chargement de votre tableau de bord...</div>;
   }
@@ -115,7 +135,7 @@ export default function ClientDashboardHub() {
         </select>
       </div>
 
-      {/* GESTIONNAIRE DE FICHES CHIENS (Désormais rétractable par défaut) */}
+      {/* GESTIONNAIRE DE FICHES CHIENS (Rétractable par défaut) */}
       <DogProfileManager />
 
       {!hasAnyService ? (
@@ -136,7 +156,7 @@ export default function ClientDashboardHub() {
           
           {/* 1. WIDGET ÉDUCATION */}
           {filteredEdu.length > 0 && (
-            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
+            <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
@@ -185,7 +205,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredEdu.length > 2 && (
-                <button onClick={() => setExpandedWidget(expandedWidget === 'edu' ? null : 'edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 2})`}
                 </button>
               )}
@@ -194,7 +214,7 @@ export default function ClientDashboardHub() {
 
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
-            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
+            <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Pension</span>
@@ -243,7 +263,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredPension.length > 2 && (
-                <button onClick={() => setExpandedWidget(expandedWidget === 'pen' ? null : 'pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 2})`}
                 </button>
               )}
@@ -252,7 +272,7 @@ export default function ClientDashboardHub() {
 
           {/* 3. WIDGET ÉLEVAGE */}
           {filteredAdoption.length > 0 && (
-            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
+            <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
@@ -301,7 +321,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredAdoption.length > 2 && (
-                <button onClick={() => setExpandedWidget(expandedWidget === 'adp' ? null : 'adp')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('adp')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'adp' ? "Réduire" : `Voir tout (+${filteredAdoption.length - 2})`}
                 </button>
               )}
@@ -310,7 +330,7 @@ export default function ClientDashboardHub() {
 
           {/* 4. WIDGET SELLERIE */}
           {filteredSellerie.length > 0 && (
-            <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
+            <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
@@ -359,7 +379,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredSellerie.length > 2 && (
-                <button onClick={() => setExpandedWidget(expandedWidget === 'sel' ? null : 'sel')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('sel')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'sel' ? "Réduire" : `Voir tout (+${filteredSellerie.length - 2})`}
                 </button>
               )}
