@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
+import PensionCalendar from "../components/PensionCalendar";
+
 
 // =========================================================================
 // TYPES ET COMPOSANT CARROUSEL PENSION (Style Apple)
@@ -581,29 +583,15 @@ export default function PensionPage() {
 
                 {step === 1 && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date d'arrivée *</label>
-                        <input 
-                          type="date" 
-                          required 
-                          value={formData.startDate} 
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
-                        />
-                      </div>
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date de départ *</label>
-                        <input 
-                          type="date" 
-                          required 
-                          value={formData.endDate} 
-                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
-                        />
-                      </div>
+                    {/* NOUVEAU CALENDRIER INTERACTIF */}
+                    <div className="mb-6">
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-3">Sélectionnez vos dates *</label>
+                      <PensionCalendar 
+                        startDate={formData.startDate}
+                        endDate={formData.endDate}
+                        onChange={(start, end) => setFormData({ ...formData, startDate: start, endDate: end })}
+                      />
                     </div>
-
                     {user && (
                       <ClientDogSelector
                         isAdmin={false}
