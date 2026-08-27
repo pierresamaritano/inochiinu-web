@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import DogProfileManager from "./DogProfileManager";
-
 
 export default function DogProfileManager() {
   const [dogs, setDogs] = useState<any[]>([]);
@@ -27,6 +25,7 @@ export default function DogProfileManager() {
 
   useEffect(() => {
     fetchDogs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSaveDog = async (e: React.FormEvent) => {
@@ -61,36 +60,42 @@ export default function DogProfileManager() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-        {dogs.map((dog) => (
-          <div key={dog.id} className="p-5 rounded-2xl bg-stone-50 border border-stone-200/70 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <h4 className="text-base font-black text-stone-900">{dog.name}</h4>
-                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                  dog.is_vaccinated ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
-                }`}>
-                  {dog.is_vaccinated ? "Vacciné ✓" : "Non à jour ⚠️"}
-                </span>
+      {dogs.length === 0 ? (
+        <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-100 text-xs text-stone-500 text-center">
+          Aucun chien enregistré pour le moment. Vous pourrez créer une fiche lors de votre première réservation.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {dogs.map((dog) => (
+            <div key={dog.id} className="p-5 rounded-2xl bg-stone-50 border border-stone-200/70 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-base font-black text-stone-900">{dog.name}</h4>
+                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                    dog.is_vaccinated ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                  }`}>
+                    {dog.is_vaccinated ? "Vacciné ✓" : "Non à jour ⚠️"}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500 mt-0.5">{dog.breed} • {dog.gender === "male" ? "Mâle" : "Femelle"}</p>
+                
+                <div className="mt-3 space-y-1 text-[11px] text-stone-600">
+                  <div>🎂 <strong>Anniversaire :</strong> {dog.birth_date || "Non renseigné"}</div>
+                  <div>✂️ <strong>Stérilisation :</strong> {dog.is_neutered ? "Oui" : "Non"}</div>
+                  <div>💉 <strong>Rappel vaccin :</strong> {dog.vaccine_expiry || "À renseigner"}</div>
+                </div>
               </div>
-              <p className="text-xs text-stone-500 mt-0.5">{dog.breed} • {dog.gender === "male" ? "Mâle" : "Femelle"}</p>
-              
-              <div className="mt-3 space-y-1 text-[11px] text-stone-600">
-                <div>🎂 <strong>Anniversaire :</strong> {dog.birth_date || "Non renseigné"}</div>
-                <div>✂️ <strong>Stérilisation :</strong> {dog.is_neutered ? "Oui" : "Non"}</div>
-                <div>💉 <strong>Rappel vaccin :</strong> {dog.vaccine_expiry || "À renseigner"}</div>
-              </div>
-            </div>
 
-            <button
-              onClick={() => { setSelectedDog(dog); setEditing(true); }}
-              className="mt-4 w-full py-2 bg-white border border-stone-200 hover:border-stone-400 font-bold text-xs rounded-xl transition-all cursor-pointer"
-            >
-              Modifier la fiche
-            </button>
-          </div>
-        ))}
-      </div>
+              <button
+                onClick={() => { setSelectedDog(dog); setEditing(true); }}
+                className="mt-4 w-full py-2 bg-white border border-stone-200 hover:border-stone-400 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Modifier la fiche
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* MODALE D'ÉDITION FICHE CHIEN */}
       {editing && selectedDog && (
@@ -106,7 +111,7 @@ export default function DogProfileManager() {
                   type="date"
                   value={selectedDog.birth_date || ""}
                   onChange={(e) => setSelectedDog({ ...selectedDog, birth_date: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -117,7 +122,7 @@ export default function DogProfileManager() {
                     type="checkbox"
                     checked={selectedDog.is_vaccinated}
                     onChange={(e) => setSelectedDog({ ...selectedDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
                   />
                 </label>
                 <label className="flex items-center justify-between text-xs font-bold text-stone-800">
@@ -126,23 +131,23 @@ export default function DogProfileManager() {
                     type="checkbox"
                     checked={selectedDog.is_neutered}
                     onChange={(e) => setSelectedDog({ ...selectedDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4"
+                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
                   />
                 </label>
                 <div>
-                  <label className="block text-[10px] font-bold text-stone-500">Date de rappel vaccinal</label>
+                  <label className="block text-[10px] font-bold text-stone-500 mb-1">Date de rappel vaccinal</label>
                   <input
                     type="date"
                     value={selectedDog.vaccine_expiry || ""}
                     onChange={(e) => setSelectedDog({ ...selectedDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-white border border-stone-200 text-xs"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
 
               <div className="pt-3 flex justify-end gap-2">
-                <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 text-xs font-bold text-stone-500">Annuler</button>
-                <button type="submit" className="px-5 py-2 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Enregistrer</button>
+                <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 text-xs font-bold text-stone-500 hover:text-stone-800 cursor-pointer">Annuler</button>
+                <button type="submit" className="px-5 py-2 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 cursor-pointer shadow-md">Enregistrer</button>
               </div>
             </form>
           </div>
