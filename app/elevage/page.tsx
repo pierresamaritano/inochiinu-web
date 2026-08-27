@@ -41,7 +41,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Sélecteur de reproducteur (Option 2 : Menu Déroulant)
+  // Sélecteur de reproducteur (Menu Déroulant)
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
   const [isDogMenuOpen, setIsDogMenuOpen] = useState(false);
 
@@ -392,7 +392,7 @@ export default function ElevagePage() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base leading-relaxed">
-          Membre à part entière de la famille, nos lices vivent et élève leurs chiots à la maison, pour une socialisation dès leur plus jeune âge.
+          Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison, pour une socialisation dès leur plus jeune âge.
         </p>
       </section>
 
@@ -512,7 +512,7 @@ export default function ElevagePage() {
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-30">
               <button
                 onClick={() => setIsDogMenuOpen(!isDogMenuOpen)}
-                className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none"
+                className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-lg">
@@ -535,7 +535,6 @@ export default function ElevagePage() {
               {/* LISTE DÉROULANTE */}
               {isDogMenuOpen && (
                 <>
-                  {/* Calque invisible pour fermer en cliquant à côté */}
                   <div 
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsDogMenuOpen(false)} 
@@ -548,7 +547,7 @@ export default function ElevagePage() {
                           setSelectedDogIndex(index);
                           setIsDogMenuOpen(false);
                         }}
-                        className={`flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-orange-50/50 ${
+                        className={`flex w-full items-center gap-3 p-3.5 text-left transition-colors cursor-pointer hover:bg-orange-50/50 ${
                           selectedDogIndex === index ? "bg-orange-50 text-orange-900" : "text-stone-700"
                         }`}
                       >
@@ -562,7 +561,7 @@ export default function ElevagePage() {
                           <span className="block text-[10px] font-medium text-stone-500 uppercase">{dog.role}</span>
                         </div>
                         {selectedDogIndex === index && (
-                          <span className="ml-auto text-orange-600">✓</span>
+                          <span className="ml-auto text-orange-600 font-bold">✓</span>
                         )}
                       </button>
                     ))}
@@ -690,31 +689,76 @@ export default function ElevagePage() {
               </div>
             </div>
           </div>
-
-          {/* POINTS CLÉS DU PEDIGREE */}
-          <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md relative z-10">
-            <h3 className="text-sm sm:text-base font-black tracking-tight text-white mb-4 text-center sm:text-left">
-              Les piliers de notre élevage :
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-3 text-xs text-stone-300 font-medium">
-              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
-                <span className="font-bold text-white block">Conformité au Standard</span>
-                <span>Têtes typées, expressions franches et constructions robustes certifiées LOF.</span>
-              </div>
-              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
-                <span className="font-bold text-white block">Santé & Tests Génétiques</span>
-                <span>Radiographies hanches/coudes, dépistages tares oculaires et identification ADN.</span>
-              </div>
-              <div className="border-l-2 border-orange-500 pl-3 space-y-1">
-                <span className="font-bold text-white block">Stabilité Émotionnelle</span>
-                <span>Chiens élevés en famille, calmes, affectueux et équilibrés au quotidien.</span>
-              </div>
-            </div>
-          </div>
-
         </div>
       </section>
 
+      {/* SECTION CONTACT & COORDONNÉES */}
+      <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/50">
+              Nous Contacter
+            </span>
+            <h2 className="text-3xl font-black text-stone-900 mt-4">
+              Restons en contact
+            </h2>
+            <p className="text-stone-500 text-sm mt-2">
+              Pour toute question sur nos portées, nos reproducteurs ou le suivi d'un chiot.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Téléphone */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
+              <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
+              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
+                06 00 00 00 00
+              </a>
+            </div>
+
+            {/* Email */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Email</h3>
+              <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
+              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
+                contact@inochi-inu.fr
+              </a>
+            </div>
+
+            {/* Réseaux Sociaux */}
+            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
+              <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
+              <div className="mt-4 flex gap-3">
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
+                  Instagram ➔
+                </a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
+                  Facebook ➔
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
