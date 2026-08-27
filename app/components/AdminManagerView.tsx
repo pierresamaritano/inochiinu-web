@@ -61,21 +61,6 @@ export default function AdminManagerView() {
   const [noteText, setNoteText] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  // --- MODALE AJOUT RAPIDE CHIEN ---
-  const [showAddDogModal, setShowAddDogModal] = useState(false);
-  const [creatingDog, setCreatingDog] = useState(false);
-  const [newDog, setNewDog] = useState({
-    name: "",
-    breed: "",
-    birth_date: "",
-    gender: "male",
-    is_neutered: false,
-    is_vaccinated: true,
-    vaccine_expiry: "",
-    identification_number: "",
-    health_notes: "",
-  });
-
   const fetchAll = async () => {
     const [edu, pen, adp, sel] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
@@ -93,7 +78,7 @@ export default function AdminManagerView() {
     fetchAll();
   }, []);
 
-  // Recherche avec auto-complétion client CORRIGÉE (Plus de boucle infinie)
+  // Recherche avec auto-complétion client
   useEffect(() => {
     if (selectedFilterClient) {
       setSearchResults([]);
@@ -137,52 +122,7 @@ export default function AdminManagerView() {
     setSearchResults([]);
   };
 
-  // Création rapide d'un chien
-  const handleCreateDog = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newDog.is_vaccinated) {
-      alert("Attention : Nous n'acceptons que les chiens à jour de vaccination.");
-      return;
-    }
-
-    const { data: authData } = await supabase.auth.getUser();
-    const targetId = selectedFilterClient?.id || authData.user?.id;
-
-    if (!targetId) {
-      alert("Veuillez sélectionner un client ou vous connecter.");
-      return;
-    }
-
-    setCreatingDog(true);
-    try {
-      const { data, error } = await supabase
-        .from("dogs")
-        .insert([{ ...newDog, user_id: targetId }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (selectedFilterClient) {
-        setClientDogs((prev) => [...prev, data]);
-        setSelectedFilterDogId(data.id);
-      }
-
-      setShowAddDogModal(false);
-      setNewDog({
-        name: "", breed: "", birth_date: "", gender: "male",
-        is_neutered: false, is_vaccinated: true, vaccine_expiry: "",
-        identification_number: "", health_notes: "",
-      });
-    } catch (err: any) {
-      alert(`Erreur : ${err.message}`);
-    } finally {
-      setCreatingDog(false);
-    }
-  };
-
-  // Application des filtres combinés CORRIGÉE (Filtre strict par ID)
+  // Application des filtres combinés
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
@@ -198,7 +138,7 @@ export default function AdminManagerView() {
         return false;
       }
 
-      // 3. Filtre Chien strict (n'affiche que les réservations liées au chien sélectionné)
+      // 3. Filtre Chien strict
       if (selectedFilterDogId !== "all") {
         if (item.dog_id !== selectedFilterDogId) {
           return false;
@@ -263,7 +203,6 @@ export default function AdminManagerView() {
                 value={clientSearchQuery}
                 onChange={(e) => {
                   setClientSearchQuery(e.target.value);
-                  // Si on tape un nouveau texte, on annule la sélection précédente
                   if (selectedFilterClient) {
                     setSelectedFilterClient(null);
                     setClientDogs([]);
@@ -301,22 +240,11 @@ export default function AdminManagerView() {
             )}
           </div>
 
-          {/* Menu Déroulant Chiens + Bouton Ajout rapide */}
+          {/* Menu Déroulant Chiens */}
           <div className="w-full md:w-1/2">
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-[10px] font-black uppercase text-stone-500">
-                Affiner par Chien :
-              </label>
-              {selectedFilterClient && (
-                <button
-                  type="button"
-                  onClick={() => setShowAddDogModal(true)}
-                  className="text-[10px] font-black uppercase text-orange-600 hover:text-orange-700 cursor-pointer"
-                >
-                  + Ajouter un chien
-                </button>
-              )}
-            </div>
+            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">
+              Affiner par Chien :
+            </label>
             <select
               disabled={!selectedFilterClient}
               value={selectedFilterDogId}
@@ -816,150 +744,6 @@ export default function AdminManagerView() {
                 {updating ? "Mise à jour..." : "Confirmer et enregistrer"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          8. MODALE D'AJOUT RAPIDE D'UN CHIEN (ADMIN)
-          ========================================================================= */}
-      {showAddDogModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md"
-            onClick={() => !creatingDog && setShowAddDogModal(false)}
-          />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] bg-[#FDFCF8] border border-white p-6 sm:p-8 shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setShowAddDogModal(false)}
-              className="absolute top-6 right-6 text-stone-500 hover:text-stone-900 cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <h3 className="text-xl font-black text-stone-900">Enregistrer une fiche chien</h3>
-            <p className="text-xs text-stone-500 mt-1">
-              Client concerné :{" "}
-              <strong className="text-stone-800">
-                {selectedFilterClient?.full_name || selectedFilterClient?.email || "Compte courant"}
-              </strong>
-            </p>
-
-            <form onSubmit={handleCreateDog} className="mt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Nom *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Ryu"
-                    value={newDog.name}
-                    onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Race *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Akita Inu"
-                    value={newDog.breed}
-                    onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Date de naissance</label>
-                  <input
-                    type="date"
-                    value={newDog.birth_date}
-                    onChange={(e) => setNewDog({ ...newDog, birth_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Sexe</label>
-                  <select
-                    value={newDog.gender}
-                    onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
-                  >
-                    <option value="male">Mâle</option>
-                    <option value="female">Femelle</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Statut Médical & Vaccinal */}
-              <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-stone-900">Vaccins à jour (Obligatoire) *</label>
-                  <input
-                    type="checkbox"
-                    checked={newDog.is_vaccinated}
-                    onChange={(e) => setNewDog({ ...newDog, is_vaccinated: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-stone-700">Stérilisé / Castré</label>
-                  <input
-                    type="checkbox"
-                    checked={newDog.is_neutered}
-                    onChange={(e) => setNewDog({ ...newDog, is_neutered: e.target.checked })}
-                    className="h-4 w-4 rounded text-orange-600 cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">
-                    Date d'échéance / rappel de vaccin
-                  </label>
-                  <input
-                    type="date"
-                    value={newDog.vaccine_expiry}
-                    onChange={(e) => setNewDog({ ...newDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">
-                  Puce ou tatouage
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 25026..."
-                  value={newDog.identification_number}
-                  onChange={(e) => setNewDog({ ...newDog, identification_number: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDogModal(false)}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500 hover:text-stone-800 cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingDog || !newDog.is_vaccinated}
-                  className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md"
-                >
-                  {creatingDog ? "Enregistrement..." : "Enregistrer et sélectionner"}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
