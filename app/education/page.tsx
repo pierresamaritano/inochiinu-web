@@ -12,6 +12,10 @@ export default function EducationPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // ÉTATS POUR LE POP-UP D'INFORMATION PRÉALABLE
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -85,6 +89,24 @@ export default function EducationPage() {
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+
+  // VÉRIFICATION DU POP-UP AVANT DE CONTINUER
+  const handleInitialClick = () => {
+    const hideInfo = localStorage.getItem("hideEducationInfo");
+    if (hideInfo === "true") {
+      handleActionClick();
+    } else {
+      setShowInfoModal(true);
+    }
+  };
+
+  const handleContinueFromInfo = () => {
+    if (dontShowAgain) {
+      localStorage.setItem("hideEducationInfo", "true");
+    }
+    setShowInfoModal(false);
+    handleActionClick();
+  };
 
   const handleActionClick = () => {
     if (user) {
@@ -182,7 +204,6 @@ export default function EducationPage() {
         </p>
       </section>
 
-      {/* CARROUSEL COMPACT */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           {slides.map((slide, index) => (
@@ -224,7 +245,6 @@ export default function EducationPage() {
         </div>
       </section>
 
-      {/* BANDEAU D'ACTION */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -236,7 +256,7 @@ export default function EducationPage() {
             </p>
           </div>
           <button
-            onClick={handleActionClick}
+            onClick={handleInitialClick} // <--- MODIFICATION ICI
             className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
             Prendre rendez-vous
@@ -244,7 +264,6 @@ export default function EducationPage() {
         </div>
       </section>
 
-      {/* MÉTHODOLOGIE & APPROCHE */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-12">
           <div>
@@ -306,6 +325,47 @@ export default function EducationPage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
+      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
+            
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">
+              ℹ️
+            </div>
+            <h3 className="text-xl font-black text-stone-900">Déroulement des séances</h3>
+            
+            <div className="mt-4 space-y-3 text-sm text-stone-600 leading-relaxed">
+              <p>Avant de démarrer le travail éducatif avec votre chien, veuillez noter que :</p>
+              <ul className="list-disc pl-5 space-y-1 font-medium text-stone-700">
+                <li><strong className="text-stone-900">Le premier rendez-vous est toujours un bilan comportemental.</strong> (Indispensable pour créer un programme adapté).</li>
+                <li>La présence et l'implication du maître sont obligatoires à chaque séance.</li>
+                <li>Les vaccins de votre chien doivent être à jour.</li>
+              </ul>
+            </div>
+
+            <label className="mt-6 flex items-center gap-3 p-3 rounded-2xl bg-stone-100 border border-stone-200 cursor-pointer hover:bg-stone-200/50 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={dontShowAgain} 
+                onChange={(e) => setDontShowAgain(e.target.checked)} 
+                className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" 
+              />
+              <span className="text-xs font-bold text-stone-600">J'ai compris, ne plus afficher ce message.</span>
+            </label>
+
+            <button
+              onClick={handleContinueFromInfo}
+              className="mt-6 w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md"
+            >
+              Continuer vers la demande
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -340,7 +400,7 @@ export default function EducationPage() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Demande envoyée !</h3>
                 <p className="text-xs text-stone-500 mt-2">Nous allons vous recontacter très vite pour fixer la date de votre bilan.</p>
-                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Aller sur Mon Espace</a>
+                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -354,7 +414,6 @@ export default function EducationPage() {
                 {step === 1 && (
                   <div className="space-y-4">
                     
-                    {/* SÉLECTEUR DE CHIEN (Remplace les anciens inputs Nom/Race) */}
                     {user && (
                       <ClientDogSelector
                         isAdmin={false}
@@ -370,7 +429,7 @@ export default function EducationPage() {
                       />
                     )}
 
-                    <div>
+                    <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Âge du chien *</label>
                       <input 
                         type="text" 
@@ -378,11 +437,11 @@ export default function EducationPage() {
                         placeholder="Ex: 8 mois, 2 ans..." 
                         value={formData.dogAge} 
                         onChange={(e) => setFormData({ ...formData, dogAge: e.target.value })} 
-                        className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
-                    <div>
+                    <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Que souhaitez-vous travailler ? *</label>
                       <textarea 
                         required 
@@ -390,7 +449,7 @@ export default function EducationPage() {
                         placeholder="Expliquez brièvement vos attentes..." 
                         value={formData.objectives} 
                         onChange={(e) => setFormData({ ...formData, objectives: e.target.value })} 
-                        className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
@@ -427,19 +486,19 @@ export default function EducationPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
+                      <div className="w-full min-w-0">
                         <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Disponibilité *</label>
                         <select 
                           value={formData.preferredSlot} 
                           onChange={(e) => setFormData({ ...formData, preferredSlot: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
                         >
                           <option value="Semaine en matinée">Semaine en matinée</option>
                           <option value="Semaine en après-midi">Semaine en après-midi</option>
                           <option value="Week-end">Week-end</option>
                         </select>
                       </div>
-                      <div>
+                      <div className="w-full min-w-0">
                         <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
                         <input 
                           type="tel" 
@@ -447,7 +506,7 @@ export default function EducationPage() {
                           placeholder="06 12 34 56 78" 
                           value={formData.clientPhone} 
                           onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
-                          className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                         />
                       </div>
                     </div>
