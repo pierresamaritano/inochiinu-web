@@ -14,9 +14,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Onglet pour le type de reproducteur ("etalon" ou "lice")
   const [activeTab, setActiveTab] = useState<"etalon" | "lices">("etalon");
-  // Index de la lice sélectionnée (2 au départ, extensible à 4)
   const [selectedLice, setSelectedLice] = useState(0);
 
   const [step, setStep] = useState(1);
@@ -71,7 +69,6 @@ export default function ElevagePage() {
     },
   ];
 
-  // DONNÉES DE L'ÉTALON (Baiko - Kazan No)
   const etalon = {
     name: "Baïko (Ryu)",
     affixe: "Affixe Kazan No",
@@ -82,7 +79,7 @@ export default function ElevagePage() {
       name: "Katsunori Go Senshi Shimai",
       origin: "Import Pologne",
       titles: "CH Junior France • Titré CACIB",
-      desc: "Descendant direct des illustres affixes Senshi No Inu et Isegumo Kensha. Construction robuste et expression typique.",
+      desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha. Construction robuste et expression typique.",
       gParents: [
         { role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" },
         { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" },
@@ -98,7 +95,7 @@ export default function ElevagePage() {
       name: "CH. Kazan No Teïumi",
       origin: "Affixe Kazan No",
       titles: "Championne de France • Junior World Winner",
-      desc: "Fille directe de CH. Kazan No Rumi (Championne de France et Hozonkai). Expression d'une grande noblesse et tempérament calme.",
+      desc: "Fille directe de CH. Kazan No Rumi (Championne de France et Hozonkai). Expression noble et tempérament calme.",
       gParents: [
         { role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha", details: "Import Italie / Akiho" },
         { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi", details: "CH France • Vainqueur Hozonkai" },
@@ -112,7 +109,6 @@ export default function ElevagePage() {
     },
   };
 
-  // MAQUETTE DES LICES (2 lices au départ, extensible à 4)
   const lices = [
     {
       id: "lice-1",
@@ -400,10 +396,12 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE : ÉTALON & LICES */}
+      {/* SECTION PEDIGREE : ÉTALON & LICES (INTERFACE STABILISÉE) */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
-        <div className="mx-auto max-w-5xl px-6 space-y-10">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="mx-auto max-w-5xl px-6 space-y-8">
+          
+          {/* EN-TÊTE FIXE DU PEDIGREE AVEC LE MENU ALIGNÉ ET CALIBRÉ */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-orange-600">
                 Génétique & Standard Japonais
@@ -411,44 +409,44 @@ export default function ElevagePage() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
                 Pedigree de nos reproducteurs LOF
               </h2>
-              <p className="mt-2 max-w-2xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
-                Consultez l'arbre généalogique certifié sur 3 générations de notre étalon et de nos lices reproductrices.
+              <p className="mt-1 max-w-2xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
+                Consultez l'arbre généalogique officiel sur 3 générations de notre étalon et de nos lices.
               </p>
             </div>
 
-            {/* SÉLECTEUR ÉTALON / LICES */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-stone-100 border border-stone-200">
+            {/* CONTENEUR DE SÉLECTION À TAILLE FIXE */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+              <div className="inline-flex h-11 items-center rounded-2xl bg-stone-100 p-1 border border-stone-200/80 shadow-xs">
                 <button
                   onClick={() => setActiveTab("etalon")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-none h-full px-5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "etalon"
                       ? "bg-stone-900 text-white shadow-sm"
                       : "text-stone-500 hover:text-stone-900"
                   }`}
                 >
-                  🐕 Étalon (Baïko)
+                  <span>🐕</span> Étalon
                 </button>
                 <button
                   onClick={() => setActiveTab("lices")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex-1 sm:flex-none h-full px-5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                     activeTab === "lices"
                       ? "bg-stone-900 text-white shadow-sm"
                       : "text-stone-500 hover:text-stone-900"
                   }`}
                 >
-                  🌸 Nos Lices
+                  <span>🌸</span> Nos Lices
                 </button>
               </div>
 
-              {/* SOUS-ONGLETS POUR LES LICES (2 configurées, extensible à 4) */}
+              {/* SÉLECTEUR DE LICE QUI NE MODIFIE PAS L'ALIGNEMENT DU PREMIER MENU */}
               {activeTab === "lices" && (
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-orange-50 border border-orange-200/60 animate-fade-in">
+                <div className="inline-flex h-11 items-center rounded-2xl bg-orange-50/90 p-1 border border-orange-200/80 shadow-xs transition-all">
                   {lices.map((lice, index) => (
                     <button
                       key={lice.id}
                       onClick={() => setSelectedLice(index)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      className={`h-full px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
                         selectedLice === index
                           ? "bg-orange-500 text-white shadow-xs"
                           : "text-orange-700 hover:text-orange-950"
