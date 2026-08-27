@@ -41,8 +41,9 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Sélecteur de reproducteur actif
+  // Sélecteur de reproducteur (Option 2 : Menu Déroulant)
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
+  const [isDogMenuOpen, setIsDogMenuOpen] = useState(false);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -489,13 +490,13 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE : NAVIGATION DIRECTE & DÉFILEMENT FLUIDE SUR MOBILE */}
+      {/* SECTION PEDIGREE : MENU DÉROULANT PREMIUM (OPTION 2) */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-6 sm:space-y-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
 
-          {/* EN-TÊTE : CENTRÉ SUR MOBILE, ALIGNÉ SUR DESKTOP */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 text-center sm:text-left">
-            <div className="mx-auto sm:mx-0 max-w-xl">
+          {/* EN-TÊTE ET SÉLECTEUR DÉROULANT */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
+            <div className="text-center lg:text-left mx-auto lg:mx-0 max-w-xl">
               <span className="inline-block text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50/80 px-3 py-1 rounded-full sm:bg-transparent sm:p-0">
                 Génétique & Standard Japonais
               </span>
@@ -507,41 +508,72 @@ export default function ElevagePage() {
               </p>
             </div>
 
-            {/* SÉLECTEUR MOBILE & DESKTOP (DÉFILEMENT HORIZONTAL FLUIDE SANS BRISER LA LIGNE) */}
-            <div className="w-full lg:w-auto -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
-              <div className="flex items-center gap-2 p-1.5 bg-stone-100/90 rounded-2xl border border-stone-200/80 w-max mx-auto sm:mx-0 shadow-xs">
-                {dogs.map((dog, index) => {
-                  const isSelected = selectedDogIndex === index;
-                  return (
-                    <button
-                      key={dog.id}
-                      onClick={() => setSelectedDogIndex(index)}
-                      className={`h-10 sm:h-9 px-4 sm:px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none ${
-                        isSelected
-                          ? "bg-stone-900 text-white shadow-sm scale-[1.02]"
-                          : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 active:scale-95"
-                      }`}
-                    >
-                      <span className="text-sm">{dog.role === "Étalon" ? "🐕" : "🌸"}</span>
-                      <span>{dog.badgeName}</span>
-                      <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
-                          isSelected
-                            ? "bg-stone-800 text-stone-200"
-                            : "bg-stone-200 text-stone-500"
+            {/* LE SÉLECTEUR DÉROULANT (DROPDOWN) */}
+            <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-30">
+              <button
+                onClick={() => setIsDogMenuOpen(!isDogMenuOpen)}
+                className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100 text-lg">
+                    {currentProfile.role === "Étalon" ? "🐕" : "🌸"}
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-orange-600">
+                      {currentProfile.role} sélectionné(e)
+                    </span>
+                    <span className="block text-sm font-black text-stone-900 mt-0.5">
+                      {currentProfile.badgeName}
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-stone-400 transition-transform duration-200 ${isDogMenuOpen ? "rotate-180" : ""}`}>
+                  ▼
+                </span>
+              </button>
+
+              {/* LISTE DÉROULANTE */}
+              {isDogMenuOpen && (
+                <>
+                  {/* Calque invisible pour fermer en cliquant à côté */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsDogMenuOpen(false)} 
+                  />
+                  <div className="absolute right-0 lg:right-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-2xl border border-stone-200/80 bg-white/95 backdrop-blur-xl shadow-xl">
+                    {dogs.map((dog, index) => (
+                      <button
+                        key={dog.id}
+                        onClick={() => {
+                          setSelectedDogIndex(index);
+                          setIsDogMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-orange-50/50 ${
+                          selectedDogIndex === index ? "bg-orange-50 text-orange-900" : "text-stone-700"
                         }`}
                       >
-                        {dog.role}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm ${
+                          selectedDogIndex === index ? "bg-orange-200/50" : "bg-stone-100"
+                        }`}>
+                          {dog.role === "Étalon" ? "🐕" : "🌸"}
+                        </div>
+                        <div>
+                          <span className="block text-sm font-bold">{dog.badgeName}</span>
+                          <span className="block text-[10px] font-medium text-stone-500 uppercase">{dog.role}</span>
+                        </div>
+                        {selectedDogIndex === index && (
+                          <span className="ml-auto text-orange-600">✓</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* PALMARÈS ET LIGNÉES DU REPRODUCTEUR SÉLECTIONNÉ */}
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 relative z-10">
             {/* PÈRE */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm flex flex-col justify-between">
               <div>
@@ -586,7 +618,7 @@ export default function ElevagePage() {
           </div>
 
           {/* ARBRE GÉNÉALOGIQUE SUR 3 GÉNÉRATIONS */}
-          <div className="rounded-[2rem] sm:rounded-[2.5rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm space-y-4 sm:space-y-6">
+          <div className="rounded-[2rem] sm:rounded-[2.5rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm space-y-4 sm:space-y-6 relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-3 sm:pb-4 text-center sm:text-left">
               <div>
                 <span className="text-[10px] font-black uppercase text-orange-600">Arbre Généalogique Officiel</span>
@@ -660,7 +692,7 @@ export default function ElevagePage() {
           </div>
 
           {/* POINTS CLÉS DU PEDIGREE */}
-          <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md">
+          <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md relative z-10">
             <h3 className="text-sm sm:text-base font-black tracking-tight text-white mb-4 text-center sm:text-left">
               Les piliers de notre élevage :
             </h3>
