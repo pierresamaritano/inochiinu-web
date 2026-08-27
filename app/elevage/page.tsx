@@ -164,7 +164,7 @@ export default function ElevagePage() {
         <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
           Chiots Akita Inu LOF{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-            LOF
+            Equilibrés
           </span>
         </h1>
         
