@@ -223,7 +223,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
           >
             {dogs.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name} ({d.breed}) {!d.is_vaccinated ? "⚠️ VACCINS NON CONFORMES" : "✓ Vacciné"}
+                {d.name} ({d.breed})
               </option>
             ))}
           </select>
@@ -246,7 +246,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
             <p className="text-xs text-stone-500 mt-1">Conformité vaccinale et profil pour le suivi.</p>
 
             <div className="mt-6 space-y-4">
-              {/* MODIFICATION ICI : Grille responsive (1 colonne mobile, 2 sur tablette) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Nom *</label>
@@ -272,7 +271,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 </div>
               </div>
 
-              {/* MODIFICATION ICI : Grille responsive */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="w-full min-w-0">
                   <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Date d'anniversaire</label>
@@ -296,7 +294,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 </div>
               </div>
 
-              {/* MODIFICATION ICI : overflow-hidden pour forcer tout élément à rester à l'intérieur */}
               <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3 overflow-hidden">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-stone-900 pr-2">Vaccins à jour (Obligatoire) *</label>
@@ -320,7 +317,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
                 <div className="w-full min-w-0">
                   <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Date de rappel vaccinal</label>
-                  {/* MODIFICATION ICI : max-w-full appearance-none empêche le dépassement */}
                   <input
                     type="date"
                     value={newDog.vaccine_expiry}
