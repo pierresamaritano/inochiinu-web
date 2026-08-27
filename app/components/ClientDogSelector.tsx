@@ -32,19 +32,15 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // État Client cible
   const [targetUserId, setTargetUserId] = useState<string>(currentUserId);
   const [clientSearch, setClientSearch] = useState("");
   const [clientResults, setClientResults] = useState<ClientProfile[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientProfile | null>(null);
-  const [isSearchingClient, setIsSearchingClient] = useState(false);
 
-  // État Chiens
   const [dogs, setDogs] = useState<Dog[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [showAddDogModal, setShowAddDogModal] = useState(false);
 
-  // Formulaire nouveau chien
   const [newDog, setNewDog] = useState({
     name: "",
     breed: "",
@@ -58,14 +54,12 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
   });
   const [creatingDog, setCreatingDog] = useState(false);
 
-  // Helper pour formater les infos du client pour correspondre à TypeScript
   const getClientInfo = () => {
     return selectedClient
       ? { name: selectedClient.full_name, email: selectedClient.email, phone: selectedClient.phone }
       : undefined;
   };
 
-  // Charger les chiens du client cible
   const fetchDogs = async (uid: string) => {
     const { data } = await supabase.from("dogs").select("*").eq("user_id", uid).order("name");
     setDogs(data || []);
@@ -82,7 +76,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetUserId]);
 
-  // Recherche avec auto-complétion client (Admin uniquement)
   useEffect(() => {
     if (!isAdmin || clientSearch.trim().length < 2) {
       setClientResults([]);
@@ -90,15 +83,12 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
     }
 
     const timer = setTimeout(async () => {
-      setIsSearchingClient(true);
       const { data } = await supabase
         .from("profiles")
         .select("id, full_name, email, phone")
         .or(`full_name.ilike.%${clientSearch}%,email.ilike.%${clientSearch}%`)
         .limit(6);
-
       setClientResults(data || []);
-      setIsSearchingClient(false);
     }, 250);
 
     return () => clearTimeout(timer);
@@ -126,18 +116,29 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
     setCreatingDog(true);
     try {
+      // CORRECTION ICI : Remplacement des chaînes vides par "null" pour PostgreSQL
+      const payload = {
+        ...newDog,
+        user_id: targetUserId,
+        birth_date: newDog.birth_date || null,
+        vaccine_expiry: newDog.vaccine_expiry || null,
+      };
+
       const { data, error } = await supabase
         .from("dogs")
-        .insert([{ ...newDog, user_id: targetUserId }])
+        .insert([payload])
         .select()
         .single();
 
       if (error) throw error;
+      
       await fetchDogs(targetUserId);
+      
       if (data) {
         setSelectedDogId(data.id);
         onDogSelected(data, targetUserId, getClientInfo());
       }
+      
       setShowAddDogModal(false);
       setNewDog({
         name: "",
@@ -159,8 +160,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
   return (
     <div className="space-y-4">
-      
-      {/* 1. AUTO-COMPLÉTION CLIENT (ADMIN ONLY) */}
       {isAdmin && (
         <div className="relative">
           <label className="block text-[11px] font-black uppercase tracking-wider text-orange-700 mb-1">
@@ -192,7 +191,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
         </div>
       )}
 
-      {/* 2. SÉLECTION DU CHIEN VIA MENU DÉROULANT */}
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs font-bold uppercase tracking-wider text-stone-600">
@@ -233,9 +231,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
         )}
       </div>
 
-      {/* =========================================================================
-          MODALE AJOUT RAPIDE / FICHE CHIEN AVEC SANTÉ & VACCINS
-          ========================================================================= */}
       {showAddDogModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAddDogModal(false)} />
@@ -261,7 +256,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     placeholder="Ex: Ryu"
                     value={newDog.name}
                     onChange={(e) => setNewDog({ ...newDog, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -272,7 +267,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     placeholder="Ex: Akita Inu"
                     value={newDog.breed}
                     onChange={(e) => setNewDog({ ...newDog, breed: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -284,7 +279,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     type="date"
                     value={newDog.birth_date}
                     onChange={(e) => setNewDog({ ...newDog, birth_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <div>
@@ -292,7 +287,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                   <select
                     value={newDog.gender}
                     onChange={(e) => setNewDog({ ...newDog, gender: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
                   >
                     <option value="male">Mâle</option>
                     <option value="female">Femelle</option>
@@ -300,7 +295,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 </div>
               </div>
 
-              {/* STATUT MÉDICAL & VACCINATION */}
               <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-stone-900">Vaccins à jour (Obligatoire) *</label>
@@ -328,7 +322,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                     type="date"
                     value={newDog.vaccine_expiry}
                     onChange={(e) => setNewDog({ ...newDog, vaccine_expiry: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs"
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -340,7 +334,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                   placeholder="25026..."
                   value={newDog.identification_number}
                   onChange={(e) => setNewDog({ ...newDog, identification_number: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
                 />
               </div>
 
@@ -348,14 +342,14 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
                 <button
                   type="button"
                   onClick={() => setShowAddDogModal(false)}
-                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500 hover:bg-stone-100 cursor-pointer"
+                  className="px-4 py-2 rounded-full text-xs font-bold text-stone-500 hover:text-stone-800 cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={creatingDog || !newDog.is_vaccinated}
-                  className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md"
                 >
                   {creatingDog ? "Enregistrement..." : "Enregistrer et sélectionner"}
                 </button>
@@ -364,7 +358,6 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
           </div>
         </div>
       )}
-
     </div>
   );
 }
