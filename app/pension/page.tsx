@@ -187,15 +187,15 @@ export default function PensionPage() {
             </div>
           ))}
 
-          <button onClick={prevSlide} className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md">←</button>
-          <button onClick={nextSlide} className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md">→</button>
+          <button onClick={prevSlide} className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">←</button>
+          <button onClick={nextSlide} className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">→</button>
 
           <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-1.5">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                   index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"
                 }`}
               />
@@ -300,7 +300,7 @@ export default function PensionPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
-            <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600">✕</button>
+            <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
               <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
@@ -322,14 +322,14 @@ export default function PensionPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600">✕</button>
+            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
 
             {submitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Demande de séjour reçue !</h3>
                 <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des 12 boxs et validons votre demande rapidement.</p>
-                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Aller sur Mon Espace</a>
+                <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -342,14 +342,27 @@ export default function PensionPage() {
 
                 {step === 1 && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
+                    {/* MODIFICATION ICI : grid-cols-1 sur mobile, grid-cols-2 sur tablette (sm) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="w-full min-w-0">
                         <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date d'arrivée *</label>
-                        <input type="date" required value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
+                        <input 
+                          type="date" 
+                          required 
+                          value={formData.startDate} 
+                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} 
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
+                        />
                       </div>
-                      <div>
+                      <div className="w-full min-w-0">
                         <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Date de départ *</label>
-                        <input type="date" required value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
+                        <input 
+                          type="date" 
+                          required 
+                          value={formData.endDate} 
+                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
+                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium appearance-none focus:outline-none focus:border-orange-500" 
+                        />
                       </div>
                     </div>
 
@@ -385,16 +398,29 @@ export default function PensionPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone de contact *</label>
-                      <input type="tel" required placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="06 12 34 56 78" 
+                        value={formData.clientPhone} 
+                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Besoins spécifiques / Alimentation / Médicaments</label>
-                      <textarea rows={3} placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." value={formData.specialNeeds} onChange={(e) => setFormData({ ...formData, specialNeeds: e.target.value })} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium" />
+                      <textarea 
+                        rows={3} 
+                        placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." 
+                        value={formData.specialNeeds} 
+                        onChange={(e) => setFormData({ ...formData, specialNeeds: e.target.value })} 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center">
-                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500">← Retour</button>
-                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
+                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 cursor-pointer hover:text-stone-900">← Retour</button>
+                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
                     </div>
                   </div>
                 )}
