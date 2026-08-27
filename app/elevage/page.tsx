@@ -463,10 +463,10 @@ export default function ElevagePage() {
         <div className="mx-auto max-w-5xl px-6 space-y-12">
           <div>
             <span className="text-xs font-black uppercase tracking-wider text-orange-600">
-              Éthique & Bien-Être
+              Éthique & Responsabilité
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-              Préparés pour s’adapter naturellement à leur future foyer
+              Penser chaque étape avec exigence pour son bien-être et le vôtre
             </h2>
           </div>
 
