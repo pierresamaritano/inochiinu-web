@@ -1,334 +1,195 @@
 "use client";
 
-import { useState } from "react";
-
-interface EducationItem {
-  id: string;
-  title: string;
-  date: string;
-  status: "validé" | "en cours" | "à venir";
-  notes: string;
-  homework?: string;
-}
-
-interface PensionItem {
-  id: string;
-  title: string;
-  date: string;
-  status: "en cours" | "réservé" | "passé";
-  details: string;
-}
+import { useState, useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function ClientDashboardHub() {
-  // Gestion de l'expansion du widget (col-span-full ou hauteur)
   const [expandedWidget, setExpandedWidget] = useState<string | null>(null);
+  const [eduRequests, setEduRequests] = useState<any[]>([]);
+  const [pensionRequests, setPensionRequests] = useState<any[]>([]);
+  const [adoptionRequests, setAdoptionRequests] = useState<any[]>([]);
+  const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Gestion de la sélection d'une ligne spécifique ("Gros Widget" ouvert)
-  const [selectedItem, setSelectedItem] = useState<EducationItem | null>(null);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  // Données mockées pour l'éducation
-  const educationSessions: EducationItem[] = [
-    {
-      id: "edu-1",
-      title: "Séance 1 : Évaluation & Prise de contact",
-      date: "12 Août 2026",
-      status: "validé",
-      notes: "Très bonne attention, bon focus. Début de la marche sans traction.",
-      homework: "Pratiquer le demi-tour dès tension sur 5 min par balade.",
-    },
-    {
-      id: "edu-2",
-      title: "Séance 2 : Suivi naturel & Marche en laisse",
-      date: "19 Août 2026",
-      status: "validé",
-      notes: "Chien très réceptif aux changements de direction. Laisse détendue sur 80% du parcours.",
-      homework: "Intégrer les zones avec distractions légères.",
-    },
-    {
-      id: "edu-3",
-      title: "Séance 3 : Rappel sous distraction",
-      date: "26 Août 2026",
-      status: "en cours",
-      notes: "Travail à la longe 10m. Temps de réaction immédiat sans stimulus fort.",
-      homework: "Renforcer la récompense jackpot au retour immédiat.",
-    },
-    {
-      id: "edu-4",
-      title: "Séance 4 : Croisements congénères & Auto-contrôles",
-      date: "02 Septembre 2026",
-      status: "à venir",
-      notes: "Séance prévue en milieu urbain / parc.",
-    },
-    {
-      id: "edu-5",
-      title: "Séance 5 : Bilan final & Perfectionnement",
-      date: "09 Septembre 2026",
-      status: "à venir",
-      notes: "Validation de la grille globale d'autonomie.",
-    },
-  ];
+  useEffect(() => {
+    const fetchUserServices = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  // Données mockées pour la pension
-  const pensionStays: PensionItem[] = [
-    {
-      id: "pen-1",
-      title: "Séjour Estival (Box N°4)",
-      date: "01 - 07 Août 2026",
-      status: "passé",
-      details: "Sorties régulières en parc de détente, excellente entente avec le groupe.",
-    },
-    {
-      id: "pen-2",
-      title: "Week-end Automne (Box N°2)",
-      date: "18 - 20 Septembre 2026",
-      status: "réservé",
-      details: "Réservation confirmée. Repas personnalisés enregistrés.",
-    },
-  ];
+      const [edu, pen, adp, sel] = await Promise.all([
+        supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("pension_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("adoption_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("sellerie_orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
 
-  // Pourcentage global d'apprentissage
-  const progressPercent = 65;
-  const radius = 32;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+      setEduRequests(edu.data || []);
+      setPensionRequests(pen.data || []);
+      setAdoptionRequests(adp.data || []);
+      setSellerieOrders(sel.data || []);
+      setLoading(false);
+    };
 
-  const isEduExpanded = expandedWidget === "education";
-  const displayedEduList = isEduExpanded ? educationSessions : educationSessions.slice(0, 3);
+    fetchUserServices();
+  }, [supabase]);
+
+  if (loading) {
+    return <div className="mt-12 text-center text-xs font-bold text-stone-400">Chargement de votre tableau de bord...</div>;
+  }
+
+  const hasAnyService = eduRequests.length > 0 || pensionRequests.length > 0 || adoptionRequests.length > 0 || sellerieOrders.length > 0;
+
+  if (!hasAnyService) {
+    return (
+      <div className="mt-12 p-10 sm:p-16 rounded-[2.5rem] bg-white/40 border border-stone-200 border-dashed text-center flex flex-col items-center justify-center max-w-3xl mx-auto shadow-sm">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-6 shadow-inner">
+          犬
+        </div>
+        <h2 className="text-2xl font-black text-stone-900 tracking-tight">Votre espace est prêt</h2>
+        <p className="text-stone-500 mt-3 text-sm leading-relaxed max-w-lg">
+          Ce tableau de bord s'animera automatiquement dès que vous effectuerez une réservation ou une commande.
+        </p>
+        <a href="/education" className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 transition-all">
+          Découvrir nos services
+        </a>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-      {/* =========================================================================
-          WIDGET 1 : ÉDUCATION (AVEC JAUGE CIRCULAIRE & EXPANSION EN LONGUEUR/LARGEUR)
-          ========================================================================= */}
-      <div
-        className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${
-          isEduExpanded ? "lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100" : ""
-        }`}
-      >
-        {/* EN-TÊTE DU WIDGET : TITRE + JAUGE CIRCULAIRE */}
-        <div className="flex items-center justify-between gap-4 pb-6 border-b border-stone-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-                Éducation
-              </span>
-              <span className="text-xs text-stone-400 font-semibold">
-                {educationSessions.length} séances au carnet
-              </span>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 items-start">
+      
+      {/* 1. WIDGET ÉDUCATION */}
+      {eduRequests.length > 0 && (
+        <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
             </div>
-            <h2 className="text-xl font-extrabold text-stone-900 mt-2">
-              Progression & Apprentissage
-            </h2>
-          </div>
-
-          {/* JAUGE CIRCULAIRE SVG */}
-          <div className="relative flex items-center justify-center">
-            <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-              {/* Cercle d'arrière-plan */}
-              <circle
-                cx="40"
-                cy="40"
-                r={radius}
-                className="stroke-stone-100"
-                strokeWidth="7"
-                fill="transparent"
-              />
-              {/* Cercle de progression */}
-              <circle
-                cx="40"
-                cy="40"
-                r={radius}
-                className="stroke-orange-500 transition-all duration-700 ease-out"
-                strokeWidth="7"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-sm font-black text-stone-900 leading-none">
-                {progressPercent}%
-              </span>
-              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">
-                Acquis
-              </span>
+            <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
+              {eduRequests.length}
             </div>
           </div>
-        </div>
 
-        {/* CONTENU PRINCIPAL : VUE STANDARD OU DÉTAIL D'UNE LIGNE SÉLECTIONNÉE */}
-        {selectedItem ? (
-          /* --- GROS WIDGET : DÉTAIL DE LA LIGNE CLIQUEE --- */
-          <div className="mt-6 p-6 rounded-2xl bg-orange-50/40 border border-orange-100">
-            <div className="flex items-center justify-between pb-4 border-b border-orange-200/50">
-              <button
-                onClick={() => setSelectedItem(null)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 hover:text-orange-900 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Retour aux séances
-              </button>
-              <span
-                className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                  selectedItem.status === "validé"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : selectedItem.status === "en cours"
-                    ? "bg-amber-100 text-amber-800"
-                    : "bg-stone-100 text-stone-600"
-                }`}
-              >
-                {selectedItem.status}
-              </span>
-            </div>
-
-            <div className="mt-4">
-              <span className="text-xs text-stone-500 font-semibold">{selectedItem.date}</span>
-              <h3 className="text-lg font-black text-stone-900 mt-0.5">{selectedItem.title}</h3>
-              
-              <div className="mt-4 space-y-3">
-                <div className="bg-white p-4 rounded-xl border border-stone-200/60 shadow-2xs">
-                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
-                    Observations de séance
-                  </span>
-                  <p className="text-sm text-stone-700 font-medium mt-1">
-                    {selectedItem.notes}
-                  </p>
-                </div>
-
-                {selectedItem.homework && (
-                  <div className="bg-white p-4 rounded-xl border border-orange-200/70 shadow-2xs">
-                    <span className="text-[11px] font-bold text-orange-600 uppercase tracking-wider block">
-                      Exercices recommandés à la maison
-                    </span>
-                    <p className="text-sm text-stone-700 font-medium mt-1">
-                      {selectedItem.homework}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* --- LISTE DES LIGNES CLICQUABLES --- */
           <div className="mt-4 space-y-2">
-            {displayedEduList.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="group flex items-center justify-between p-3.5 rounded-2xl bg-stone-50/70 hover:bg-orange-50/70 border border-stone-100 hover:border-orange-200 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      item.status === "validé"
-                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                        : item.status === "en cours"
-                        ? "bg-orange-500 animate-pulse"
-                        : "bg-stone-300"
-                    }`}
-                  />
-                  <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-stone-900 group-hover:text-orange-950 transition-colors">
-                      {item.title}
-                    </h4>
-                    <span className="text-[11px] text-stone-400 font-medium">
-                      {item.date}
-                    </span>
-                  </div>
+            {(expandedWidget === 'edu' ? eduRequests : eduRequests.slice(0, 3)).map((item) => (
+              <div key={item.id} className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.dog_name} ({item.dog_breed})</h4>
+                  <span className="text-[11px] text-stone-400">{item.preferred_slot}</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full hidden sm:inline-block ${
-                      item.status === "validé"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : item.status === "en cours"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-stone-100 text-stone-600"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                  <svg
-                    className="w-4 h-4 text-stone-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
+                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                  item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {item.status}
+                </span>
               </div>
             ))}
           </div>
-        )}
 
-        {/* BOUTON "VOIR PLUS / VOIR MOINS" POUR AGRANDIR LE WIDGET */}
-        {!selectedItem && educationSessions.length > 3 && (
-          <div className="mt-4 pt-2 border-t border-stone-100 flex justify-center">
-            <button
-              onClick={() => setExpandedWidget(isEduExpanded ? null : "education")}
-              className="text-xs font-extrabold text-stone-500 hover:text-stone-900 hover:bg-stone-100 py-1.5 px-4 rounded-full transition-all flex items-center gap-1.5"
-            >
-              {isEduExpanded ? (
-                <>
-                  <span>Réduire la vue</span>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
-                </>
-              ) : (
-                <>
-                  <span>Voir tout l'historique (+{educationSessions.length - 3})</span>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </>
-              )}
+          {eduRequests.length > 3 && (
+            <button onClick={() => setExpandedWidget(expandedWidget === 'edu' ? null : 'edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+              {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${eduRequests.length - 3})`}
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* =========================================================================
-          WIDGET 2 : PENSION (EXEMPLE COMPACT POUR OBSERVER LE REAGENCEMENT)
-          ========================================================================= */}
-      <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
-        <div className="flex items-center justify-between pb-6 border-b border-stone-100">
-          <div>
-            <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
-              Pension
-            </span>
-            <h2 className="text-xl font-extrabold text-stone-900 mt-2">
-              Séjours & Garde
-            </h2>
-          </div>
-          <div className="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex flex-col items-center justify-center text-center">
-            <span className="text-xs font-black text-emerald-700">1</span>
-            <span className="text-[8px] font-bold text-emerald-600 uppercase">À venir</span>
-          </div>
+          )}
         </div>
+      )}
 
-        <div className="mt-4 space-y-2">
-          {pensionStays.map((stay) => (
-            <div
-              key={stay.id}
-              className="p-3.5 rounded-2xl bg-stone-50/70 border border-stone-100 flex items-center justify-between"
-            >
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-stone-900">{stay.title}</h4>
-                <span className="text-[11px] text-stone-400 font-medium">{stay.date}</span>
-              </div>
-              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-stone-200/60 text-stone-700">
-                {stay.status}
-              </span>
+      {/* 2. WIDGET PENSION */}
+      {pensionRequests.length > 0 && (
+        <div className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Pension</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1.5">Séjours en Garde</h3>
             </div>
-          ))}
+            <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700">
+              {pensionRequests.length}
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {(expandedWidget === 'pen' ? pensionRequests : pensionRequests.slice(0, 3)).map((item) => (
+              <div key={item.id} className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.dog_name}</h4>
+                  <span className="text-[11px] text-stone-400 font-medium">Du {item.start_date} au {item.end_date}</span>
+                </div>
+                <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                  item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {pensionRequests.length > 3 && (
+            <button onClick={() => setExpandedWidget(expandedWidget === 'pen' ? null : 'pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+              {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${pensionRequests.length - 3})`}
+            </button>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* 3. WIDGET ÉLEVAGE */}
+      {adoptionRequests.length > 0 && (
+        <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1.5">Candidature Chiot</h3>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {adoptionRequests.map((item) => (
+              <div key={item.id} className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.preferred_breed}</h4>
+                  <span className="text-[11px] text-stone-400">{item.living_environment}</span>
+                </div>
+                <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. WIDGET SELLERIE */}
+      {sellerieOrders.length > 0 && (
+        <div className="rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1.5">Commandes Atelier</h3>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {sellerieOrders.map((item) => (
+              <div key={item.id} className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.item_type}</h4>
+                  <span className="text-[11px] text-stone-400">{item.color_finish}</span>
+                </div>
+                <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                  {item.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
