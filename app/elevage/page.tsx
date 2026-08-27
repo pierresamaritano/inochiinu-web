@@ -4,6 +4,33 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 
+interface GrandParent {
+  role: string;
+  name: string;
+  details?: string;
+}
+
+interface DogParent {
+  name: string;
+  origin: string;
+  titles: string;
+  desc: string;
+  gParents: GrandParent[];
+  ggParents: string[];
+}
+
+interface DogProfile {
+  id: string;
+  name: string;
+  badgeName: string;
+  role: "Étalon" | "Lice";
+  affixe: string;
+  titles: string;
+  description: string;
+  father: DogParent;
+  mother: DogParent;
+}
+
 export default function ElevagePage() {
   const [user, setUser] = useState<any>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -14,7 +41,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Sélecteur de reproducteur (Option 1 : 5 chiens max à plat)
+  // Sélecteur de reproducteur (Onglets directs)
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
 
   const [step, setStep] = useState(1);
@@ -69,8 +96,8 @@ export default function ElevagePage() {
     },
   ];
 
-  // Liste plate des 5 reproducteurs
-  const dogs = [
+  // Liste typée des 5 reproducteurs
+  const dogs: DogProfile[] = [
     {
       id: "baiko",
       name: "Baïko (Ryu)",
@@ -462,11 +489,11 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE : NAVIGATION DIRECTE ET STABLE (OPTION 1) */}
+      {/* SECTION PEDIGREE : NAVIGATION DIRECTE ET SANS SAUT DE PAGE */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-8">
 
-          {/* EN-TÊTE FIXE DU PEDIGREE AVEC ONGLET UNIQUE SANS DÉCALAGE */}
+          {/* EN-TÊTE FIXE DU PEDIGREE */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-orange-600">
@@ -594,6 +621,9 @@ export default function ElevagePage() {
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
                     <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.father.gParents[0].role}</span>
                     <p className="font-bold text-stone-800">{currentProfile.father.gParents[0].name}</p>
+                    {currentProfile.father.gParents[0].details && (
+                      <p className="text-[10px] text-stone-400">{currentProfile.father.gParents[0].details}</p>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
