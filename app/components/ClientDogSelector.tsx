@@ -23,10 +23,11 @@ interface ClientProfile {
 interface Props {
   isAdmin: boolean;
   currentUserId: string;
+  excludeDogId?: string; // Prop ajoutée pour exclure un chien déjà sélectionné
   onDogSelected: (dog: Dog, targetUserId: string, targetClientInfo?: { name: string; email: string; phone?: string }) => void;
 }
 
-export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelected }: Props) {
+export default function ClientDogSelector({ isAdmin, currentUserId, excludeDogId, onDogSelected }: Props) {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -62,10 +63,14 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
   const fetchDogs = async (uid: string) => {
     const { data } = await supabase.from("dogs").select("*").eq("user_id", uid).order("name");
-    setDogs(data || []);
-    if (data && data.length > 0) {
-      setSelectedDogId(data[0].id);
-      onDogSelected(data[0], uid, getClientInfo());
+    
+    // Filtrage pour ne pas afficher le chien correspondant à l'ID exclu (le cas échéant)
+    const filteredDogs = (data || []).filter((dog) => dog.id !== excludeDogId);
+    
+    setDogs(filteredDogs);
+    if (filteredDogs.length > 0) {
+      setSelectedDogId(filteredDogs[0].id);
+      onDogSelected(filteredDogs[0], uid, getClientInfo());
     } else {
       setSelectedDogId("");
     }
@@ -74,7 +79,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
   useEffect(() => {
     fetchDogs(targetUserId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId]);
+  }, [targetUserId, excludeDogId]);
 
   useEffect(() => {
     if (!isAdmin || clientSearch.trim().length < 2) {
@@ -133,7 +138,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
       
       await fetchDogs(targetUserId);
       
-      if (data) {
+      if (data && data.id !== excludeDogId) {
         setSelectedDogId(data.id);
         onDogSelected(data, targetUserId, getClientInfo());
       }
@@ -206,7 +211,7 @@ export default function ClientDogSelector({ isAdmin, currentUserId, onDogSelecte
 
         {dogs.length === 0 ? (
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 flex flex-col sm:flex-row gap-2 justify-between sm:items-center">
-            <span>Aucun chien enregistré pour ce compte.</span>
+            <span>Aucun autre chien enregistré pour ce compte.</span>
             <button
               type="button"
               onClick={() => setShowAddDogModal(true)}

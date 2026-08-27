@@ -680,6 +680,7 @@ export default function PensionPage() {
                             <ClientDogSelector
                               isAdmin={false}
                               currentUserId={user.id}
+                              excludeDogId={formData.dog_id} // <-- LA LIGNE MAGIQUE EST LÀ
                               onDogSelected={(dog) =>
                                 setFormData({ ...formData, dog2_id: dog.id, dog2Name: dog.name, dog2Breed: dog.breed })
                               }
