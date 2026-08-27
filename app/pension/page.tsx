@@ -6,7 +6,6 @@ import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import PensionCalendar from "../components/PensionCalendar";
 
-
 // =========================================================================
 // TYPES ET COMPOSANT CARROUSEL PENSION (Style Apple)
 // =========================================================================
@@ -19,19 +18,19 @@ interface CarouselSlide {
 
 const pensionSlides: CarouselSlide[] = [
   {
-    src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo de vos parcs
+    src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
     alt: "Chiens jouant dans les parcs",
     tag: "Jeux & Liberté",
     caption: "Détente en plein air et interactions dans nos parcs arborés.",
   },
   {
-    src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo d'un box
+    src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", 
     alt: "Box confortable",
     tag: "Confort Premium",
     caption: "6 boxs spacieux, isolés et climatisés avec courette.",
   },
   {
-    src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", // Remplacer par photo caméra/sécurité
+    src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", 
     alt: "Surveillance",
     tag: "Sécurité 24/7",
     caption: "Surveillance vidéo continue pour une tranquillité absolue.",
@@ -105,7 +104,6 @@ function PensionCarousel() {
     </section>
   );
 }
-
 // =========================================================================
 // PAGE PRINCIPALE PENSION
 // =========================================================================
@@ -138,7 +136,6 @@ export default function PensionPage() {
     clientPhone: "",
     specialNeeds: "",
   });
-
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -190,7 +187,6 @@ export default function PensionPage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
-  // VÉRIFICATION DU POP-UP AVANT DE CONTINUER
   const handleInitialClick = () => {
     const hideInfo = localStorage.getItem("hidePensionInfo");
     if (hideInfo === "true") {
@@ -232,7 +228,6 @@ export default function PensionPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
@@ -247,7 +242,6 @@ export default function PensionPage() {
 
     setSubmitting(true);
     try {
-      // On regroupe les infos si deux chiens partagent le box
       const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
       const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
       
@@ -266,46 +260,17 @@ export default function PensionPage() {
           status: "en_attente",
         },
       ]);
+      
       if (error) throw error;
       setSubmitted(true);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Erreur Supabase :", err);
+      alert(`Erreur lors de la réservation : ${err.message || "Veuillez réessayer."}`);
     } finally {
       setSubmitting(false);
     }
   };
 
-
-    if (!formData.dog_id) {
-      alert("Veuillez sélectionner ou ajouter un chien pour la réservation.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.from("pension_requests").insert([
-        {
-          user_id: user.id,
-          dog_id: formData.dog_id,
-          client_name: user.user_metadata?.full_name || "Client",
-          client_email: user.email,
-          client_phone: formData.clientPhone,
-          dog_name: formData.dogName,
-          dog_breed: formData.dogBreed,
-          start_date: formData.startDate,
-          end_date: formData.endDate,
-          special_needs: formData.specialNeeds,
-          status: "en_attente",
-        },
-      ]);
-      if (error) throw error;
-      setSubmitted(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -410,7 +375,6 @@ export default function PensionPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {/* CARTE 1 : 6 BOXS */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
@@ -428,7 +392,6 @@ export default function PensionPage() {
               </div>
             </div>
 
-            {/* CARTE 2 : DÉTENTE & LIBERTÉ */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
@@ -446,7 +409,6 @@ export default function PensionPage() {
               </div>
             </div>
 
-            {/* CARTE 3 : CAMÉRAS & CLIMATISATION */}
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
@@ -469,7 +431,6 @@ export default function PensionPage() {
 
       {/* CARROUSEL DES INSTALLATIONS PENSION (Style Apple) */}
       <PensionCarousel />
-
       {/* SECTION CONTACT & COORDONNÉES */}
       <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-6">
@@ -486,7 +447,6 @@ export default function PensionPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Téléphone */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -495,12 +455,9 @@ export default function PensionPage() {
               </div>
               <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
               <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
-              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
-                06 00 00 00 00
-              </a>
+              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">06 00 00 00 00</a>
             </div>
 
-            {/* Email */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -509,12 +466,9 @@ export default function PensionPage() {
               </div>
               <h3 className="text-base font-bold text-stone-900">Email</h3>
               <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
-              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">
-                contact@inochi-inu.fr
-              </a>
+              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">contact@inochi-inu.fr</a>
             </div>
 
-            {/* Réseaux Sociaux */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -524,12 +478,8 @@ export default function PensionPage() {
               <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
               <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
               <div className="mt-4 flex gap-3">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
-                  Instagram ➔
-                </a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">
-                  Facebook ➔
-                </a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Instagram ➔</a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Facebook ➔</a>
               </div>
             </div>
           </div>
@@ -541,18 +491,14 @@ export default function PensionPage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
+      {/* MODALES */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
-            
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">
-              ℹ️
-            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">ℹ️</div>
             <h3 className="text-xl font-black text-stone-900">Avant de réserver...</h3>
-            
             <div className="mt-4 space-y-3 text-sm text-stone-600 leading-relaxed">
               <p>Pour garantir la sécurité et le bien-être de tous nos pensionnaires, voici nos prérequis :</p>
               <ul className="list-disc pl-5 space-y-1 font-medium text-stone-700">
@@ -562,28 +508,17 @@ export default function PensionPage() {
               </ul>
               <p className="text-xs text-stone-500 italic">Un justificatif vous sera demandé à votre arrivée.</p>
             </div>
-
             <label className="mt-6 flex items-center gap-3 p-3 rounded-2xl bg-stone-100 border border-stone-200 cursor-pointer hover:bg-stone-200/50 transition-colors">
-              <input 
-                type="checkbox" 
-                checked={dontShowAgain} 
-                onChange={(e) => setDontShowAgain(e.target.checked)} 
-                className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" 
-              />
+              <input type="checkbox" checked={dontShowAgain} onChange={(e) => setDontShowAgain(e.target.checked)} className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" />
               <span className="text-xs font-bold text-stone-600">J'ai compris, ne plus afficher ce message.</span>
             </label>
-
-            <button
-              onClick={handleContinueFromInfo}
-              className="mt-6 w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md"
-            >
+            <button onClick={handleContinueFromInfo} className="mt-6 w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md">
               Continuer vers la réservation
             </button>
           </div>
         </div>
       )}
 
-      {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
@@ -594,24 +529,18 @@ export default function PensionPage() {
               <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
               <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation de pension et recevoir vos photos quotidiennes.</p>
             </div>
-            <button
-              onClick={handleGoogleLogin}
-              disabled={authLoading}
-              className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
-            >
+            <button onClick={handleGoogleLogin} disabled={authLoading} className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer">
               <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* MODALE FORMULAIRE PENSION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
-
             {submitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
@@ -624,79 +553,71 @@ export default function PensionPage() {
                 <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                   <div>
                     <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 2</span>
-                    <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Dates & Chien" : "Besoins & Contact"}</h3>
+                    <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Dates & Chien(s)" : "Besoins & Contact"}</h3>
                   </div>
                 </div>
 
                 {step === 1 && (
                   <div className="space-y-4">
-                    {/* NOUVEAU CALENDRIER INTERACTIF */}
                     <div className="mb-6">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-3">Sélectionnez vos dates *</label>
                       <PensionCalendar 
                         startDate={formData.startDate}
                         endDate={formData.endDate}
-                        onChange={(start, end) => setFormData({ ...formData, startDate: start, endDate: end })}
+                        onChange={(start, end) => setFormData(prev => ({ ...prev, startDate: start, endDate: end }))}
                       />
                     </div>
                     {user && (
-                      <ClientDogSelector
-                        isAdmin={false}
-                        currentUserId={user.id}
-                        onDogSelected={(dog) =>
-                          setFormData({
-                            ...formData,
-                            dog_id: dog.id,
-                            dogName: dog.name,
-                            dogBreed: dog.breed,
-                          })
-                        }
-                      />
-                    )}
-                    {/* OPTION CHIEN 2 */}
-                    {user && (
-                      <div className="mt-2">
-                        {!hasSecondDog ? (
-                          <button
-                            type="button"
-                            onClick={() => setHasSecondDog(true)}
-                            className="text-[11px] font-black text-orange-600 hover:text-orange-700 cursor-pointer flex items-center gap-1"
-                          >
-                            + Ajouter un deuxième chien (même box)
-                          </button>
-                        ) : (
-                          <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 relative mt-4">
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                setHasSecondDog(false);
-                                setFormData({ ...formData, dog2_id: "", dog2Name: "", dog2Breed: "" });
-                              }}
-                              className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
+                      <>
+                        <ClientDogSelector
+                          isAdmin={false}
+                          currentUserId={user.id}
+                          onDogSelected={(dog) =>
+                            setFormData(prev => ({ ...prev, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed }))
+                          }
+                        />
+                        <div className="mt-2">
+                          {!hasSecondDog ? (
+                            <button
+                              type="button"
+                              onClick={() => setHasSecondDog(true)}
+                              className="text-[11px] font-black text-orange-600 hover:text-orange-700 cursor-pointer flex items-center gap-1"
                             >
-                              ✕ Retirer
+                              + Ajouter un deuxième chien (même box)
                             </button>
-                            <p className="text-[10px] font-black uppercase text-orange-700 mb-3">Deuxième pensionnaire</p>
-                            <ClientDogSelector
-                              isAdmin={false}
-                              currentUserId={user.id}
-                              excludeDogId={formData.dog_id} // <-- LA LIGNE MAGIQUE EST LÀ
-                              onDogSelected={(dog) =>
-                                setFormData({ ...formData, dog2_id: dog.id, dog2Name: dog.name, dog2Breed: dog.breed })
-                              }
-                            />
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 relative mt-4">
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  setHasSecondDog(false);
+                                  setFormData(prev => ({ ...prev, dog2_id: "", dog2Name: "", dog2Breed: "" }));
+                                }}
+                                className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
+                              >
+                                ✕ Retirer
+                              </button>
+                              <p className="text-[10px] font-black uppercase text-orange-700 mb-3">Deuxième pensionnaire</p>
+                              <ClientDogSelector
+                                isAdmin={false}
+                                currentUserId={user.id}
+                                excludeDogId={formData.dog_id}
+                                onDogSelected={(dog) =>
+                                  setFormData(prev => ({ ...prev, dog2_id: dog.id, dog2Name: dog.name, dog2Breed: dog.breed }))
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
-
 
                     <div className="pt-4 flex justify-end">
                       <button 
                         type="button" 
-                        disabled={!formData.startDate || !formData.endDate || !formData.dog_id} 
+                        disabled={!formData.startDate || !formData.endDate || !formData.dog_id || (hasSecondDog && !formData.dog2_id)} 
                         onClick={() => setStep(2)} 
-                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer"
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer transition-opacity"
                       >
                         Suivant ➔
                       </button>
@@ -713,7 +634,7 @@ export default function PensionPage() {
                         required 
                         placeholder="06 12 34 56 78" 
                         value={formData.clientPhone} 
-                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
+                        onChange={(e) => setFormData(prev => ({ ...prev, clientPhone: e.target.value }))} 
                         className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
@@ -723,14 +644,14 @@ export default function PensionPage() {
                         rows={3} 
                         placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." 
                         value={formData.specialNeeds} 
-                        onChange={(e) => setFormData({ ...formData, specialNeeds: e.target.value })} 
+                        onChange={(e) => setFormData(prev => ({ ...prev, specialNeeds: e.target.value }))} 
                         className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center">
                       <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 cursor-pointer hover:text-stone-900">← Retour</button>
-                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
+                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50 transition-all">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
                     </div>
                   </div>
                 )}
