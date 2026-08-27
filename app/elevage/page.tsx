@@ -41,7 +41,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Sélecteur de reproducteur (Onglets directs)
+  // Sélecteur de reproducteur actif
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
 
   const [step, setStep] = useState(1);
@@ -96,7 +96,7 @@ export default function ElevagePage() {
     },
   ];
 
-  // Liste typée des 5 reproducteurs
+  // Liste des 5 reproducteurs
   const dogs: DogProfile[] = [
     {
       id: "baiko",
@@ -489,94 +489,96 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION PEDIGREE : NAVIGATION DIRECTE ET SANS SAUT DE PAGE */}
-      <section className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-xl py-16">
-        <div className="mx-auto max-w-5xl px-6 space-y-8">
+      {/* SECTION PEDIGREE : NAVIGATION DIRECTE & DÉFILEMENT FLUIDE SUR MOBILE */}
+      <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-6 sm:space-y-8">
 
-          {/* EN-TÊTE FIXE DU PEDIGREE */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-orange-600">
+          {/* EN-TÊTE : CENTRÉ SUR MOBILE, ALIGNÉ SUR DESKTOP */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 text-center sm:text-left">
+            <div className="mx-auto sm:mx-0 max-w-xl">
+              <span className="inline-block text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50/80 px-3 py-1 rounded-full sm:bg-transparent sm:p-0">
                 Génétique & Standard Japonais
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-2 sm:mt-1">
                 Pedigree de nos reproducteurs LOF
               </h2>
-              <p className="mt-1 max-w-2xl text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
+              <p className="mt-2 text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
                 Consultez l'arbre généalogique officiel sur 3 générations de notre étalon et de nos lices.
               </p>
             </div>
 
-            {/* SÉLECTEUR PLAT (5 REPRODUCTEURS) */}
-            <div className="flex flex-wrap items-center gap-2 shrink-0 bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200/80 shadow-xs">
-              {dogs.map((dog, index) => {
-                const isSelected = selectedDogIndex === index;
-                return (
-                  <button
-                    key={dog.id}
-                    onClick={() => setSelectedDogIndex(index)}
-                    className={`h-9 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isSelected
-                        ? "bg-stone-900 text-white shadow-xs"
-                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
-                    }`}
-                  >
-                    <span>{dog.role === "Étalon" ? "🐕" : "🌸"}</span>
-                    <span>{dog.badgeName}</span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-normal ${
+            {/* SÉLECTEUR MOBILE & DESKTOP (DÉFILEMENT HORIZONTAL FLUIDE SANS BRISER LA LIGNE) */}
+            <div className="w-full lg:w-auto -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+              <div className="flex items-center gap-2 p-1.5 bg-stone-100/90 rounded-2xl border border-stone-200/80 w-max mx-auto sm:mx-0 shadow-xs">
+                {dogs.map((dog, index) => {
+                  const isSelected = selectedDogIndex === index;
+                  return (
+                    <button
+                      key={dog.id}
+                      onClick={() => setSelectedDogIndex(index)}
+                      className={`h-10 sm:h-9 px-4 sm:px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 select-none ${
                         isSelected
-                          ? "bg-stone-800 text-stone-300"
-                          : "bg-stone-200 text-stone-500"
+                          ? "bg-stone-900 text-white shadow-sm scale-[1.02]"
+                          : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 active:scale-95"
                       }`}
                     >
-                      {dog.role}
-                    </span>
-                  </button>
-                );
-              })}
+                      <span className="text-sm">{dog.role === "Étalon" ? "🐕" : "🌸"}</span>
+                      <span>{dog.badgeName}</span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
+                          isSelected
+                            ? "bg-stone-800 text-stone-200"
+                            : "bg-stone-200 text-stone-500"
+                        }`}
+                      >
+                        {dog.role}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* PALMARÈS ET LIGNÉES DU REPRODUCTEUR SÉLECTIONNÉ */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
             {/* PÈRE */}
-            <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+            <div className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Paternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">{currentProfile.father.origin}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-stone-400">{currentProfile.father.origin}</span>
                 </div>
-                <h3 className="text-lg font-black text-stone-900">
+                <h3 className="text-base sm:text-lg font-black text-stone-900">
                   {currentProfile.father.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
                   {currentProfile.father.titles}
                 </p>
-                <p className="mt-3 text-xs text-stone-500 leading-relaxed">
+                <p className="mt-2.5 text-xs text-stone-500 leading-relaxed">
                   {currentProfile.father.desc}
                 </p>
               </div>
             </div>
 
             {/* MÈRE */}
-            <div className="rounded-[2rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm flex flex-col justify-between">
+            <div className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                     Lignée Maternelle
                   </span>
-                  <span className="text-xs font-bold text-stone-400">{currentProfile.mother.origin}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-stone-400">{currentProfile.mother.origin}</span>
                 </div>
-                <h3 className="text-lg font-black text-stone-900">
+                <h3 className="text-base sm:text-lg font-black text-stone-900">
                   {currentProfile.mother.name}
                 </h3>
                 <p className="mt-1 text-xs font-bold text-orange-600">
                   {currentProfile.mother.titles}
                 </p>
-                <p className="mt-3 text-xs text-stone-500 leading-relaxed">
+                <p className="mt-2.5 text-xs text-stone-500 leading-relaxed">
                   {currentProfile.mother.desc}
                 </p>
               </div>
@@ -584,71 +586,58 @@ export default function ElevagePage() {
           </div>
 
           {/* ARBRE GÉNÉALOGIQUE SUR 3 GÉNÉRATIONS */}
-          <div className="rounded-[2.5rem] border border-stone-200/80 bg-white/80 p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-4">
+          <div className="rounded-[2rem] sm:rounded-[2.5rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-3 sm:pb-4 text-center sm:text-left">
               <div>
                 <span className="text-[10px] font-black uppercase text-orange-600">Arbre Généalogique Officiel</span>
-                <h3 className="text-lg font-black text-stone-900">
+                <h3 className="text-base sm:text-lg font-black text-stone-900">
                   Pedigree certifié — {currentProfile.name}
                 </h3>
               </div>
-              <span className="text-xs font-bold text-stone-400">{currentProfile.affixe}</span>
+              <div className="flex items-center justify-center sm:justify-end gap-2 text-stone-400 text-xs font-bold">
+                <span>{currentProfile.affixe}</span>
+                <span className="sm:hidden text-[10px] bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full font-medium">Glisser ➔</span>
+              </div>
             </div>
 
-            <div className="overflow-x-auto pb-4">
-              <div className="min-w-[720px] grid grid-cols-3 gap-4 text-xs">
+            <div className="overflow-x-auto pb-3 -mx-2 px-2">
+              <div className="min-w-[680px] grid grid-cols-3 gap-3 sm:gap-4 text-xs">
                 {/* COLONNE 1 : PARENTS */}
-                <div className="space-y-4">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">1ère Génération (Parents)</span>
+                <div className="space-y-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">1ère Génération</span>
 
-                  <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-3 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Père</span>
-                    <p className="font-black text-stone-900">{currentProfile.father.name}</p>
+                    <p className="font-black text-stone-900 leading-tight">{currentProfile.father.name}</p>
                     <p className="text-[10px] text-stone-500 font-medium">{currentProfile.father.titles}</p>
                   </div>
 
-                  <div className="rounded-2xl border border-orange-200 bg-orange-50/50 p-3.5 space-y-1">
+                  <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-3 space-y-1">
                     <span className="text-[9px] font-black text-orange-700 uppercase block">Mère</span>
-                    <p className="font-black text-stone-900">{currentProfile.mother.name}</p>
+                    <p className="font-black text-stone-900 leading-tight">{currentProfile.mother.name}</p>
                     <p className="text-[10px] text-stone-500 font-medium">{currentProfile.mother.titles}</p>
                   </div>
                 </div>
 
                 {/* COLONNE 2 : GRANDS-PARENTS */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">2ème Génération</span>
 
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.father.gParents[0].role}</span>
-                    <p className="font-bold text-stone-800">{currentProfile.father.gParents[0].name}</p>
-                    {currentProfile.father.gParents[0].details && (
-                      <p className="text-[10px] text-stone-400">{currentProfile.father.gParents[0].details}</p>
-                    )}
-                  </div>
+                  {currentProfile.father.gParents.map((gp, i) => (
+                    <div key={`f-gp-${i}`} className="rounded-2xl border border-stone-200 bg-stone-50/60 p-2.5 space-y-0.5">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase block">{gp.role}</span>
+                      <p className="font-bold text-stone-800 leading-tight">{gp.name}</p>
+                      {gp.details && <p className="text-[10px] text-stone-400">{gp.details}</p>}
+                    </div>
+                  ))}
 
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.father.gParents[1].role}</span>
-                    <p className="font-bold text-stone-800">{currentProfile.father.gParents[1].name}</p>
-                    {currentProfile.father.gParents[1].details && (
-                      <p className="text-[10px] text-stone-400">{currentProfile.father.gParents[1].details}</p>
-                    )}
-                  </div>
-
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.mother.gParents[0].role}</span>
-                    <p className="font-bold text-stone-800">{currentProfile.mother.gParents[0].name}</p>
-                    {currentProfile.mother.gParents[0].details && (
-                      <p className="text-[10px] text-stone-400">{currentProfile.mother.gParents[0].details}</p>
-                    )}
-                  </div>
-
-                  <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-3 space-y-1">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase block">{currentProfile.mother.gParents[1].role}</span>
-                    <p className="font-bold text-stone-800">{currentProfile.mother.gParents[1].name}</p>
-                    {currentProfile.mother.gParents[1].details && (
-                      <p className="text-[10px] text-stone-400">{currentProfile.mother.gParents[1].details}</p>
-                    )}
-                  </div>
+                  {currentProfile.mother.gParents.map((gp, i) => (
+                    <div key={`m-gp-${i}`} className="rounded-2xl border border-stone-200 bg-stone-50/60 p-2.5 space-y-0.5">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase block">{gp.role}</span>
+                      <p className="font-bold text-stone-800 leading-tight">{gp.name}</p>
+                      {gp.details && <p className="text-[10px] text-stone-400">{gp.details}</p>}
+                    </div>
+                  ))}
                 </div>
 
                 {/* COLONNE 3 : ARRIÈRE-GRANDS-PARENTS */}
@@ -656,12 +645,12 @@ export default function ElevagePage() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">3ème Génération</span>
 
                   {currentProfile.father.ggParents.map((name, i) => (
-                    <div key={`f-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
+                    <div key={`f-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[10px] text-stone-600 font-medium leading-tight">
                       {name}
                     </div>
                   ))}
                   {currentProfile.mother.ggParents.map((name, i) => (
-                    <div key={`m-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[11px] text-stone-600 font-medium">
+                    <div key={`m-gg-${i}`} className="rounded-xl border border-stone-200/70 bg-stone-50/40 p-2 text-[10px] text-stone-600 font-medium leading-tight">
                       {name}
                     </div>
                   ))}
@@ -672,7 +661,7 @@ export default function ElevagePage() {
 
           {/* POINTS CLÉS DU PEDIGREE */}
           <div className="rounded-[2rem] border border-stone-200/80 bg-stone-900 p-6 sm:p-8 text-white shadow-md">
-            <h3 className="text-base font-black tracking-tight text-white mb-4">
+            <h3 className="text-sm sm:text-base font-black tracking-tight text-white mb-4 text-center sm:text-left">
               Les piliers de notre élevage :
             </h3>
             <div className="grid gap-4 sm:grid-cols-3 text-xs text-stone-300 font-medium">
@@ -690,6 +679,7 @@ export default function ElevagePage() {
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
