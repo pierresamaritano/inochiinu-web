@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { usePathname } from "next/navigation"; // 1. Ajout de l'outil pour lire l'URL
+import { usePathname } from "next/navigation";
 
 // --- COMPOSANT MODALE D'AUTHENTIFICATION INTÉGRÉ ---
 function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -90,7 +90,7 @@ export default function LiquidNavbar() {
   const [bubbleStyle, setBubbleStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const [user, setUser] = useState<any>(null);
   
-  const pathname = usePathname(); // 2. On récupère la route actuelle
+  const pathname = usePathname();
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -130,11 +130,12 @@ export default function LiquidNavbar() {
     setBubbleStyle((prev) => ({ ...prev, opacity: 0 }));
   };
 
+  // Liens pointant vers les vraies pages dédiées
   const navItems = [
-    { label: "Élevage", href: "/#elevage" },
-    { label: "Pension", href: "/#pension" },
-    { label: "Éducation", href: "/#education" },
-    { label: "Sellerie", href: "/#sellerie" },
+    { label: "Élevage", href: "/elevage" },
+    { label: "Pension", href: "/pension" },
+    { label: "Éducation", href: "/education" },
+    { label: "Sellerie", href: "/sellerie" },
   ];
 
   return (
@@ -175,7 +176,9 @@ export default function LiquidNavbar() {
                 key={item.label}
                 href={item.href}
                 onMouseEnter={handleMouseEnter}
-                className="relative z-10 px-4 py-1.5 text-xs font-bold text-stone-600 hover:text-stone-900 transition-colors duration-200"
+                className={`relative z-10 px-4 py-1.5 text-xs font-bold transition-colors duration-200 ${
+                  pathname === item.href ? "text-orange-600" : "text-stone-600 hover:text-stone-900"
+                }`}
               >
                 {item.label}
               </a>
@@ -186,7 +189,6 @@ export default function LiquidNavbar() {
             {/* BOUTON DYNAMIQUE DESKTOP */}
             {user ? (
               pathname === "/espace-membre" ? (
-                // On est connecté ET on est sur l'espace membre : bouton Déconnexion discret
                 <form action="/auth/signout" method="post" className="hidden sm:flex">
                   <button
                     type="submit"
@@ -196,7 +198,6 @@ export default function LiquidNavbar() {
                   </button>
                 </form>
               ) : (
-                // On est connecté mais sur la page d'accueil : bouton Mon Espace
                 <a
                   href="/espace-membre"
                   className="hidden sm:inline-flex relative items-center justify-center px-5 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-stone-700 to-stone-900 shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:brightness-110 active:scale-95 transition-all duration-200"
@@ -205,7 +206,6 @@ export default function LiquidNavbar() {
                 </a>
               )
             ) : (
-              // Pas connecté : bouton Connexion
               <button
                 onClick={() => setIsAuthOpen(true)}
                 className="hidden sm:inline-flex relative items-center justify-center px-5 py-2 text-xs font-bold text-white rounded-full bg-gradient-to-b from-orange-400 to-orange-500 shadow-[0_4px_12px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-105 active:scale-95 transition-all duration-200"
@@ -231,6 +231,7 @@ export default function LiquidNavbar() {
           </div>
         </nav>
 
+        {/* MENU MOBILE DÉROULANT */}
         <div
           className={`md:hidden absolute top-[76px] mt-2 w-[92%] max-w-4xl flex flex-col gap-2 p-4 origin-top transform-gpu transition-all duration-200 ease-out rounded-[2rem] bg-white/40 backdrop-blur-2xl backdrop-saturate-[2] border border-white ring-1 ring-black/5 shadow-[0_16px_40px_-8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,1)] ${
             isMobileMenuOpen
@@ -243,14 +244,15 @@ export default function LiquidNavbar() {
               key={item.label}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-3 text-sm font-bold text-stone-700 hover:text-stone-900 active:bg-white/40 hover:bg-white/40 rounded-2xl transition-all"
+              className={`px-4 py-3 text-sm font-bold active:bg-white/40 hover:bg-white/40 rounded-2xl transition-all ${
+                pathname === item.href ? "text-orange-600 bg-white/30" : "text-stone-700 hover:text-stone-900"
+              }`}
             >
               {item.label}
             </a>
           ))}
           <div className="h-px w-full bg-black/5 my-1" />
           
-          {/* BOUTON DYNAMIQUE MOBILE */}
           {user ? (
             pathname === "/espace-membre" ? (
               <form action="/auth/signout" method="post" className="w-full">
