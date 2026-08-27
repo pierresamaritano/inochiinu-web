@@ -21,6 +21,43 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 
   if (!isOpen) return null;
 
+  // Traduction et contextualisation explicite des erreurs Supabase
+  const formatAuthError = (err: any, signingUp: boolean): string => {
+    const message = err?.message?.toLowerCase() || "";
+    const code = err?.code?.toLowerCase() || "";
+
+    if (
+      message.includes("user already registered") ||
+      message.includes("already been registered") ||
+      message.includes("identity already exists") ||
+      code === "user_already_exists"
+    ) {
+      return "Cette adresse email est déjà associée à un compte (probablement créé avec Google). Veuillez cliquer sur « Continuer avec Google » ou basculer sur « Se connecter ».";
+    }
+
+    if (message.includes("invalid login credentials") || message.includes("invalid credentials")) {
+      return "Adresse email ou mot de passe incorrect. Si vous vous êtes inscrit avec Google, utilisez le bouton Google ci-dessus.";
+    }
+
+    if (message.includes("email not confirmed")) {
+      return "Votre adresse email n'est pas encore confirmée. Vérifiez vos emails ou connectez-vous avec Google.";
+    }
+
+    if (message.includes("password should be at least")) {
+      return "Le mot de passe doit contenir au moins 6 caractères.";
+    }
+
+    if (message.includes("over_email_send_rate_limit") || message.includes("rate limit")) {
+      return "Trop de demandes consécutives. Veuillez patienter 1 à 2 minutes avant de réessayer.";
+    }
+
+    if (message.includes("invalid email")) {
+      return "Veuillez saisir une adresse email valide.";
+    }
+
+    return err.message || "Une erreur inattendue est survenue. Veuillez réessayer.";
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
@@ -32,7 +69,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
       });
       if (error) throw error;
     } catch (err: any) {
-      setErrorMsg(err.message);
+      setErrorMsg(formatAuthError(err, false));
       setLoading(false);
     }
   };
@@ -45,7 +82,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -53,8 +90,19 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             emailRedirectTo: `${window.location.origin}/auth/callback?next=/espace-membre`,
           },
         });
+
         if (error) throw error;
-        setSuccessMsg("Compte créé ! Vérifiez vos e-mails pour confirmer l'inscription.");
+
+        // Cas où Supabase bloque la création sans lever d'exception (utilisateur Google déjà existant)
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          setErrorMsg(
+            "Cette adresse est déjà liée à une connexion Google. Veuillez utiliser le bouton « Continuer avec Google » ci-dessus."
+          );
+          setLoading(false);
+          return;
+        }
+
+        setSuccessMsg("Votre compte a bien été créé ! Vous pouvez maintenant vous connecter.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -64,7 +112,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         window.location.href = "/espace-membre";
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Une erreur est survenue.");
+      setErrorMsg(formatAuthError(err, isSignUp));
     } finally {
       setLoading(false);
     }
@@ -93,7 +141,9 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             {isSignUp ? "Créer un compte" : "Espace Membre"}
           </h3>
           <p className="mt-1 text-xs text-stone-500 font-medium">
-            {isSignUp ? "Rejoignez Inochi Inu pour gérer vos réservations et suivis." : "Accédez à vos carnets de suivi et vos réservations."}
+            {isSignUp
+              ? "Rejoignez Inochi Inu pour gérer vos réservations et suivis."
+              : "Accédez à vos carnets de suivi et vos réservations."}
           </p>
         </div>
 
@@ -115,8 +165,12 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         </div>
 
         <div className="relative my-5 flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-200" /></div>
-          <span className="relative bg-[#FDFCF8] px-3 text-[10px] font-black uppercase tracking-wider text-stone-400">ou par email</span>
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-stone-200" />
+          </div>
+          <span className="relative bg-[#FDFCF8] px-3 text-[10px] font-black uppercase tracking-wider text-stone-400">
+            ou par email
+          </span>
         </div>
 
         {/* FORMULAIRE EMAIL / MDP */}
@@ -157,13 +211,22 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             />
           </div>
 
-          {errorMsg && <p className="text-[11px] font-bold text-red-600">{errorMsg}</p>}
-          {successMsg && <p className="text-[11px] font-bold text-emerald-600">{successMsg}</p>}
+          {/* BANDEAU D'ERREUR OU DE SUCCÈS EXPLICITE */}
+          {errorMsg && (
+            <div className="p-3 rounded-2xl bg-red-50 border border-red-200/80 text-red-700 text-[11px] font-bold leading-snug">
+              ⚠️ {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-bold leading-snug">
+              ✓ {successMsg}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer"
+            className="w-full py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
           >
             {loading ? "Chargement..." : isSignUp ? "Créer mon compte" : "Se connecter"}
           </button>
@@ -172,8 +235,12 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         <div className="mt-4 text-center">
           <button
             type="button"
-            onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(null); setSuccessMsg(null); }}
-            className="text-xs font-bold text-orange-600 hover:text-orange-700"
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className="text-xs font-bold text-orange-600 hover:text-orange-700 cursor-pointer"
           >
             {isSignUp ? "Déjà un compte ? Se connecter" : "Pas encore de compte ? S'inscrire"}
           </button>
