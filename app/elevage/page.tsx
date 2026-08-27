@@ -392,7 +392,7 @@ export default function ElevagePage() {
         </h1>
 
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base leading-relaxed">
-          Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison, pour une socialisation dès leur plus jeune âge.
+          Membre à part entière de la famille, nos lices vivent et élève leurs chiots à la maison, pour une socialisation dès leur plus jeune âge.
         </p>
       </section>
 
