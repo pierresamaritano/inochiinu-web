@@ -31,7 +31,7 @@ export default function Home() {
 
   const activities = [
     {
-      title: "Élevage d'Akita & Shiba Inu",
+      title: "Élevage d'Akita Inu",
       desc: "Sélection rigoureuse, respect des standards et socialisation bienveillante dès le plus jeune âge.",
       tag: "Passion & Éthique",
       href: "/elevage",
@@ -83,7 +83,7 @@ export default function Home() {
         </h1>
         
         <p className="mx-auto mt-6 max-w-2xl text-lg font-medium text-stone-600 sm:text-xl">
-          Élevage passionné d'Akita et de Shiba Inu, pension canine à dimension
+          Élevage passionné d'Akita Inu, pension canine à dimension
           humaine, accompagnement comportemental et sellerie sur-mesure.
         </p>
 

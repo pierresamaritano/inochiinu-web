@@ -11,7 +11,6 @@ export default function ElevagePage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // NOUVEAU : ÉTATS POUR LE POP-UP D'INFORMATION PRÉALABLE (LÉGAL)
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
@@ -49,7 +48,7 @@ export default function ElevagePage() {
   const slides = [
     {
       title: "Lignées Japonaises & Sélection LOF",
-      subtitle: "Génétique rigoureusement testée (dysplasie, tares oculaires, ADN) pour des chiots sains et équilibrés.",
+      subtitle: "Génétique rigoureusement testée (dysplasie, tares oculaires, ADN) pour des chiots Akita sains et équilibrés.",
       tag: "Excellence & Standard",
       gradient: "from-stone-900/90 via-stone-900/60 to-black/80",
     },
@@ -77,7 +76,6 @@ export default function ElevagePage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
-  // NOUVEAU : VÉRIFICATION DU POP-UP AVANT DE CONTINUER
   const handleInitialClick = () => {
     const hideInfo = localStorage.getItem("hideElevageInfo");
     if (hideInfo === "true") {
@@ -164,14 +162,14 @@ export default function ElevagePage() {
         </div>
         
         <h1 className="max-w-3xl text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
-          Chiots Akita &{" "}
+          Chiots Akita Inu{" "}
           <span className="bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-            Shiba Inu LOF
+            LOF
           </span>
         </h1>
         
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
-          Sélection attentive des reproducteurs, éveil dès la naissance et engagement pour le bien-être de nos chiots.
+          Sélection attentive de nos reproducteurs Akita Inu, éveil dès la naissance et engagement pour le bien-être de nos chiots.
         </p>
       </section>
 
@@ -221,14 +219,14 @@ export default function ElevagePage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
             <h2 className="text-xl font-black tracking-tight text-stone-900">
-              Candidater pour une future portée
+              Candidater pour une future portée d'Akita Inu
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">
-              Remplissez votre questionnaire d'adoption pour réserver votre chiot et suivre sa croissance.
+              Remplissez votre questionnaire d'adoption pour réserver votre chiot Akita et suivre sa croissance.
             </p>
           </div>
           <button
-            onClick={handleInitialClick} // <-- MODIFIÉ ICI POUR DÉCLENCHER LE POP-UP LÉGAL
+            onClick={handleInitialClick}
             className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
             Déposer une candidature
@@ -244,7 +242,7 @@ export default function ElevagePage() {
               Éthique & Bien-Être
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-1">
-              Des chiots équilibrés pour des familles sereines
+              Des chiots Akita équilibrés pour des familles sereines
             </h2>
           </div>
 
@@ -252,7 +250,7 @@ export default function ElevagePage() {
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm">
               <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">Santé</span>
               <h3 className="mt-4 text-lg font-bold text-stone-900">Tests Génétiques</h3>
-              <p className="mt-2 text-xs text-stone-500">Reproducteurs radiographiés hanches/coudes, dépistés tares oculaires et enregistrés LOF.</p>
+              <p className="mt-2 text-xs text-stone-500">Reproducteurs Akita radiographiés hanches/coudes, dépistés tares oculaires et enregistrés LOF.</p>
             </div>
             <div className="rounded-[2rem] border border-stone-200/80 bg-white/60 backdrop-blur-xl p-8 shadow-sm">
               <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">Éveil</span>
@@ -272,7 +270,7 @@ export default function ElevagePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* NOUVEAU POP-UP : MODALE D'INFORMATION LÉGALE (ADOPTION) */}
+      {/* POP-UP D'INFORMATION LÉGALE (ADOPTION) */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
@@ -285,10 +283,10 @@ export default function ElevagePage() {
             <h3 className="text-xl font-black text-stone-900">Conditions d'adoption</h3>
             
             <div className="mt-4 space-y-3 text-sm text-stone-600 leading-relaxed">
-              <p>Adopter un chiot est un engagement. Conformément à la législation française :</p>
+              <p>Adopter un chiot Akita est un engagement. Conformément à la législation française :</p>
               <ul className="list-disc pl-5 space-y-1 font-medium text-stone-700">
                 <li><strong className="text-stone-900">Certificat d'Engagement</strong> : Doit être obligatoirement lu et signé au moins 7 jours avant le départ du chiot.</li>
-                <li><strong className="text-stone-900">Âge Légal</strong> : Nos chiots ne quittent l'élevage qu'à l'âge de 8 semaines révolues.</li>
+                <li><strong className="text-stone-900">Âge Légal</strong> : Nos chiots Akita ne quittent l'élevage qu'à l'âge de 8 semaines révolues.</li>
                 <li><strong className="text-stone-900">Documents</strong> : Attestation de vente, carte I-CAD, certificat vétérinaire de bonne santé et inscription au LOF fournis.</li>
               </ul>
             </div>
@@ -342,7 +340,7 @@ export default function ElevagePage() {
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Candidature enregistrée !</h3>
-                <p className="text-xs text-stone-500 mt-2">Nous étudions avec soin votre cadre de vie pour vous proposer le chiot idéal.</p>
+                <p className="text-xs text-stone-500 mt-2">Nous étudions avec soin votre cadre de vie pour vous proposer le chiot Akita idéal.</p>
                 <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Voir mon Espace Membre</a>
               </div>
             ) : (
@@ -360,7 +358,6 @@ export default function ElevagePage() {
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Race souhaitée</label>
                       <select value={formData.preferredBreed} onChange={(e) => setFormData({ ...formData, preferredBreed: e.target.value })} className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium cursor-pointer focus:outline-none focus:border-orange-500">
                         <option value="Akita Inu LOF">Akita Inu LOF</option>
-                        <option value="Shiba Inu LOF">Shiba Inu LOF</option>
                       </select>
                     </div>
 
@@ -388,7 +385,7 @@ export default function ElevagePage() {
 
                     <div>
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Votre expérience des chiens primitifs</label>
-                      <textarea rows={2} placeholder="Avez-vous déjà eu un chien primitif ? Vos attentes..." value={formData.motivation} onChange={(e) => setFormData({ ...formData, motivation: e.target.value })} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
+                      <textarea rows={2} placeholder="Avez-vous déjà eu un Akita ou un chien primitif ? Vos attentes..." value={formData.motivation} onChange={(e) => setFormData({ ...formData, motivation: e.target.value })} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center">
