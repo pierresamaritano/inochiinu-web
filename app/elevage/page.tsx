@@ -35,15 +35,12 @@ interface DogProfile {
   badgeName: string;
   role: "Étalon" | "Lice";
   affixe: string;
-  
-  // Nouveaux champs d'informations
   fullName: string;
   color: string;
   height: string;
   weight: string;
   birthDate: string;
-  images: CarouselSlide[]; // Photos pour le carrousel
-
+  images: CarouselSlide[]; 
   titles: string;
   description: string;
   father: DogParent;
@@ -51,7 +48,7 @@ interface DogProfile {
 }
 
 // =========================================================================
-// COMPOSANT CARROUSEL APPLE INTEGRE (S'adapte au chien sélectionné)
+// COMPOSANT CARROUSEL APPLE INTEGRE
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -61,9 +58,7 @@ function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [slides]);
+  useEffect(() => { setCurrentIndex(0); }, [slides]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -139,6 +134,12 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
+  // --- NOUVEAUX ÉTATS POUR LES PORTÉES & POP-UP ---
+  const [activeLitters, setActiveLitters] = useState<any[]>([]);
+  const [showLitterModal, setShowLitterModal] = useState(false);
+  const [isImmersionMode, setIsImmersionMode] = useState(false);
+  // ------------------------------------------------
+
   // Sélecteur de reproducteur (Menu Déroulant)
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
   const [isDogMenuOpen, setIsDogMenuOpen] = useState(false);
@@ -156,16 +157,47 @@ export default function ElevagePage() {
   );
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
+    const fetchUserAndLitters = async () => {
+      // Utilisateur
+      const { data: userData } = await supabase.auth.getSession();
+      setUser(userData.session?.user || null);
+
+      // Portées actives
+      const { data: littersData } = await supabase
+        .from("litters")
+        .select("*, puppies(*)")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      
+      if (littersData) {
+        setActiveLitters(littersData);
+      }
     };
-    fetchUser();
+    
+    fetchUserAndLitters();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
     return () => authListener.subscription.unsubscribe();
   }, [supabase]);
+
+  // Générateur de Slides pour la portée (Couple + Chiots)
+  const getLitterSlides = (litter: any): CarouselSlide[] => {
+    if (!litter) return [];
+    const slides: CarouselSlide[] = [];
+    if (litter.image_url) {
+      slides.push({ src: litter.image_url, alt: "Couple", tag: litter.image_tag || "Le Couple", caption: litter.image_caption || "Les parents" });
+    }
+    if (litter.puppies && litter.puppies.length > 0) {
+      litter.puppies.forEach((pup: any) => {
+        if (pup.image_url) {
+          slides.push({ src: pup.image_url, alt: pup.name, tag: pup.image_tag || "Chiot", caption: pup.image_caption || pup.name });
+        }
+      });
+    }
+    return slides;
+  };
 
   const slides = [
     { title: "Lignées Japonaises & Sélection LOF", subtitle: "Génétique rigoureusement testée pour des chiots sains.", tag: "Excellence", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
@@ -173,7 +205,7 @@ export default function ElevagePage() {
     { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // Base de données des reproducteurs (Modifié avec 3 photos pour la perspective du carrousel)
+  // Base de données des reproducteurs
   const dogs: DogProfile[] = [
     {
       id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No",
@@ -219,20 +251,32 @@ export default function ElevagePage() {
     }
   ];
 
-  // Fonctions de logique du composant
+  // Logique du carrousel de valeurs
   useEffect(() => {
     const interval = setInterval(() => { setCurrentSlide((prev) => (prev + 1) % slides.length); }, 6000);
     return () => clearInterval(interval);
   }, [slides.length]);
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+
+  // Logique Clic "Découvrir"
+  const handleDiscoverClick = () => {
+    if (activeLitters.length > 0) {
+      setShowLitterModal(true);
+    } else {
+      handleInitialClick(); // S'il n'y a pas de portée, on lance la procédure classique
+    }
+  };
+
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
   const handleActionClick = () => { if (user) { setIsFormOpen(true); } else { setIsAuthOpen(true); } };
+  
   const handleGoogleLogin = async () => {
     try { setAuthLoading(true); await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=/elevage` } }); } 
     catch (err) { console.error(err); setAuthLoading(false); }
   };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); if (!user) return; setSubmitting(true);
     try {
@@ -242,6 +286,7 @@ export default function ElevagePage() {
   };
 
   const currentProfile = dogs[selectedDogIndex];
+
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -289,15 +334,15 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE (Modifié) */}
+      {/* BANDEAU CANDIDATURE MODIFIÉ POUR OUVRIR LE POP-UP PORTÉE */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
             <h2 className="text-xl font-black tracking-tight text-stone-900">Accueillir un chiot chez vous</h2>
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Découvrez nos naissances confirmées, les futurs départs et réservez votre compagnon.</p>
           </div>
-          <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Découvrir
+          <button onClick={handleDiscoverClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
+            Découvrir les futures naissances
           </button>
         </div>
       </section>
@@ -331,14 +376,9 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* ==============================================================================
-          GRANDE SECTION UNIFIÉE : NOS REPRODUCTEURS LOF 
-          (Menu + Infos + Carrousel + Pedigree)
-          ============================================================================== */}
+      {/* SECTION NOS REPRODUCTEURS LOF */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
-
-          {/* 1. EN-TÊTE ET SÉLECTEUR DÉROULANT */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
             <div className="text-center lg:text-left mx-auto lg:mx-0 max-w-xl">
               <span className="inline-block text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50/80 px-3 py-1 rounded-full sm:bg-transparent sm:p-0">
@@ -352,7 +392,6 @@ export default function ElevagePage() {
               </p>
             </div>
 
-            {/* SÉLECTEUR DÉROULANT (DROPDOWN) */}
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-[70]">
               <button onClick={() => setIsDogMenuOpen(!isDogMenuOpen)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -389,7 +428,6 @@ export default function ElevagePage() {
             </div>
           </div>
 
-{/* 2. INFORMATIONS DU REPRODUCTEUR SÉLECTIONNÉ */}
           <div className="relative z-10 bg-white/80 rounded-[2rem] border border-stone-200/80 p-6 sm:p-8 shadow-sm">
             <h3 className="text-lg font-black text-stone-900 border-b border-stone-100 pb-4 mb-4">Profil & Morphologie</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -418,17 +456,13 @@ export default function ElevagePage() {
               {currentProfile.description}
             </p>
           </div>
-        </div> {/* <-- ON FERME LE CONTENEUR ICI POUR LIBÉRER LE CARROUSEL */}
+        </div>
 
-        {/* 3. CARROUSEL APPLE DÉDIÉ AU CHIEN (Pleine largeur) */}
         <div className="w-full my-8">
           <DogCarousel slides={currentProfile.images} />
         </div>
         
-        {/* <-- ON ROUVRE LE CONTENEUR POUR LE PEDIGREE */}
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8"> 
-          
-          {/* 4. PEDIGREE : PALMARÈS ET ARBRE GÉNÉALOGIQUE */}
           <div className="pt-4 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
             
@@ -527,45 +561,95 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION CONTACT & COORDONNÉES */}
-      <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/50">Nous Contacter</span>
-            <h2 className="text-3xl font-black text-stone-900 mt-4">Restons en contact</h2>
-            <p className="text-stone-500 text-sm mt-2">Pour toute question sur nos portées, nos reproducteurs ou le suivi d'un chiot.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
-              <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
-              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">06 00 00 00 00</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Email</h3>
-              <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
-              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">contact@inochi-inu.fr</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
-              <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
-              <div className="mt-4 flex gap-3">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Instagram ➔</a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Facebook ➔</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER & MODALES */}
+      {/* FOOTER */}
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
+      {/* =========================================================================
+          POP-UP : PORTÉE ET CHIOTS (OUVERT DEPUIS "DÉCOUVRIR")
+          ========================================================================= */}
+      {showLitterModal && activeLitters.length > 0 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
+          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl">
+            <button onClick={() => setShowLitterModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 z-50 bg-white p-2 rounded-full shadow-sm cursor-pointer transition hover:scale-110">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            {/* En-tête de la Modale */}
+            <div className="p-8 sm:p-12 pb-6 border-b border-stone-100">
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full">Portée en cours</span>
+              <h2 className="text-3xl font-black text-stone-900 mt-4">{activeLitters[0].title}</h2>
+              <p className="text-sm font-bold text-stone-500 mt-1">{activeLitters[0].father_name} x {activeLitters[0].mother_name}</p>
+            </div>
+
+            {/* Corps de la Modale */}
+            <div className="p-8 sm:p-12 pt-6 space-y-10">
+              
+              {/* L'Histoire */}
+              <div className="prose prose-sm text-stone-600">
+                <p className="leading-relaxed whitespace-pre-line">{activeLitters[0].story}</p>
+              </div>
+
+              {/* Section Carrousel (Standard vs Immersion) */}
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-stone-900">Photos & Parents</h3>
+                  <button onClick={() => setIsImmersionMode(!isImmersionMode)} className="text-[10px] font-black uppercase bg-stone-900 text-white px-5 py-2.5 rounded-full hover:scale-105 transition shadow-sm cursor-pointer flex items-center gap-2">
+                    {isImmersionMode ? "Mode Standard" : "Mode Immersion 🌟"}
+                  </button>
+                </div>
+
+                {isImmersionMode ? (
+                  <div className="bg-stone-900/5 rounded-[2rem] -mx-4 sm:mx-0 overflow-hidden relative border border-stone-200/50">
+                    <DogCarousel slides={getLitterSlides(activeLitters[0])} />
+                  </div>
+                ) : (
+                  <div className="flex overflow-x-auto gap-4 pb-4 snap-x scrollbar-hide">
+                    {getLitterSlides(activeLitters[0]).map((slide, idx) => (
+                      <div key={idx} className="shrink-0 w-64 sm:w-80 snap-center">
+                        <div className="aspect-square sm:aspect-[4/3] rounded-2xl overflow-hidden shadow-sm border border-stone-200/80 relative group">
+                          <img src={slide.src} alt={slide.alt} className="w-full h-full object-cover transition duration-500 group-hover:scale-105" />
+                          <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white/50">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block">{slide.tag}</span>
+                            <span className="text-xs font-bold text-stone-800 truncate block mt-0.5">{slide.caption}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Sélecteur de chiots */}
+              <div className="bg-orange-50/50 p-6 sm:p-8 rounded-[2rem] border border-orange-100">
+                <label className="block text-[11px] font-black uppercase text-orange-800 mb-3">Découvrez les chiots de la portée</label>
+                <div className="relative">
+                  <select className="w-full px-5 py-4 rounded-xl border border-stone-200 text-sm font-bold text-stone-800 focus:outline-none focus:border-orange-500 cursor-pointer bg-white shadow-sm appearance-none">
+                    <option value="">Sélectionnez un chiot pour voir son statut...</option>
+                    {activeLitters[0].puppies?.map((pup: any) => (
+                      <option key={pup.id} value={pup.id}>
+                        {pup.gender === 'male' ? '🐕 Mâle' : '🌸 Femelle'} — {pup.name} ({pup.status})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">▼</div>
+                </div>
+              </div>
+
+              {/* Bouton d'action pour adopter */}
+              <div className="flex justify-center pt-4">
+                <button onClick={() => { setShowLitterModal(false); handleInitialClick(); }} className="px-8 py-4 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full shadow-[0_4px_14px_rgba(249,115,22,0.35)] hover:scale-105 transition-all cursor-pointer">
+                  Déposer une candidature
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALES STANDARD (Info, Auth, Form) */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
