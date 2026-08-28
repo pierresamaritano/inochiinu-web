@@ -589,7 +589,9 @@ export default function ElevagePage() {
               {activeLitters.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {activeLitters.map((litter, idx) => (
-                    <button key={litter.id} onClick={() => { setSelectedLitterIndex(idx); setSelectedPuppy(null); setModalSlideIndex(0); }} className={`px-5 py-2.5 rounded-full text-xs font-black whitespace-nowrap transition-all ${selectedLitterIndex === idx ? "bg-orange-500 text-white shadow-md scale-105" : "bg-stone-100 text-stone-500 hover:bg-stone-200"}`}>
+                    <button onClick={() => setSelectedPuppy(null)} aria-label="Fermer" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                       {litter.title}
                     </button>
                   ))}

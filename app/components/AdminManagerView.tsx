@@ -4,31 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import AdminLitterForm from "./AdminLitterForm";
 
-interface ActionTarget {
-  table: string;
-  id: string;
-  newStatus: string;
-  title: string;
-  clientName: string;
-  currentNote?: string;
-}
-
+interface ActionTarget { table: string; id: string; newStatus: string; title: string; clientName: string; currentNote?: string; }
 type PeriodOption = "1m" | "6m" | "1y";
 
-interface Dog {
-  id: string;
-  user_id: string;
-  name: string;
-  breed: string;
-  is_vaccinated: boolean;
-}
-
-interface ClientProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  phone?: string;
-}
+interface Dog { id: string; user_id: string; name: string; breed: string; is_vaccinated: boolean; }
+interface ClientProfile { id: string; full_name: string; email: string; phone?: string; }
 
 export default function AdminManagerView() {
   const supabase = createBrowserClient(
@@ -42,8 +22,8 @@ export default function AdminManagerView() {
   const [sellerieList, setSellerieList] = useState<any[]>([]);
   const [littersList, setLittersList] = useState<any[]>([]); 
 
-  // --- NOUVELLE LOGIQUE ÉLEVAGE ---
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  const [elevageTab, setElevageTab] = useState<"candidatures" | "portees">("candidatures");
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
 
@@ -62,7 +42,8 @@ export default function AdminManagerView() {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
-      supabase.from("adoption_requests").select("*").order("created_at", { ascending: false }),
+      // On demande à Supabase de récupérer aussi le nom du chiot lié (puppies(name))
+      supabase.from("adoption_requests").select("*, puppies(name)").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
     ]);
@@ -86,23 +67,17 @@ export default function AdminManagerView() {
   }, [clientSearchQuery, selectedFilterClient, supabase]);
 
   const handleFilterClient = async (client: ClientProfile) => {
-    setSelectedFilterClient(client);
-    setClientSearchQuery(`${client.full_name || client.email}`);
-    setSearchResults([]);
+    setSelectedFilterClient(client); setClientSearchQuery(`${client.full_name || client.email}`); setSearchResults([]);
     const { data } = await supabase.from("dogs").select("*").eq("user_id", client.id);
-    setClientDogs(data || []);
-    setSelectedFilterDogId("all");
+    setClientDogs(data || []); setSelectedFilterDogId("all");
   };
 
-  const resetClientFilter = () => {
-    setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
-  };
+  const resetClientFilter = () => { setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]); };
 
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
-      const itemDate = new Date(item.created_at || Date.now()).getTime();
-      const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+      const diffDays = (now - new Date(item.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24);
       if (period === "1m" && diffDays > 31) return false;
       if (period === "6m" && diffDays > 183) return false;
       if (period === "1y" && diffDays > 365) return false;
@@ -118,41 +93,43 @@ export default function AdminManagerView() {
   const filteredSellerie = useMemo(() => applyFilters(sellerieList), [sellerieList, period, selectedFilterClient, selectedFilterDogId]);
 
   const openAction = (table: string, id: string, newStatus: string, title: string, clientName: string, currentNote?: string) => {
-    setActionModal({ table, id, newStatus, title, clientName, currentNote });
-    setNoteText(currentNote || "");
+    setActionModal({ table, id, newStatus, title, clientName, currentNote }); setNoteText(currentNote || "");
   };
 
   const handleConfirmAction = async () => {
-    if (!actionModal) return;
-    setUpdating(true);
+    if (!actionModal) return; setUpdating(true);
     try {
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
-      await fetchAll();
-      setActionModal(null);
-    } catch (err: any) {
-      alert(`Erreur : ${err.message}`);
-    } finally {
-      setUpdating(false);
-    }
+      await fetchAll(); setActionModal(null);
+    } catch (err: any) { alert(`Erreur : ${err.message}`); } finally { setUpdating(false); }
   };
 
   const toggleLitterStatus = async (id: string, currentStatus: boolean) => {
-    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id);
-    fetchAll();
+    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id); fetchAll();
   };
 
   const deleteLitter = async (id: string) => {
     if(confirm("Êtes-vous sûr de vouloir supprimer cette portée et tous ses chiots ?")) {
-       await supabase.from("litters").delete().eq("id", id);
-       fetchAll();
+       await supabase.from("litters").delete().eq("id", id); fetchAll();
     }
   };
 
-  // Assignation manuelle (temporaire, avant qu'on ajoute l'option côté client)
   const assignToLitter = async (candidatureId: string, litterId: string) => {
-    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId);
-    fetchAll();
+    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId); fetchAll();
+  };
+
+  // NOUVEAU : Assigner manuellement un chiot à un client
+  const assignToPuppy = async (candidatureId: string, puppyId: string) => {
+    await supabase.from("adoption_requests").update({ puppy_id: puppyId || null }).eq("id", candidatureId); fetchAll();
+  };
+
+  // Helper pour afficher le texte de préférence
+  const renderPreferenceText = (item: any) => {
+    if (item.puppy_preference === 'specific' && item.puppies?.name) return `Ce chiot : ${item.puppies.name}`;
+    if (item.puppy_preference === 'male') return "Un mâle";
+    if (item.puppy_preference === 'female') return "Une femelle";
+    return "Indifférent";
   };
 
   return (
@@ -211,7 +188,6 @@ export default function AdminManagerView() {
         <div className="space-y-4">
           {filteredEdu.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredEdu.map((item) => (
              <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              {/* Le contenu existant reste inchangé... je simplifie visuellement pour éviter la coupure de code */}
               <div className="max-w-xl">
                 <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-orange-600">{item.client_name}</span></div>
                 <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
@@ -249,7 +225,6 @@ export default function AdminManagerView() {
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
-          {/* Header de la section Élevage */}
           {!showLitterForm && (
             <div className="flex justify-between items-center border-b border-stone-200 pb-4">
               <div>
@@ -262,135 +237,176 @@ export default function AdminManagerView() {
             </div>
           )}
 
-          {/* Affichage conditionnel : Soit le formulaire, soit la liste des portées */}
+          {/* SOUS-ONGLETS ÉLEVAGE */}
+          {!showLitterForm && (
+            <div className="flex gap-4 border-b border-stone-200">
+              <button onClick={() => setElevageTab("candidatures")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "candidatures" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
+                Toutes les Candidatures ({filteredAdoption.length})
+              </button>
+              <button onClick={() => setElevageTab("portees")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "portees" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
+                Gestion des Portées
+              </button>
+            </div>
+          )}
+
           {showLitterForm ? (
             <div className="border border-stone-200 rounded-[2.5rem] p-4 bg-white/50">
-              <AdminLitterForm 
-                initialData={editingLitter} 
-                onSuccess={() => { setShowLitterForm(false); fetchAll(); }} 
-                onCancel={() => setShowLitterForm(false)} 
-              />
+              <AdminLitterForm initialData={editingLitter} onSuccess={() => { setShowLitterForm(false); fetchAll(); }} onCancel={() => setShowLitterForm(false)} />
             </div>
           ) : (
-            <div className="space-y-8">
-              {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
-              
-              {/* LISTE DES PORTÉES SOUS FORME DE GRANDES CARTES */}
-              {littersList.map(litter => {
-                const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
-                
-                return (
-                  <div key={litter.id} className="bg-white border border-stone-200 rounded-[2rem] shadow-sm overflow-hidden">
-                    {/* EN-TÊTE DE LA PORTÉE */}
-                    <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start gap-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1.5">
-                          <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
-                            {litter.is_active ? 'Visible sur site' : 'Archivée'}
-                          </span>
-                          <h3 className="text-xl font-black text-stone-900">{litter.title}</h3>
+            <>
+              {/* VUE CANDIDATURES GLOBALES */}
+              {elevageTab === "candidatures" && (
+                <div className="space-y-4">
+                  {filteredAdoption.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune candidature trouvée.</div> : filteredAdoption.map((item) => (
+                    <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="max-w-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span>
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>{item.status}</span>
                         </div>
-                        <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
+                        <p className="text-sm font-bold text-stone-900 mt-1">Préférence : <span className="text-orange-600">{renderPreferenceText(item)}</span></p>
+                        <p className="text-xs text-stone-500 mt-1">Cadre : {item.living_environment}</p>
+                        {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition">
-                          Modifier
-                        </button>
-                        <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition">
-                          {litter.is_active ? 'Archiver' : 'Publier'}
-                        </button>
-                        <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition">
-                          Supprimer
-                        </button>
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Candidature annulée</span> : <>
+                          <button onClick={() => openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Accepter</button>
+                          <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Liste d'attente</button>
+                          <button onClick={() => openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">Refuser</button>
+                        </>}
                       </div>
                     </div>
-
-                    {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
-                    <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                      
-                      {/* COLONNE DE GAUCHE : LES CHIOTS */}
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
-                        <div className="space-y-3">
-                          {litter.puppies?.map((pup: any) => (
-                            <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-xl bg-stone-50 border border-stone-100">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xl bg-white p-1.5 rounded-lg shadow-sm border border-stone-100">{pup.gender === 'male' ? '🐕' : '🌸'}</span>
-                                <div>
-                                  <p className="text-sm font-bold text-stone-800">{pup.name}</p>
-                                  <p className="text-[10px] text-stone-400 font-medium uppercase mt-0.5">{pup.image_tag || 'Sans tag'}</p>
-                                </div>
-                              </div>
-                              <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-700' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
-                                {pup.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* COLONNE DE DROITE : LES CANDIDATURES */}
-                      <div>
-                        <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
-                        <div className="space-y-4">
-                          {litterCandidatures.length === 0 ? (
-                            <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">
-                              Aucune candidature directement assignée à cette portée.
-                            </p>
-                          ) : litterCandidatures.map(item => (
-                            <div key={item.id} className="p-4 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name}</span>
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
-                                  {item.status}
-                                </span>
-                              </div>
-                              <div className="text-xs text-stone-600">
-                                <p><strong className="text-stone-900">Préférence :</strong> {item.preferred_breed}</p>
-                                <p className="mt-1"><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
-                              </div>
-                              
-                              <div className="pt-3 border-t border-stone-100 flex flex-wrap gap-2">
-                                <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition">Accepter</button>
-                                <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition">Attente</button>
-                                <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition">Refuser</button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* CANDIDATURES SPONTANÉES / NON ASSIGNÉES */}
-              {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
-                <div className="mt-12 p-6 rounded-[2rem] bg-orange-50/50 border border-orange-100">
-                  <h3 className="text-lg font-black text-stone-900 mb-4">Candidatures non assignées</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredAdoption.filter(a => !a.litter_id).map(item => (
-                      <div key={item.id} className="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-2">
-                           <span className="text-xs font-black text-stone-900">{item.client_name}</span>
-                           <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
-                        </div>
-                        <p className="text-[11px] text-stone-500 mb-4">{item.living_environment}</p>
-                        
-                        {/* Assigner à une portée (Option basique) */}
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-orange-600 uppercase">Lier à une portée :</label>
-                          <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 focus:border-orange-500 cursor-pointer">
-                            <option value="">Sélectionner une portée...</option>
-                            {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               )}
-            </div>
+
+              {/* VUE GESTION DES PORTÉES */}
+              {elevageTab === "portees" && (
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
+                  
+                  {littersList.map(litter => {
+                    const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
+                    
+                    return (
+                      <div key={litter.id} className="bg-white border border-stone-200 rounded-[2rem] shadow-sm overflow-hidden">
+                        {/* EN-TÊTE DE LA PORTÉE */}
+                        <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start gap-4">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1.5">
+                              <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
+                                {litter.is_active ? 'Visible sur site' : 'Archivée'}
+                              </span>
+                              <h3 className="text-xl font-black text-stone-900">{litter.title}</h3>
+                            </div>
+                            <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition">Modifier</button>
+                            <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition">{litter.is_active ? 'Archiver' : 'Publier'}</button>
+                            <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition">Supprimer</button>
+                          </div>
+                        </div>
+
+                        {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
+                        <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                          
+                          {/* COLONNE CHIOTS */}
+                          <div>
+                            <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
+                            <div className="space-y-3">
+                              {litter.puppies?.map((pup: any) => (
+                                <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-xl bg-stone-50 border border-stone-100">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xl bg-white p-1.5 rounded-lg shadow-sm border border-stone-100">{pup.gender === 'male' ? '🐕' : '🌸'}</span>
+                                    <div>
+                                      <p className="text-sm font-bold text-stone-800">{pup.name}</p>
+                                      <p className="text-[10px] text-stone-400 font-medium uppercase mt-0.5">{pup.image_tag || 'Sans tag'}</p>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-700' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                    {pup.status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* COLONNE CANDIDATURES LIÉES */}
+                          <div>
+                            <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
+                            <div className="space-y-4">
+                              {litterCandidatures.length === 0 ? (
+                                <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature directement assignée à cette portée.</p>
+                              ) : litterCandidatures.map(item => (
+                                <div key={item.id} className="p-4 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name}</span>
+                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+                                      {item.status}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="text-xs text-stone-600">
+                                    <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
+                                    <p className="mt-1"><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+                                  </div>
+                                  
+                                  {/* Assigner un chiot précis */}
+                                  <div className="pt-2 border-t border-stone-100">
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Rattacher à un chiot :</label>
+                                    <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-[11px] rounded-lg border border-stone-200 bg-stone-50 focus:border-orange-500 cursor-pointer">
+                                      <option value="">Aucun chiot attribué</option>
+                                      {litter.puppies?.map((pup: any) => (
+                                        <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  
+                                  <div className="pt-2 flex flex-wrap gap-2">
+                                    <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition">Accepter</button>
+                                    <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition">Attente</button>
+                                    <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition">Refuser</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* CANDIDATURES NON ASSIGNÉES */}
+                  {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
+                    <div className="mt-12 p-6 rounded-[2rem] bg-orange-50/50 border border-orange-100">
+                      <h3 className="text-lg font-black text-stone-900 mb-4">Candidatures non assignées</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredAdoption.filter(a => !a.litter_id).map(item => (
+                          <div key={item.id} className="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                            <div className="flex justify-between items-center mb-2">
+                               <span className="text-xs font-black text-stone-900">{item.client_name}</span>
+                               <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
+                            </div>
+                            <p className="text-[11px] font-bold text-orange-600 mb-1">Souhait : {renderPreferenceText(item)}</p>
+                            <p className="text-[11px] text-stone-500 mb-4">{item.living_environment}</p>
+                            
+                            <div className="flex flex-col gap-2">
+                              <label className="text-[10px] font-bold text-stone-400 uppercase">Lier à une portée :</label>
+                              <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 focus:border-orange-500 cursor-pointer">
+                                <option value="">Sélectionner une portée...</option>
+                                {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -398,7 +414,15 @@ export default function AdminManagerView() {
       {/* 6. CONTENU : SELLERIE */}
       {tab === "sellerie" && (
         <div className="space-y-4">
-           {/* ... Identique, je réduis pour l'exemple ... */}
+          {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune commande trouvée.</div> : filteredSellerie.map((item) => (
+             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name}</span></div>
+                <h4 className="text-base font-black mt-1">{item.item_type}</h4>
+                <p className="text-xs text-stone-500">{item.color_finish} • {item.dog_size}</p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
