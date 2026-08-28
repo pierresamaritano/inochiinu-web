@@ -290,11 +290,11 @@ export default function ElevagePage() {
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-stone-900">Candidater pour une future portée d'Akita Inu</h2>
-            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Remplissez votre questionnaire d'adoption pour réserver votre chiot Akita et suivre sa croissance.</p>
+            <h2 className="text-xl font-black tracking-tight text-stone-900">Accueillir un chiot chez vous</h2>
+            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Découvrez nos naissances confirmées, les futurs départs et réservez votre compagnon.</p>
           </div>
           <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Déposer une candidature
+            Découvrir
           </button>
         </div>
       </section>
