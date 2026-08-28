@@ -297,7 +297,7 @@ export default function ElevagePage() {
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Découvrez nos naissances confirmées, les futurs départs et réservez votre compagnon.</p>
           </div>
           <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Découvrir les futures naissances
+            Découvrir
           </button>
         </div>
       </section>
