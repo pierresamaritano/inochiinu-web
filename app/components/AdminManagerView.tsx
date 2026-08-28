@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import AdminLitterForm from "./AdminLitterForm"; // <-- IMPORT DU NOUVEAU FORMULAIRE
+import AdminLitterForm from "./AdminLitterForm";
 
 interface ActionTarget {
   table: string;
@@ -47,8 +47,11 @@ export default function AdminManagerView() {
   const [pensionList, setPensionList] = useState<any[]>([]);
   const [adoptionList, setAdoptionList] = useState<any[]>([]);
   const [sellerieList, setSellerieList] = useState<any[]>([]);
-  // AJOUT DE L'ONGLET "portees"
-  const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie" | "portees">("education");
+  const [littersList, setLittersList] = useState<any[]>([]); // Liste des portées créées
+
+  // --- ONGLETS PRINCIPAUX ET SOUS-ONGLETS ---
+  const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  const [elevageTab, setElevageTab] = useState<"candidatures" | "portees">("candidatures");
 
   // --- FILTRES ---
   const [period, setPeriod] = useState<PeriodOption>("1m");
@@ -64,16 +67,18 @@ export default function AdminManagerView() {
   const [updating, setUpdating] = useState(false);
 
   const fetchAll = async () => {
-    const [edu, pen, adp, sel] = await Promise.all([
+    const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("adoption_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
+      supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), // On récupère aussi les portées
     ]);
     setEduList(edu.data || []);
     setPensionList(pen.data || []);
     setAdoptionList(adp.data || []);
     setSellerieList(sel.data || []);
+    setLittersList(lit.data || []);
   };
 
   useEffect(() => {
@@ -128,25 +133,13 @@ export default function AdminManagerView() {
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
-      // 1. Filtre Période
       const itemDate = new Date(item.created_at || Date.now()).getTime();
       const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
       if (period === "1m" && diffDays > 31) return false;
       if (period === "6m" && diffDays > 183) return false;
       if (period === "1y" && diffDays > 365) return false;
-
-      // 2. Filtre Client
-      if (selectedFilterClient && item.user_id !== selectedFilterClient.id) {
-        return false;
-      }
-
-      // 3. Filtre Chien strict
-      if (selectedFilterDogId !== "all") {
-        if (item.dog_id !== selectedFilterDogId) {
-          return false;
-        }
-      }
-
+      if (selectedFilterClient && item.user_id !== selectedFilterClient.id) return false;
+      if (selectedFilterDogId !== "all" && item.dog_id !== selectedFilterDogId) return false;
       return true;
     });
   };
@@ -164,16 +157,8 @@ export default function AdminManagerView() {
   const handleConfirmAction = async () => {
     if (!actionModal) return;
     setUpdating(true);
-
     try {
-      const { error } = await supabase
-        .from(actionModal.table)
-        .update({
-          status: actionModal.newStatus,
-          admin_notes: noteText.trim() || null,
-        })
-        .eq("id", actionModal.id);
-
+      const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
       await fetchAll();
       setActionModal(null);
@@ -184,56 +169,35 @@ export default function AdminManagerView() {
     }
   };
 
+  // --- ACTIONS ADMINISTRATION PORTÉES ---
+  const toggleLitterStatus = async (id: string, currentStatus: boolean) => {
+    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id);
+    fetchAll();
+  };
+
+  const deleteLitter = async (id: string) => {
+    if(confirm("Êtes-vous sûr de vouloir supprimer cette portée ainsi que tous les chiots associés ? Cette action est irréversible.")) {
+       await supabase.from("litters").delete().eq("id", id);
+       fetchAll();
+    }
+  };
+
   return (
     <div className="mt-8 space-y-6">
       
-      {/* =========================================================================
-          1. BARRE DE FILTRAGE : RECHERCHE CLIENT & AFFINAGE CHIEN
-          ========================================================================= */}
+      {/* 1. BARRE DE FILTRAGE : RECHERCHE CLIENT & AFFINAGE CHIEN */}
       <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          
-          {/* Recherche Client */}
           <div className="relative w-full md:w-1/2">
-            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">
-              Rechercher par Client (Auto-complétion) :
-            </label>
+            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">Rechercher par Client (Auto-complétion) :</label>
             <div className="relative">
-              <input
-                type="text"
-                placeholder="Tapez un nom, prénom ou e-mail..."
-                value={clientSearchQuery}
-                onChange={(e) => {
-                  setClientSearchQuery(e.target.value);
-                  if (selectedFilterClient) {
-                    setSelectedFilterClient(null);
-                    setClientDogs([]);
-                    setSelectedFilterDogId("all");
-                  }
-                }}
-                className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-800 focus:outline-none focus:border-orange-500 pr-8"
-              />
-              {selectedFilterClient && (
-                <button
-                  type="button"
-                  onClick={resetClientFilter}
-                  className="absolute right-3 top-2.5 text-xs font-bold text-stone-400 hover:text-stone-800 cursor-pointer"
-                >
-                  ✕
-                </button>
-              )}
+              <input type="text" placeholder="Tapez un nom, prénom ou e-mail..." value={clientSearchQuery} onChange={(e) => { setClientSearchQuery(e.target.value); if (selectedFilterClient) { setSelectedFilterClient(null); setClientDogs([]); setSelectedFilterDogId("all"); } }} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-800 focus:outline-none focus:border-orange-500 pr-8" />
+              {selectedFilterClient && <button type="button" onClick={resetClientFilter} className="absolute right-3 top-2.5 text-xs font-bold text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>}
             </div>
-
-            {/* Menu déroulant de résultats */}
             {searchResults.length > 0 && !selectedFilterClient && (
               <div className="absolute top-full inset-x-0 mt-1.5 z-50 rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden divide-y divide-stone-100">
                 {searchResults.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => handleFilterClient(c)}
-                    className="w-full px-4 py-3 text-left text-xs hover:bg-orange-50 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-colors cursor-pointer"
-                  >
+                  <button key={c.id} type="button" onClick={() => handleFilterClient(c)} className="w-full px-4 py-3 text-left text-xs hover:bg-orange-50 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-colors cursor-pointer">
                     <span className="font-bold text-stone-800">{c.full_name || "Client"}</span>
                     <span className="text-[11px] text-stone-400 mt-0.5 sm:mt-0">{c.email}</span>
                   </button>
@@ -241,114 +205,41 @@ export default function AdminManagerView() {
               </div>
             )}
           </div>
-
-          {/* Menu Déroulant Chiens */}
           <div className="w-full md:w-1/2">
-            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">
-              Affiner par Chien :
-            </label>
-            <select
-              disabled={!selectedFilterClient}
-              value={selectedFilterDogId}
-              onChange={(e) => setSelectedFilterDogId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-800 disabled:opacity-40 focus:outline-none focus:border-orange-500 cursor-pointer"
-            >
-              <option value="all">
-                {selectedFilterClient ? "Tous les chiens de ce client" : "Tous les chiens (Sélectionnez un client)"}
-              </option>
+            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">Affiner par Chien :</label>
+            <select disabled={!selectedFilterClient} value={selectedFilterDogId} onChange={(e) => setSelectedFilterDogId(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-800 disabled:opacity-40 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="all">{selectedFilterClient ? "Tous les chiens de ce client" : "Tous les chiens (Sélectionnez un client)"}</option>
               {clientDogs.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.breed}) {!d.is_vaccinated ? "⚠️ Non vacciné" : "✓ Vacciné"}
-                </option>
+                <option key={d.id} value={d.id}>{d.name} ({d.breed}) {!d.is_vaccinated ? "⚠️ Non vacciné" : "✓ Vacciné"}</option>
               ))}
             </select>
           </div>
-
         </div>
-
         {selectedFilterClient && (
           <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
-            <span className="text-orange-700 font-bold">
-              Filtre actif : {selectedFilterClient.full_name || selectedFilterClient.email}
-            </span>
-            <button
-              type="button"
-              onClick={resetClientFilter}
-              className="text-stone-400 hover:text-stone-700 font-bold underline cursor-pointer"
-            >
-              Effacer le filtre
-            </button>
+            <span className="text-orange-700 font-bold">Filtre actif : {selectedFilterClient.full_name || selectedFilterClient.email}</span>
+            <button type="button" onClick={resetClientFilter} className="text-stone-400 hover:text-stone-700 font-bold underline cursor-pointer">Effacer le filtre</button>
           </div>
         )}
       </div>
 
-      {/* =========================================================================
-          2. ONGLETS DE NAVIGATION MOBILE + PÉRIODE
-          ========================================================================= */}
+      {/* 2. ONGLETS DE NAVIGATION MOBILE + PÉRIODE */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setTab("education")}
-              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
-                tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
-              }`}
-            >
-              Éducation ({filteredEdu.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("pension")}
-              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
-                tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
-              }`}
-            >
-              Pension ({filteredPension.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("elevage")}
-              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
-                tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
-              }`}
-            >
-              Candidatures Élevage ({filteredAdoption.length})
-            </button>
+            <button type="button" onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Éducation ({filteredEdu.length})</button>
+            <button type="button" onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Pension ({filteredPension.length})</button>
             
-            {/* NOUVEL ONGLET POUR CRÉER LES PORTÉES */}
-            <button
-              type="button"
-              onClick={() => setTab("portees")}
-              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
-                tab === "portees" ? "bg-white text-purple-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
-              }`}
-            >
-              Créer Portée
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTab("sellerie")}
-              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
-                tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
-              }`}
-            >
-              Sellerie ({filteredSellerie.length})
-            </button>
+            {/* L'ONGLET FUSIONNÉ ÉLEVAGE */}
+            <button type="button" onClick={() => setTab("elevage")} className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Élevage</button>
+            
+            <button type="button" onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Sellerie ({filteredSellerie.length})</button>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <label htmlFor="period-select" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
-            Période :
-          </label>
-          <select
-            id="period-select"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as PeriodOption)}
-            className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black text-stone-800 shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer"
-          >
+          <label htmlFor="period-select" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Période :</label>
+          <select id="period-select" value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black text-stone-800 shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer">
             <option value="1m">1 Mois (Défaut)</option>
             <option value="6m">6 Mois</option>
             <option value="1y">1 Année</option>
@@ -356,421 +247,191 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* =========================================================================
-          3. CONTENU : ÉDUCATION
-          ========================================================================= */}
+      {/* 3. CONTENU : ÉDUCATION */}
       {tab === "education" && (
         <div className="space-y-4">
-          {filteredEdu.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
-              Aucune demande d'éducation trouvée pour ces critères.
-            </div>
-          ) : (
-            filteredEdu.map((item) => (
-              <div
-                key={item.id}
-                className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-              >
-                <div className="max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-orange-600">
-                      {item.client_name} • {item.client_phone}
-                    </span>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        item.status === "confirmé"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : item.status === "annulé"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <h4 className="text-base font-black text-stone-900 mt-1">
-                    {item.dog_name} ({item.dog_breed}, {item.dog_age})
-                  </h4>
-                  <p className="text-xs text-stone-500 mt-1">{item.objectives}</p>
-                  
-                  {item.admin_notes && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700">
-                      <strong>Votre message client :</strong> {item.admin_notes}
-                    </div>
-                  )}
+          {filteredEdu.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande d'éducation trouvée.</div> : filteredEdu.map((item) => (
+            <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span>
+                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "confirmé" ? "bg-emerald-100 text-emerald-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>{item.status}</span>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status === "annulé" ? (
-                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
-                      Demande annulée
-                    </span>
-                  ) : (
-                    <>
-                      {item.status !== "confirmé" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openAction("education_requests", item.id, "confirmé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)
-                          }
-                          className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                        >
-                          Confirmer
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("education_requests", item.id, "annulé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
-                      </button>
-                    </>
-                  )}
-                </div>
+                <h4 className="text-base font-black text-stone-900 mt-1">{item.dog_name} ({item.dog_breed}, {item.dog_age})</h4>
+                <p className="text-xs text-stone-500 mt-1">{item.objectives}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
               </div>
-            ))
-          )}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Demande annulée</span> : <>
+                  {item.status !== "confirmé" && <button onClick={() => openAction("education_requests", item.id, "confirmé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Confirmer</button>}
+                  <button onClick={() => openAction("education_requests", item.id, "annulé", `la séance de ${item.dog_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">{item.status === "confirmé" ? "Annuler réservation" : "Refuser"}</button>
+                </>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* =========================================================================
-          4. CONTENU : PENSION
-          ========================================================================= */}
+      {/* 4. CONTENU : PENSION */}
       {tab === "pension" && (
         <div className="space-y-4">
-          {filteredPension.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
-              Aucune demande de pension trouvée pour ces critères.
-            </div>
-          ) : (
-            filteredPension.map((item) => (
-              <div
-                key={item.id}
-                className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-              >
-                <div className="max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-emerald-600">
-                      {item.client_name} • {item.client_phone}
-                    </span>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        item.status === "confirmé"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : item.status === "annulé"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <h4 className="text-base font-black text-stone-900 mt-1">
-                    {item.dog_name} ({item.dog_breed})
-                  </h4>
-                  <p className="text-xs font-bold text-stone-700 mt-0.5">
-                    Du {item.start_date} au {item.end_date}
-                  </p>
-                  {item.special_needs && (
-                    <p className="text-xs text-stone-500 mt-1">Besoins : {item.special_needs}</p>
-                  )}
-
-                  {item.admin_notes && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700">
-                      <strong>Votre message client :</strong> {item.admin_notes}
-                    </div>
-                  )}
+          {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande de pension trouvée.</div> : filteredPension.map((item) => (
+            <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name} • {item.client_phone}</span>
+                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "confirmé" ? "bg-emerald-100 text-emerald-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>{item.status}</span>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status === "annulé" ? (
-                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
-                      Demande annulée
-                    </span>
-                  ) : (
-                    <>
-                      {item.status !== "confirmé" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openAction("pension_requests", item.id, "confirmé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)
-                          }
-                          className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                        >
-                          Valider séjour
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("pension_requests", item.id, "annulé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        {item.status === "confirmé" ? "Annuler réservation" : "Refuser"}
-                      </button>
-                    </>
-                  )}
-                </div>
+                <h4 className="text-base font-black text-stone-900 mt-1">{item.dog_name} ({item.dog_breed})</h4>
+                <p className="text-xs font-bold text-stone-700 mt-0.5">Du {item.start_date} au {item.end_date}</p>
+                {item.special_needs && <p className="text-xs text-stone-500 mt-1">Besoins : {item.special_needs}</p>}
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
               </div>
-            ))
-          )}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Demande annulée</span> : <>
+                  {item.status !== "confirmé" && <button onClick={() => openAction("pension_requests", item.id, "confirmé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Valider séjour</button>}
+                  <button onClick={() => openAction("pension_requests", item.id, "annulé", `le séjour de ${item.dog_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">{item.status === "confirmé" ? "Annuler réservation" : "Refuser"}</button>
+                </>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* =========================================================================
-          5. CONTENU : CANDIDATURES ÉLEVAGE
-          ========================================================================= */}
+      {/* 5. CONTENU : ÉLEVAGE FUSIONNÉ (CANDIDATURES & GESTION PORTÉES) */}
       {tab === "elevage" && (
-        <div className="space-y-4">
-          {filteredAdoption.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
-              Aucune candidature trouvée pour ces critères.
-            </div>
-          ) : (
-            filteredAdoption.map((item) => (
-              <div
-                key={item.id}
-                className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-              >
-                <div className="max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-orange-600">
-                      {item.client_name} • {item.client_phone}
-                    </span>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        item.status === "accepté"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : item.status === "liste_attente"
-                          ? "bg-amber-100 text-amber-800"
-                          : item.status === "annulé"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-stone-100 text-stone-800"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <h4 className="text-base font-black text-stone-900 mt-1">{item.preferred_breed}</h4>
-                  <p className="text-xs text-stone-500 mt-1">Cadre : {item.living_environment}</p>
+        <div className="space-y-6 animate-in fade-in duration-300">
+          
+          {/* Sous-Onglets Élevage */}
+          <div className="flex gap-4 border-b border-stone-200">
+            <button onClick={() => setElevageTab("candidatures")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "candidatures" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
+              Candidatures d'Adoption ({filteredAdoption.length})
+            </button>
+            <button onClick={() => setElevageTab("portees")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "portees" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
+              Gestion des Portées
+            </button>
+          </div>
 
-                  {item.admin_notes && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700">
-                      <strong>Votre message client :</strong> {item.admin_notes}
+          {/* VUE CANDIDATURES */}
+          {elevageTab === "candidatures" && (
+            <div className="space-y-4">
+              {filteredAdoption.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune candidature trouvée.</div> : filteredAdoption.map((item) => (
+                <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="max-w-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>{item.status}</span>
                     </div>
-                  )}
+                    <h4 className="text-base font-black text-stone-900 mt-1">{item.preferred_breed}</h4>
+                    <p className="text-xs text-stone-500 mt-1">Cadre : {item.living_environment}</p>
+                    {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Candidature annulée</span> : <>
+                      <button onClick={() => openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Accepter</button>
+                      <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Liste d'attente</button>
+                      <button onClick={() => openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">Refuser</button>
+                    </>}
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status === "annulé" ? (
-                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
-                      Candidature annulée
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                      >
-                        Accepter
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                      >
-                        Liste d'attente
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        Refuser
-                      </button>
-                    </>
-                  )}
+          {/* VUE GESTION DES PORTÉES */}
+          {elevageTab === "portees" && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              
+              {/* LISTE DES PORTÉES EXISTANTES */}
+              {littersList.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-stone-900 uppercase tracking-wider">Portées Existantes</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {littersList.map(litter => (
+                      <div key={litter.id} className="p-5 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col gap-3 transition hover:border-orange-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-black text-stone-900">{litter.title}</h4>
+                            <p className="text-xs font-bold text-stone-500 mt-0.5">{litter.father_name} x {litter.mother_name}</p>
+                          </div>
+                          <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-500'}`}>
+                            {litter.is_active ? 'Visible sur site' : 'Archivée'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-bold text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-lg">
+                          {litter.puppies?.length || 0} chiot(s) enregistré(s)
+                        </p>
+                        <div className="flex gap-2 mt-2 pt-4 border-t border-stone-100">
+                          <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="flex-1 text-[10px] font-black uppercase tracking-wide px-3 py-2 rounded-xl bg-stone-100 text-stone-600 hover:bg-stone-200 transition cursor-pointer">
+                            {litter.is_active ? 'Archiver' : 'Publier en ligne'}
+                          </button>
+                          <button onClick={() => deleteLitter(litter.id)} className="text-[10px] font-black uppercase tracking-wide px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer">
+                            Supprimer
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+
+              {/* FORMULAIRE DE CRÉATION */}
+              <div className="pt-4">
+                <AdminLitterForm />
               </div>
-            ))
+            </div>
           )}
         </div>
       )}
 
-      {/* =========================================================================
-          NOUVEL ONGLET : CRÉER PORTÉES (ADMIN FORM)
-          ========================================================================= */}
-      {tab === "portees" && (
-        <div className="animate-in fade-in zoom-in duration-300">
-          <AdminLitterForm />
-        </div>
-      )}
-
-      {/* =========================================================================
-          6. CONTENU : SELLERIE
-          ========================================================================= */}
+      {/* 6. CONTENU : SELLERIE */}
       {tab === "sellerie" && (
         <div className="space-y-4">
-          {filteredSellerie.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">
-              Aucune commande de sellerie trouvée pour ces critères.
-            </div>
-          ) : (
-            filteredSellerie.map((item) => (
-              <div
-                key={item.id}
-                className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-              >
-                <div className="max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-amber-600">
-                      {item.client_name} • {item.client_phone}
-                    </span>
-                    <span
-                      className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        item.status === "expédié"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : item.status === "en_atelier"
-                          ? "bg-amber-100 text-amber-800"
-                          : item.status === "annulé"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-stone-100 text-stone-800"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <h4 className="text-base font-black text-stone-900 mt-1">{item.item_type}</h4>
-                  <p className="text-xs font-bold text-stone-700 mt-1">
-                    {item.color_finish} • {item.dog_size}
-                  </p>
-
-                  {item.admin_notes && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700">
-                      <strong>Votre message client :</strong> {item.admin_notes}
-                    </div>
-                  )}
+          {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune commande trouvée.</div> : filteredSellerie.map((item) => (
+            <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-amber-600">{item.client_name} • {item.client_phone}</span>
+                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "expédié" ? "bg-emerald-100 text-emerald-800" : item.status === "en_atelier" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>{item.status}</span>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {item.status === "annulé" ? (
-                    <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">
-                      Commande annulée
-                    </span>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("sellerie_orders", item.id, "en_atelier", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                      >
-                        En atelier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("sellerie_orders", item.id, "expédié", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                      >
-                        Expédier
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openAction("sellerie_orders", item.id, "annulé", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)
-                        }
-                        className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer"
-                      >
-                        Annuler
-                      </button>
-                    </>
-                  )}
-                </div>
+                <h4 className="text-base font-black text-stone-900 mt-1">{item.item_type}</h4>
+                <p className="text-xs font-bold text-stone-700 mt-1">{item.color_finish} • {item.dog_size}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
               </div>
-            ))
-          )}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Commande annulée</span> : <>
+                  <button onClick={() => openAction("sellerie_orders", item.id, "en_atelier", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">En atelier</button>
+                  <button onClick={() => openAction("sellerie_orders", item.id, "expédié", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Expédier</button>
+                  <button onClick={() => openAction("sellerie_orders", item.id, "annulé", `la commande de ${item.item_type}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">Annuler</button>
+                </>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* =========================================================================
-          7. MODALE ADMINISTRATIVE D'ACTION & MESSAGE CLIENT
-          ========================================================================= */}
+      {/* 7. MODALE ADMINISTRATIVE D'ACTION */}
       {actionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
-            onClick={() => !updating && setActionModal(null)}
-          />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => !updating && setActionModal(null)} />
           <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-8 shadow-2xl backdrop-blur-2xl">
-            <button
-              type="button"
-              onClick={() => setActionModal(null)}
-              className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 cursor-pointer"
-            >
-              ✕
-            </button>
-
+            <button type="button" onClick={() => setActionModal(null)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 cursor-pointer">✕</button>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">
-                Action administrative
-              </span>
-              <h3 className="text-xl font-black text-stone-900 mt-1">
-                Passer en statut : <span className="capitalize text-orange-600">"{actionModal.newStatus}"</span>
-              </h3>
-              <p className="text-xs text-stone-500 mt-1">
-                Pour {actionModal.title} ({actionModal.clientName})
-              </p>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">Action administrative</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1">Passer en statut : <span className="capitalize text-orange-600">"{actionModal.newStatus}"</span></h3>
+              <p className="text-xs text-stone-500 mt-1">Pour {actionModal.title} ({actionModal.clientName})</p>
             </div>
-
             <div className="mt-6">
-              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">
-                Message explicatif pour le client (affiché sur son espace)
-              </label>
-              <textarea
-                rows={3}
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                placeholder="Ex: Rendez-vous validé au parc. / Malheureusement indisponible sur cette date..."
-                className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500"
-              />
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Message explicatif pour le client (affiché sur son espace)</label>
+              <textarea rows={3} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Ex: Rendez-vous validé..." className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
             </div>
-
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setActionModal(null)}
-                disabled={updating}
-                className="px-5 py-2.5 rounded-full text-xs font-bold text-stone-600 hover:bg-stone-100 transition-all cursor-pointer"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAction}
-                disabled={updating}
-                className="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
-              >
-                {updating ? "Mise à jour..." : "Confirmer et enregistrer"}
-              </button>
+              <button type="button" onClick={() => setActionModal(null)} disabled={updating} className="px-5 py-2.5 rounded-full text-xs font-bold text-stone-600 hover:bg-stone-100 transition-all cursor-pointer">Annuler</button>
+              <button type="button" onClick={handleConfirmAction} disabled={updating} className="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50">{updating ? "Mise à jour..." : "Confirmer et enregistrer"}</button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
