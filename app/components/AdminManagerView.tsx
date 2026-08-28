@@ -127,6 +127,19 @@ export default function AdminManagerView() {
     try {
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
+
+      // NOUVEAUTÉ : Mise à jour automatique du statut du chiot (Réservé / Disponible)
+      if (actionModal.table === "adoption_requests") {
+        const { data: request } = await supabase.from("adoption_requests").select("puppy_id").eq("id", actionModal.id).single();
+        if (request && request.puppy_id) {
+          if (actionModal.newStatus === "accepté") {
+            await supabase.from("puppies").update({ status: "reserve" }).eq("id", request.puppy_id);
+          } else if (actionModal.newStatus === "annulé" || actionModal.newStatus === "refusé") {
+            await supabase.from("puppies").update({ status: "disponible" }).eq("id", request.puppy_id);
+          }
+        }
+      }
+
       await fetchAll();
       setActionModal(null);
     } catch (err: any) {
@@ -146,6 +159,11 @@ export default function AdminManagerView() {
        await supabase.from("litters").delete().eq("id", id);
        fetchAll();
     }
+  };
+
+  const assignToLitter = async (candidatureId: string, litterId: string) => {
+    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId);
+    fetchAll();
   };
 
   const assignToPuppy = async (candidatureId: string, puppyId: string) => {
@@ -251,17 +269,17 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE (INTÉGRÉ & UNIFIÉ - SANS SOUS ONGLETS) */}
+      {/* 5. CONTENU : ÉLEVAGE (SANS SOUS-ONGLETS) */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
           {!showLitterForm && (
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-4">
               <div>
-                <h2 className="text-xl font-black text-stone-900">Gestion des Portées</h2>
+                <h2 className="text-xl font-black text-stone-900">Gestion de l'Élevage</h2>
                 <p className="text-xs text-stone-500 mt-1">Gérez vos portées, vos chiots et les candidatures associées.</p>
               </div>
-              <button onClick={() => { setEditingLitter(null); setShowLitterForm(true); }} className="px-5 py-2.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white rounded-full text-xs font-black shadow-md hover:scale-105 transition-all">
+              <button onClick={() => { setEditingLitter(null); setShowLitterForm(true); }} className="px-5 py-2.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white rounded-full text-xs font-black shadow-md hover:scale-105 transition-all cursor-pointer">
                 + Nouvelle Portée
               </button>
             </div>
@@ -352,6 +370,7 @@ export default function AdminManagerView() {
                               <div className="text-xs text-stone-600 space-y-1">
                                 <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
                                 <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+                                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
                               </div>
                               
                               {/* Assigner un chiot précis */}
@@ -378,6 +397,33 @@ export default function AdminManagerView() {
                   </div>
                 );
               })}
+
+              {/* CANDIDATURES NON ASSIGNÉES (S'il y en a) */}
+              {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
+                <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
+                  <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures non assignées</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredAdoption.filter(a => !a.litter_id).map(item => (
+                      <div key={item.id} className="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                        <div className="flex justify-between items-center mb-3">
+                           <span className="text-sm font-black text-stone-900">{item.client_name}</span>
+                           <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-orange-600 mb-1">Souhait : {renderPreferenceText(item)}</p>
+                        <p className="text-xs text-stone-500 mb-6">{item.living_environment}</p>
+                        
+                        <div className="flex flex-col gap-2">
+                          <label className="text-[10px] font-bold text-stone-400 uppercase">Lier à une portée :</label>
+                          <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl border border-stone-200 focus:outline-none focus:border-orange-500 cursor-pointer">
+                            <option value="">Sélectionner une portée...</option>
+                            {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

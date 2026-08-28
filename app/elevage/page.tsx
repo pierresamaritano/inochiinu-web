@@ -88,8 +88,6 @@ export default function ElevagePage() {
   const [isImmersionMode, setIsImmersionMode] = useState(false);
   const [modalSlideIndex, setModalSlideIndex] = useState(0); 
   const [selectedPuppy, setSelectedPuppy] = useState<any>(null); 
-  
-  // --- NOUVEAU : SAVOIR SI LE CLIENT A DÉJÀ UNE CANDIDATURE ---
   const [hasExistingCandidature, setHasExistingCandidature] = useState(false);
   // ------------------------------------------------
 
@@ -119,17 +117,19 @@ export default function ElevagePage() {
       const currentUser = userData.session?.user || null;
       setUser(currentUser);
 
-      // Si l'utilisateur est connecté, on vérifie s'il a déjà une candidature
+      // Vérification d'une candidature existante pour bloquer le bouton
       if (currentUser) {
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
           .eq("user_id", currentUser.id)
-          .neq("status", "annulé") // On ignore celles qu'il a annulées
+          .neq("status", "annulé") // Si annulée ou refusée, on autorise à nouveau
           .limit(1);
           
         if (existingRequests && existingRequests.length > 0) {
           setHasExistingCandidature(true);
+        } else {
+          setHasExistingCandidature(false);
         }
       }
 
@@ -177,7 +177,6 @@ export default function ElevagePage() {
     }
   };
 
-  // UNIQUE ACTION POUR CANDIDATER
   const handleCandidater = () => {
     if (selectedPuppy && selectedPuppy.status === 'disponible') {
       setFormData(prev => ({ ...prev, puppyPreference: "specific", puppyId: selectedPuppy.id }));
@@ -188,7 +187,6 @@ export default function ElevagePage() {
     handleInitialClick();
   };
 
-  // On désactive si le chiot n'est pas dispo OU si le client a déjà une candidature
   const isCandidatureDisabled = hasExistingCandidature || (selectedPuppy && selectedPuppy.status !== 'disponible');
 
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
@@ -217,7 +215,7 @@ export default function ElevagePage() {
         puppy_id: formData.puppyPreference === 'specific' ? formData.puppyId : null
       }]);
       setSubmitted(true);
-      setHasExistingCandidature(true); // On met à jour l'état local pour bloquer les futurs clics
+      setHasExistingCandidature(true); // Bloque directement le bouton après soumission
     } catch (err) { console.error(err); } finally { setSubmitting(false); }
   };
 
@@ -229,46 +227,18 @@ export default function ElevagePage() {
 
   const dogs: DogProfile[] = [
     {
-      id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No",
-      fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021",
-      images: [
-        { src: "/hero-akita.jpg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
-        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." },
-        { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
-      ],
-      titles: "Lignées de Champions Internationaux & Japonais",
-      description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
-      father: {
-        name: "Katsunori Go Senshi Shimai", origin: "Import Pologne", titles: "CH Junior France • Titré CACIB", desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha.",
-        gParents: [{ role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" }, { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" }],
-        ggParents: ["Hiryuu Go Rokkuhando Touwa", "Aihime Go Amakusa Tajiri", "Kou Zan Go Shun'You Kensha", "Lignée Senshi No Inu"],
-      },
-      mother: {
-        name: "CH. Kazan No Teïumi", origin: "Affixe Kazan No", titles: "Championne de France • Junior World Winner", desc: "Fille directe de CH. Kazan No Rumi.",
-        gParents: [{ role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha" }, { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi" }],
-        ggParents: ["Kanon Go Tamashi Kensha", "Lignée Sara Hana", "Kobe No Minami Go Tamashi", "CH. Nayakiwa Go Tokimitsu"],
-      },
+      id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No", fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021",
+      images: [{ src: "/hero-akita.jpg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." }, { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." }, { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }],
+      titles: "Lignées de Champions Internationaux & Japonais", description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
+      father: { name: "Katsunori Go Senshi Shimai", origin: "Import Pologne", titles: "CH Junior France • Titré CACIB", desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha.", gParents: [{ role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" }, { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" }], ggParents: ["Hiryuu Go Rokkuhando Touwa", "Aihime Go Amakusa Tajiri", "Kou Zan Go Shun'You Kensha", "Lignée Senshi No Inu"], },
+      mother: { name: "CH. Kazan No Teïumi", origin: "Affixe Kazan No", titles: "Championne de France • Junior World Winner", desc: "Fille directe de CH. Kazan No Rumi.", gParents: [{ role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha" }, { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi" }], ggParents: ["Kanon Go Tamashi Kensha", "Lignée Sara Hana", "Kobe No Minami Go Tamashi", "CH. Nayakiwa Go Tokimitsu"], },
     },
     {
-      id: "lice-1", name: "Lice 1 (À venir)", badgeName: "Lice 1", role: "Lice", affixe: "Affixe Officiel LOF",
-      fullName: "Lice Akita 1", color: "Bringé (Tora)", height: "62 cm", weight: "28 kg", birthDate: "À venir",
-      images: [
-        { src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." },
-        { src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 douceur", tag: "Douceur", caption: "Instinct maternel très prononcé." },
-        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 parc", tag: "Vitalité", caption: "Chienne très dynamique et joueuse." }
-      ],
-      titles: "Sélection LOF & Standard Japonais",
-      description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.",
-      father: {
-        name: "Père de la Lice 1", origin: "Lignée Sélectionnée", titles: "Certifié LOF", desc: "Excellente tête et tempérament stable.",
-        gParents: [{ role: "Grand-Père Paternel", name: "Paternel L1" }, { role: "Grand-Mère Paternelle", name: "Maternelle L1" }],
-        ggParents: ["Arrière G.P 1", "Arrière G.M 1", "Arrière G.P 2", "Arrière G.M 2"],
-      },
-      mother: {
-        name: "Mère de la Lice 1", origin: "Lignée Reconnue", titles: "Excellente en Exposition", desc: "Lignée indemne de dysplasie.",
-        gParents: [{ role: "Grand-Père Maternel", name: "Paternel L1" }, { role: "Grand-Mère Maternelle", name: "Maternelle L1" }],
-        ggParents: ["Arrière G.P 3", "Arrière G.M 3", "Arrière G.P 4", "Arrière G.M 4"],
-      },
+      id: "lice-1", name: "Lice 1 (À venir)", badgeName: "Lice 1", role: "Lice", affixe: "Affixe Officiel LOF", fullName: "Lice Akita 1", color: "Bringé (Tora)", height: "62 cm", weight: "28 kg", birthDate: "À venir",
+      images: [{ src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." }, { src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 douceur", tag: "Douceur", caption: "Instinct maternel très prononcé." }, { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 parc", tag: "Vitalité", caption: "Chienne très dynamique et joueuse." }],
+      titles: "Sélection LOF & Standard Japonais", description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.",
+      father: { name: "Père de la Lice 1", origin: "Lignée Sélectionnée", titles: "Certifié LOF", desc: "Excellente tête et tempérament stable.", gParents: [{ role: "Grand-Père Paternel", name: "Paternel L1" }, { role: "Grand-Mère Paternelle", name: "Maternelle L1" }], ggParents: ["Arrière G.P 1", "Arrière G.M 1", "Arrière G.P 2", "Arrière G.M 2"], },
+      mother: { name: "Mère de la Lice 1", origin: "Lignée Reconnue", titles: "Excellente en Exposition", desc: "Lignée indemne de dysplasie.", gParents: [{ role: "Grand-Père Maternel", name: "Paternel L1" }, { role: "Grand-Mère Maternelle", name: "Maternelle L1" }], ggParents: ["Arrière G.P 3", "Arrière G.M 3", "Arrière G.P 4", "Arrière G.M 4"], },
     }
   ];
 
@@ -283,16 +253,15 @@ export default function ElevagePage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
+      
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
         <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
       </div>
 
       <LiquidNavbar />
 
-      {/* EN-TÊTE PRINCIPAL */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -305,7 +274,6 @@ export default function ElevagePage() {
         </p>
       </section>
 
-      {/* CARROUSEL VALEURS */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           {slides.map((slide, index) => (
@@ -328,7 +296,6 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE MODIFIÉ (Bouton "Découvrir" uniquement) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -341,7 +308,6 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* PHILOSOPHIE ÉLEVAGE */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-12">
           <div>
@@ -370,7 +336,6 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION NOS REPRODUCTEURS LOF */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
@@ -382,7 +347,6 @@ export default function ElevagePage() {
                 Nos reproducteurs LOF
               </h2>
             </div>
-
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-[70]">
               <button onClick={() => setIsDogMenuOpen(!isDogMenuOpen)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -396,7 +360,6 @@ export default function ElevagePage() {
                 </div>
                 <span className={`text-stone-400 transition-transform duration-200 ${isDogMenuOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
-
               {isDogMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsDogMenuOpen(false)} />
@@ -434,12 +397,10 @@ export default function ElevagePage() {
 
           <DogCarousel slides={currentProfile.images} />
 
-          {/* PEDIGREE ET ARBRE */}
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
             
             <div className="grid gap-4 sm:gap-6 md:grid-cols-2 mb-8">
-              {/* PÈRE */}
               <div className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -452,7 +413,6 @@ export default function ElevagePage() {
                 </div>
               </div>
 
-              {/* MÈRE */}
               <div className="rounded-[2rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -466,7 +426,6 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* ARBRE SUR 3 GÉNÉRATIONS */}
             <div className="rounded-[2rem] sm:rounded-[2.5rem] border border-stone-200/80 bg-white/90 p-5 sm:p-8 shadow-sm space-y-4 sm:space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-200/60 pb-3 sm:pb-4 text-center sm:text-left">
                 <div>
@@ -479,9 +438,8 @@ export default function ElevagePage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto pb-3 -mx-2 px-2">
+              <div className="overflow-x-auto pb-3 -mx-2 px-2 scrollbar-hide">
                 <div className="min-w-[680px] grid grid-cols-3 gap-3 sm:gap-4 text-xs">
-                  {/* 1ère Génération */}
                   <div className="space-y-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">1ère Génération</span>
                     <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-3 space-y-1">
@@ -495,8 +453,6 @@ export default function ElevagePage() {
                       <p className="text-[10px] text-stone-500 font-medium">{currentProfile.mother.titles}</p>
                     </div>
                   </div>
-
-                  {/* 2ème Génération */}
                   <div className="space-y-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">2ème Génération</span>
                     {currentProfile.father.gParents.map((gp, i) => (
@@ -514,8 +470,6 @@ export default function ElevagePage() {
                       </div>
                     ))}
                   </div>
-
-                  {/* 3ème Génération */}
                   <div className="space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">3ème Génération</span>
                     {currentProfile.father.ggParents.map((name, i) => (
@@ -529,11 +483,10 @@ export default function ElevagePage() {
               </div>
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* SECTION CONTACT & COORDONNÉES */}
+      {/* SECTION CONTACT */}
       <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -567,14 +520,11 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* =========================================================================
-          MODE IMMERSION PLEIN ÉCRAN (SUPERPOSÉ À TOUT)
-          ========================================================================= */}
+      {/* POP-UP MODE IMMERSION */}
       {isImmersionMode && activeLitters.length > 0 && (
         <div className="fixed inset-0 z-[200] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-500">
           <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer shadow-xl">
@@ -587,9 +537,7 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* =========================================================================
-          POP-UP : PORTÉE ET CHIOTS (STANDARD)
-          ========================================================================= */}
+      {/* POP-UP : PORTÉE ET CHIOTS (STANDARD) */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
@@ -599,7 +547,6 @@ export default function ElevagePage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            {/* En-tête de la Modale */}
             <div className="p-8 sm:p-12 pb-6 border-b border-stone-100 flex flex-col gap-6 shrink-0">
               {activeLitters.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -625,36 +572,36 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* Corps de la Modale */}
-            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 flex-1">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 flex-1">
               
-              {/* Colonne de gauche (Carrousel Standard Discret + Histoire) */}
-              <div className="w-full lg:w-1/3 flex flex-col gap-6">
+              {/* LIGNE HAUT : Carrousel à gauche + Histoire à droite */}
+              <div className="flex flex-col lg:flex-row gap-10 items-start">
                 
-                {/* Carrousel Standard (1 seule image discrète) */}
-                {litterSlides.length > 0 && (
-                  <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
-                    <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    {litterSlides.length > 1 && (
-                      <>
-                        <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
-                        <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
-                      </>
-                    )}
-                  </div>
-                )}
+                <div className="w-full lg:w-1/2">
+                  {litterSlides.length > 0 && (
+                    <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
+                      <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      {litterSlides.length > 1 && (
+                        <>
+                          <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
+                          <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                {/* Histoire du couple */}
-                <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 rounded-3xl border border-stone-100 h-full">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
-                  <p className="leading-relaxed whitespace-pre-line">{activeLitters[selectedLitterIndex].story}</p>
+                <div className="w-full lg:w-1/2">
+                  <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 sm:p-8 rounded-[2rem] border border-stone-100 h-full">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
+                    <p className="leading-relaxed whitespace-pre-line">{activeLitters[selectedLitterIndex].story}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Colonne de droite (Chiots / Fiche Détaillée) */}
-              <div className="w-full lg:w-2/3">
+              {/* LIGNE BAS : Chiots */}
+              <div className="w-full border-t border-stone-100 pt-8">
                 {selectedPuppy ? (
-                  // FICHE DÉTAILLÉE DU CHIOT SÉLECTIONNÉ
                   <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
                     <button onClick={() => setSelectedPuppy(null)} aria-label="Fermer" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -681,7 +628,6 @@ export default function ElevagePage() {
                             Statut : {selectedPuppy.status}
                           </span>
                         </div>
-                        
                         <p className="text-sm text-stone-600 leading-relaxed bg-white/50 p-4 rounded-2xl border border-orange-50/50">
                           {selectedPuppy.image_caption || "Aucune description détaillée pour ce chiot."}
                         </p>
@@ -689,7 +635,6 @@ export default function ElevagePage() {
                     </div>
                   </div>
                 ) : (
-                  // GRILLE DES CHIOTS (GALERIE)
                   <div>
                     <h4 className="text-sm font-black uppercase tracking-wider text-stone-900 mb-6 flex items-center gap-2">
                       Découvrez les chiots <span className="text-stone-400 font-bold text-xs">({activeLitters[selectedLitterIndex].puppies?.length || 0})</span>
@@ -698,7 +643,7 @@ export default function ElevagePage() {
                     {(!activeLitters[selectedLitterIndex].puppies || activeLitters[selectedLitterIndex].puppies.length === 0) ? (
                        <p className="text-sm text-stone-500 italic bg-stone-50 p-8 rounded-3xl text-center border border-stone-100">Aucun chiot n'a encore été ajouté à cette portée.</p>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {activeLitters[selectedLitterIndex].puppies.map((pup: any) => (
                           <button key={pup.id} onClick={() => setSelectedPuppy(pup)} className="group flex flex-col text-left bg-white border border-stone-200 rounded-[1.5rem] overflow-hidden hover:border-orange-400 hover:shadow-md transition-all cursor-pointer">
                             <div className="aspect-square w-full bg-stone-100 relative overflow-hidden">
@@ -726,7 +671,7 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* LE BOUTON UNIQUE DE CANDIDATURE (Bas de la pop-up) */}
+            {/* LE BOUTON UNIQUE DE CANDIDATURE */}
             <div className="p-8 sm:p-12 pt-0 shrink-0">
               <div className="border-t border-stone-100 pt-8 flex justify-center">
                 <button 
@@ -741,7 +686,7 @@ export default function ElevagePage() {
                   {hasExistingCandidature 
                     ? "Vous avez déjà une demande en cours" 
                     : selectedPuppy && selectedPuppy.status !== 'disponible' 
-                      ? "Ce chiot est déjà réservé" 
+                      ? "Ce chiot est réservé" 
                       : "Candidater"}
                 </button>
               </div>
@@ -751,7 +696,6 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* AUTRES MODALES RESTANTES (Info, Connexion, Formulaire) */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
