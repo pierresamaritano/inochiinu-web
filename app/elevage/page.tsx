@@ -52,7 +52,7 @@ interface DogProfile {
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isInCenter, setIsInCenter] = useState(true); // Toujours actif en mode plein écran
+  const [isInCenter, setIsInCenter] = useState(true); 
   
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -115,7 +115,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- NOUVEAUX ÉTATS POUR LA PORTÉE ---
+  // --- ÉTATS POUR LA PORTÉE ---
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
   const [showLitterModal, setShowLitterModal] = useState(false);
   const [isImmersionMode, setIsImmersionMode] = useState(false);
@@ -614,45 +614,48 @@ export default function ElevagePage() {
             </div>
 
             {/* Corps de la Modale */}
-            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 relative">
               
-              {/* Colonne de gauche (Carrousel Standard Discret + Histoire) */}
-              <div className="w-full lg:w-1/3 flex flex-col gap-6">
-                
-                {/* Carrousel Standard (1 seule image discrète) */}
-                {litterSlides.length > 0 && (
-                  <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group">
-                    <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block">{litterSlides[modalSlideIndex].tag}</span>
-                      <span className="text-xs font-bold text-stone-800 truncate block mt-0.5">{litterSlides[modalSlideIndex].caption}</span>
+              {/* Colonne de gauche (Carrousel Standard Discret - Collant au scroll) */}
+              <div className="w-full lg:w-2/5">
+                <div className="sticky top-6">
+                  {litterSlides.length > 0 && (
+                    <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group">
+                      <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block">{litterSlides[modalSlideIndex].tag}</span>
+                        <span className="text-xs font-bold text-stone-800 truncate block mt-0.5">{litterSlides[modalSlideIndex].caption}</span>
+                      </div>
+                      {litterSlides.length > 1 && (
+                        <>
+                          <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
+                          <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
+                        </>
+                      )}
                     </div>
-                    {litterSlides.length > 1 && (
-                      <>
-                        <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
-                        <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Histoire du couple */}
-                <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 rounded-3xl border border-stone-100">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
-                  <p className="leading-relaxed whitespace-pre-line">{activeLitters[0].story}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Colonne de droite (Chiots / Fiche Détaillée) */}
-              <div className="w-full lg:w-2/3">
+              {/* Colonne de droite (Histoire + Chiots / Fiche Détaillée) */}
+              <div className="w-full lg:w-3/5 flex flex-col gap-8">
+                
+                {/* Histoire du couple (Déplacée à droite) */}
+                <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 sm:p-8 rounded-[2rem] border border-stone-100">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire de cette portée</h4>
+                  <p className="leading-relaxed whitespace-pre-line">{activeLitters[0].story}</p>
+                </div>
+
                 {selectedPuppy ? (
                   // FICHE DÉTAILLÉE DU CHIOT SÉLECTIONNÉ
                   <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
-                    <button onClick={() => setSelectedPuppy(null)} className="absolute top-6 right-6 text-[10px] font-bold text-stone-500 hover:text-stone-900 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-sm transition cursor-pointer">
-                      ← Retour aux chiots
+                    
+                    {/* CROIX DE RETOUR REMPLACANT LE TEXTE POUR LE MOBILE */}
+                    <button onClick={() => setSelectedPuppy(null)} aria-label="Retour aux chiots" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     
-                    <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left mt-4 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left">
                       <div className="w-40 h-40 sm:w-48 sm:h-48 shrink-0 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-stone-100">
                         {selectedPuppy.image_url ? (
                           <img src={selectedPuppy.image_url} alt={selectedPuppy.name} className="w-full h-full object-cover" />
@@ -697,7 +700,7 @@ export default function ElevagePage() {
                     {(!activeLitters[0].puppies || activeLitters[0].puppies.length === 0) ? (
                        <p className="text-sm text-stone-500 italic bg-stone-50 p-8 rounded-3xl text-center border border-stone-100">Aucun chiot n'a encore été ajouté à cette portée.</p>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {activeLitters[0].puppies.map((pup: any) => (
                           <button key={pup.id} onClick={() => setSelectedPuppy(pup)} className="group flex flex-col text-left bg-white border border-stone-200 rounded-[1.5rem] overflow-hidden hover:border-orange-400 hover:shadow-md transition-all cursor-pointer">
                             <div className="aspect-square w-full bg-stone-100 relative overflow-hidden">
