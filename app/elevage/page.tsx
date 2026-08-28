@@ -389,7 +389,7 @@ export default function ElevagePage() {
             </div>
           </div>
 
-          {/* 2. INFORMATIONS DU REPRODUCTEUR SÉLECTIONNÉ */}
+{/* 2. INFORMATIONS DU REPRODUCTEUR SÉLECTIONNÉ */}
           <div className="relative z-10 bg-white/80 rounded-[2rem] border border-stone-200/80 p-6 sm:p-8 shadow-sm">
             <h3 className="text-lg font-black text-stone-900 border-b border-stone-100 pb-4 mb-4">Profil & Morphologie</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -418,12 +418,18 @@ export default function ElevagePage() {
               {currentProfile.description}
             </p>
           </div>
+        </div> {/* <-- ON FERME LE CONTENEUR ICI POUR LIBÉRER LE CARROUSEL */}
 
-          {/* 3. CARROUSEL APPLE DÉDIÉ AU CHIEN */}
+        {/* 3. CARROUSEL APPLE DÉDIÉ AU CHIEN (Pleine largeur) */}
+        <div className="w-full my-8">
           <DogCarousel slides={currentProfile.images} />
+        </div>
+        
+        {/* <-- ON ROUVRE LE CONTENEUR POUR LE PEDIGREE */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8"> 
           
           {/* 4. PEDIGREE : PALMARÈS ET ARBRE GÉNÉALOGIQUE */}
-          <div className="pt-8 border-t border-stone-200/60 relative z-10">
+          <div className="pt-4 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
             
             <div className="grid gap-4 sm:gap-6 md:grid-cols-2 mb-8">
