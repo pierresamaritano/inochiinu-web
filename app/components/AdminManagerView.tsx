@@ -43,7 +43,6 @@ export default function AdminManagerView() {
   const [littersList, setLittersList] = useState<any[]>([]); 
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
-  const [elevageTab, setElevageTab] = useState<"candidatures" | "portees">("candidatures");
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
 
@@ -62,7 +61,6 @@ export default function AdminManagerView() {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
-      // On demande à Supabase de récupérer aussi le nom du chiot lié si existant (puppies(name))
       supabase.from("adoption_requests").select("*, puppies(name)").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
@@ -148,11 +146,6 @@ export default function AdminManagerView() {
        await supabase.from("litters").delete().eq("id", id);
        fetchAll();
     }
-  };
-
-  const assignToLitter = async (candidatureId: string, litterId: string) => {
-    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId);
-    fetchAll();
   };
 
   const assignToPuppy = async (candidatureId: string, puppyId: string) => {
@@ -258,29 +251,18 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE */}
+      {/* 5. CONTENU : ÉLEVAGE (INTÉGRÉ & UNIFIÉ - SANS SOUS ONGLETS) */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
           {!showLitterForm && (
-            <div className="flex justify-between items-center border-b border-stone-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
               <div>
-                <h2 className="text-xl font-black text-stone-900">Gestion de l'Élevage</h2>
+                <h2 className="text-xl font-black text-stone-900">Gestion des Portées</h2>
                 <p className="text-xs text-stone-500 mt-1">Gérez vos portées, vos chiots et les candidatures associées.</p>
               </div>
               <button onClick={() => { setEditingLitter(null); setShowLitterForm(true); }} className="px-5 py-2.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white rounded-full text-xs font-black shadow-md hover:scale-105 transition-all">
                 + Nouvelle Portée
-              </button>
-            </div>
-          )}
-
-          {!showLitterForm && (
-            <div className="flex gap-4 border-b border-stone-200">
-              <button onClick={() => setElevageTab("candidatures")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "candidatures" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
-                Toutes les Candidatures ({filteredAdoption.length})
-              </button>
-              <button onClick={() => setElevageTab("portees")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "portees" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
-                Gestion des Portées
               </button>
             </div>
           )}
@@ -294,166 +276,109 @@ export default function AdminManagerView() {
               />
             </div>
           ) : (
-            <>
-              {elevageTab === "candidatures" && (
-                <div className="space-y-4">
-                  {filteredAdoption.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune candidature trouvée.</div> : filteredAdoption.map((item) => (
-                    <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div className="max-w-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>{item.status}</span>
-                        </div>
-                        <p className="text-sm font-bold text-stone-900 mt-1">Préférence : <span className="text-orange-600">{renderPreferenceText(item)}</span></p>
-                        <p className="text-xs text-stone-500 mt-1">Cadre : {item.living_environment}</p>
-                        {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Candidature annulée</span> : <>
-                          <button onClick={() => openAction("adoption_requests", item.id, "accepté", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Accepter</button>
-                          <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm transition-all cursor-pointer">Liste d'attente</button>
-                          <button onClick={() => openAction("adoption_requests", item.id, "annulé", `la candidature de ${item.client_name}`, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition-all cursor-pointer">Refuser</button>
-                        </>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {elevageTab === "portees" && (
-                <div className="space-y-8 animate-in fade-in duration-300">
-                  {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
-                  
-                  {littersList.map(litter => {
-                    const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
+            <div className="space-y-8">
+              {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
+              
+              {littersList.map(litter => {
+                const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
+                
+                return (
+                  <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
                     
-                    return (
-                      <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
-                        
-                        {/* EN-TÊTE DE LA PORTÉE */}
-                        <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                          <div>
-                            <div className="flex items-center gap-3 mb-1.5">
-                              <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
-                                {litter.is_active ? 'Visible sur site' : 'Archivée'}
-                              </span>
-                              <h3 className="text-xl font-black text-stone-900">{litter.title}</h3>
-                            </div>
-                            <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition cursor-pointer">Modifier</button>
-                            <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition cursor-pointer">{litter.is_active ? 'Archiver' : 'Publier'}</button>
-                            <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer">Supprimer</button>
-                          </div>
+                    {/* EN-TÊTE DE LA PORTÉE */}
+                    <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
+                            {litter.is_active ? 'Visible sur site' : 'Archivée'}
+                          </span>
+                          <h3 className="text-xl font-black text-stone-900">{litter.title}</h3>
                         </div>
-
-                        {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
-                        <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                          
-                          {/* COLONNE DE GAUCHE : LES CHIOTS */}
-                          <div>
-                            <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
-                            <div className="space-y-3">
-                              {litter.puppies?.map((pup: any) => (
-                                <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
-                                      {pup.image_url ? (
-                                        <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        pup.gender === 'male' ? '🐕' : '🌸'
-                                      )}
-                                    </div>
-                                    <div>
-                                      <p className="text-sm font-black text-stone-900">{pup.name}</p>
-                                      <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
-                                    </div>
-                                  </div>
-                                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
-                                    {pup.status}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* COLONNE DE DROITE : LES CANDIDATURES */}
-                          <div>
-                            <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
-                            <div className="space-y-4">
-                              {litterCandidatures.length === 0 ? (
-                                <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature assignée à cette portée.</p>
-                              ) : litterCandidatures.map(item => (
-                                <div key={item.id} className="p-5 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-4">
-                                  
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
-                                    <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
-                                      {item.status}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="text-xs text-stone-600 space-y-1">
-                                    <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
-                                    <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
-                                  </div>
-                                  
-                                  {/* Assigner un chiot précis */}
-                                  <div className="pt-3 border-t border-stone-100">
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">Rattacher à un chiot :</label>
-                                    <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-                                      <option value="">Aucun chiot attribué</option>
-                                      {litter.puppies?.map((pup: any) => (
-                                        <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  
-                                  <div className="pt-2 flex flex-wrap gap-2">
-                                    <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
-                                    <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Attente</button>
-                                    <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">Refuser</button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                        <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
                       </div>
-                    );
-                  })}
-
-                  {/* CANDIDATURES NON ASSIGNÉES */}
-                  {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
-                    <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
-                      <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures non assignées</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredAdoption.filter(a => !a.litter_id).map(item => (
-                          <div key={item.id} className="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
-                            <div className="flex justify-between items-center mb-3">
-                               <span className="text-sm font-black text-stone-900">{item.client_name}</span>
-                               <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
-                            </div>
-                            <p className="text-[11px] font-bold text-orange-600 mb-1">Souhait : {renderPreferenceText(item)}</p>
-                            <p className="text-xs text-stone-500 mb-6">{item.living_environment}</p>
-                            
-                            {/* Assigner à une portée */}
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-bold text-stone-400 uppercase">Lier à une portée :</label>
-                              <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl border border-stone-200 focus:outline-none focus:border-orange-500 cursor-pointer">
-                                <option value="">Sélectionner une portée...</option>
-                                {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                              </select>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition cursor-pointer">Modifier</button>
+                        <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition cursor-pointer">{litter.is_active ? 'Archiver' : 'Publier'}</button>
+                        <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer">Supprimer</button>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </>
+
+                    {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
+                    <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                      
+                      {/* COLONNE DE GAUCHE : LES CHIOTS */}
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
+                        <div className="space-y-3">
+                          {litter.puppies?.map((pup: any) => (
+                            <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
+                                  {pup.image_url ? (
+                                    <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    pup.gender === 'male' ? '🐕' : '🌸'
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-black text-stone-900">{pup.name}</p>
+                                  <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
+                                </div>
+                              </div>
+                              <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
+                                {pup.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* COLONNE DE DROITE : LES CANDIDATURES */}
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
+                        <div className="space-y-4">
+                          {litterCandidatures.length === 0 ? (
+                            <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature assignée à cette portée.</p>
+                          ) : litterCandidatures.map(item => (
+                            <div key={item.id} className="p-5 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-4">
+                              
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+                                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+                                  {item.status}
+                                </span>
+                              </div>
+                              
+                              <div className="text-xs text-stone-600 space-y-1">
+                                <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
+                                <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+                              </div>
+                              
+                              {/* Assigner un chiot précis */}
+                              <div className="pt-3 border-t border-stone-100">
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">Rattacher à un chiot :</label>
+                                <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+                                  <option value="">Aucun chiot attribué</option>
+                                  {litter.puppies?.map((pup: any) => (
+                                    <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              
+                              <div className="pt-2 flex flex-wrap gap-2">
+                                <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
+                                <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Attente</button>
+                                <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">Refuser</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

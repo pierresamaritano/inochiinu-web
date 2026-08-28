@@ -20,8 +20,6 @@ interface DogProfile {
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isInCenter, setIsInCenter] = useState(true); 
-  
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
@@ -90,6 +88,9 @@ export default function ElevagePage() {
   const [isImmersionMode, setIsImmersionMode] = useState(false);
   const [modalSlideIndex, setModalSlideIndex] = useState(0); 
   const [selectedPuppy, setSelectedPuppy] = useState<any>(null); 
+  
+  // --- NOUVEAU : SAVOIR SI LE CLIENT A DÉJÀ UNE CANDIDATURE ---
+  const [hasExistingCandidature, setHasExistingCandidature] = useState(false);
   // ------------------------------------------------
 
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
@@ -100,7 +101,7 @@ export default function ElevagePage() {
   const [submitted, setSubmitted] = useState(false);
   
   const [formData, setFormData] = useState({
-    puppyPreference: "indifferent", // 'indifferent', 'male', 'female', 'specific'
+    puppyPreference: "indifferent", 
     puppyId: "",
     livingEnvironment: "Maison avec jardin clôturé",
     motivation: "",
@@ -115,7 +116,22 @@ export default function ElevagePage() {
   useEffect(() => {
     const fetchUserAndLitters = async () => {
       const { data: userData } = await supabase.auth.getSession();
-      setUser(userData.session?.user || null);
+      const currentUser = userData.session?.user || null;
+      setUser(currentUser);
+
+      // Si l'utilisateur est connecté, on vérifie s'il a déjà une candidature
+      if (currentUser) {
+        const { data: existingRequests } = await supabase
+          .from("adoption_requests")
+          .select("id, status")
+          .eq("user_id", currentUser.id)
+          .neq("status", "annulé") // On ignore celles qu'il a annulées
+          .limit(1);
+          
+        if (existingRequests && existingRequests.length > 0) {
+          setHasExistingCandidature(true);
+        }
+      }
 
       const { data: littersData } = await supabase
         .from("litters")
@@ -172,7 +188,8 @@ export default function ElevagePage() {
     handleInitialClick();
   };
 
-  const isCandidatureDisabled = selectedPuppy && selectedPuppy.status !== 'disponible';
+  // On désactive si le chiot n'est pas dispo OU si le client a déjà une candidature
+  const isCandidatureDisabled = hasExistingCandidature || (selectedPuppy && selectedPuppy.status !== 'disponible');
 
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
@@ -200,6 +217,7 @@ export default function ElevagePage() {
         puppy_id: formData.puppyPreference === 'specific' ? formData.puppyId : null
       }]);
       setSubmitted(true);
+      setHasExistingCandidature(true); // On met à jour l'état local pour bloquer les futurs clics
     } catch (err) { console.error(err); } finally { setSubmitting(false); }
   };
 
@@ -265,16 +283,16 @@ export default function ElevagePage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      
-      {/* BACKGROUND ELEMENTS */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
         <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
+        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
       </div>
 
       <LiquidNavbar />
 
+      {/* EN-TÊTE PRINCIPAL */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -363,9 +381,6 @@ export default function ElevagePage() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-900 mt-2 sm:mt-1">
                 Nos reproducteurs LOF
               </h2>
-              <p className="mt-2 text-xs sm:text-sm text-stone-600 font-medium leading-relaxed">
-                Découvrez les informations, la morphologie et l'arbre généalogique certifié de notre étalon et de nos lices.
-              </p>
             </div>
 
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-[70]">
@@ -417,9 +432,8 @@ export default function ElevagePage() {
             </p>
           </div>
 
-          {/* CARROUSEL APPLE DÉDIÉ AU CHIEN */}
           <DogCarousel slides={currentProfile.images} />
-          
+
           {/* PEDIGREE ET ARBRE */}
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
@@ -515,6 +529,7 @@ export default function ElevagePage() {
               </div>
             </div>
           </div>
+
         </div>
       </section>
 
@@ -578,7 +593,8 @@ export default function ElevagePage() {
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
-            <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">            
+          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
+            
             <button onClick={() => setShowLitterModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 z-50 bg-white p-2 rounded-full shadow-sm cursor-pointer transition hover:scale-110">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -610,37 +626,33 @@ export default function ElevagePage() {
             </div>
 
             {/* Corps de la Modale */}
-            <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 flex-1">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 flex-1">
               
-              {/* BLOC HAUT : Carrousel (gauche) et Histoire (droite) */}
-              <div className="flex flex-col lg:flex-row gap-10">
-                {/* Colonne de gauche : Carrousel Standard (1 seule image discrète) */}
-                <div className="w-full lg:w-2/5">
-                  {litterSlides.length > 0 && (
-                    <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
-                      <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      {/* Flèches (pas de légende superposée en mode discret) */}
-                      {litterSlides.length > 1 && (
-                        <>
-                          <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
-                          <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Colonne de droite : Histoire du couple */}
-                <div className="w-full lg:w-3/5">
-                  <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 sm:p-8 rounded-[2rem] border border-stone-100 h-full">
-                    <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
-                    <p className="leading-relaxed whitespace-pre-line">{activeLitters[selectedLitterIndex].story}</p>
+              {/* Colonne de gauche (Carrousel Standard Discret + Histoire) */}
+              <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                
+                {/* Carrousel Standard (1 seule image discrète) */}
+                {litterSlides.length > 0 && (
+                  <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
+                    <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    {litterSlides.length > 1 && (
+                      <>
+                        <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
+                        <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">→</button>
+                      </>
+                    )}
                   </div>
+                )}
+
+                {/* Histoire du couple */}
+                <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 rounded-3xl border border-stone-100 h-full">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
+                  <p className="leading-relaxed whitespace-pre-line">{activeLitters[selectedLitterIndex].story}</p>
                 </div>
               </div>
 
-              {/* BLOC BAS : Chiots ou Fiche Détaillée */}
-              <div className="w-full border-t border-stone-100 pt-8">
+              {/* Colonne de droite (Chiots / Fiche Détaillée) */}
+              <div className="w-full lg:w-2/3">
                 {selectedPuppy ? (
                   // FICHE DÉTAILLÉE DU CHIOT SÉLECTIONNÉ
                   <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
@@ -686,7 +698,7 @@ export default function ElevagePage() {
                     {(!activeLitters[selectedLitterIndex].puppies || activeLitters[selectedLitterIndex].puppies.length === 0) ? (
                        <p className="text-sm text-stone-500 italic bg-stone-50 p-8 rounded-3xl text-center border border-stone-100">Aucun chiot n'a encore été ajouté à cette portée.</p>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         {activeLitters[selectedLitterIndex].puppies.map((pup: any) => (
                           <button key={pup.id} onClick={() => setSelectedPuppy(pup)} className="group flex flex-col text-left bg-white border border-stone-200 rounded-[1.5rem] overflow-hidden hover:border-orange-400 hover:shadow-md transition-all cursor-pointer">
                             <div className="aspect-square w-full bg-stone-100 relative overflow-hidden">
@@ -726,7 +738,11 @@ export default function ElevagePage() {
                       : "bg-gradient-to-tr from-stone-900 to-stone-800 text-white shadow-lg hover:scale-105 cursor-pointer"
                   }`}
                 >
-                  {isCandidatureDisabled ? "Ce chiot est réservé" : "Candidater"}
+                  {hasExistingCandidature 
+                    ? "Vous avez déjà une demande en cours" 
+                    : selectedPuppy && selectedPuppy.status !== 'disponible' 
+                      ? "Ce chiot est déjà réservé" 
+                      : "Candidater"}
                 </button>
               </div>
             </div>
