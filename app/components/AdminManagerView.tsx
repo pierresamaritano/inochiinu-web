@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import AdminLitterForm from "./AdminLitterForm"; // <-- IMPORT DU NOUVEAU FORMULAIRE
 
 interface ActionTarget {
   table: string;
@@ -46,7 +47,8 @@ export default function AdminManagerView() {
   const [pensionList, setPensionList] = useState<any[]>([]);
   const [adoptionList, setAdoptionList] = useState<any[]>([]);
   const [sellerieList, setSellerieList] = useState<any[]>([]);
-  const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  // AJOUT DE L'ONGLET "portees"
+  const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie" | "portees">("education");
 
   // --- FILTRES ---
   const [period, setPeriod] = useState<PeriodOption>("1m");
@@ -96,7 +98,7 @@ export default function AdminManagerView() {
         .select("id, full_name, email, phone")
         .or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`)
         .limit(6);
-      setSearchResults(data || []);
+      searchResults(data || []);
     }, 250);
 
     return () => clearTimeout(timer);
@@ -311,8 +313,20 @@ export default function AdminManagerView() {
                 tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
               }`}
             >
-              Élevage ({filteredAdoption.length})
+              Candidatures Élevage ({filteredAdoption.length})
             </button>
+            
+            {/* NOUVEL ONGLET POUR CRÉER LES PORTÉES */}
+            <button
+              type="button"
+              onClick={() => setTab("portees")}
+              className={`px-4 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all cursor-pointer ${
+                tab === "portees" ? "bg-white text-purple-600 shadow-sm" : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              Créer Portée
+            </button>
+
             <button
               type="button"
               onClick={() => setTab("sellerie")}
@@ -508,7 +522,7 @@ export default function AdminManagerView() {
       )}
 
       {/* =========================================================================
-          5. CONTENU : ÉLEVAGE
+          5. CONTENU : CANDIDATURES ÉLEVAGE
           ========================================================================= */}
       {tab === "elevage" && (
         <div className="space-y-4">
@@ -591,6 +605,15 @@ export default function AdminManagerView() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* =========================================================================
+          NOUVEL ONGLET : CRÉER PORTÉES (ADMIN FORM)
+          ========================================================================= */}
+      {tab === "portees" && (
+        <div className="animate-in fade-in zoom-in duration-300">
+          <AdminLitterForm />
         </div>
       )}
 
