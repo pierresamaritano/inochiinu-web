@@ -194,7 +194,7 @@ export default function AdminManagerView() {
           <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
             <button onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Éducation ({filteredEdu.length})</button>
             <button onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Pension ({filteredPension.length})</button>
-            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Élevage</button>
+            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Élevage ({filteredAdoption.length})</button>
             <button onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Sellerie ({filteredSellerie.length})</button>
           </div>
         </div>
