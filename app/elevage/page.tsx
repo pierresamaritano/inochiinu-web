@@ -589,9 +589,7 @@ export default function ElevagePage() {
               {activeLitters.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {activeLitters.map((litter, idx) => (
-                    <button onClick={() => setSelectedPuppy(null)} aria-label="Fermer" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+                    <button key={litter.id} onClick={() => { setSelectedLitterIndex(idx); setSelectedPuppy(null); setModalSlideIndex(0); }} className={`px-5 py-2.5 rounded-full text-xs font-black whitespace-nowrap transition-all ${selectedLitterIndex === idx ? "bg-orange-500 text-white shadow-md scale-105" : "bg-stone-100 text-stone-500 hover:bg-stone-200"}`}>
                       {litter.title}
                     </button>
                   ))}
@@ -647,8 +645,8 @@ export default function ElevagePage() {
                 {selectedPuppy ? (
                   // FICHE DÉTAILLÉE DU CHIOT SÉLECTIONNÉ
                   <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
-                    <button onClick={() => setSelectedPuppy(null)} className="absolute top-6 right-6 text-[10px] font-bold text-stone-500 hover:text-stone-900 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-sm transition cursor-pointer">
-                      ← Retour aux chiots
+                    <button onClick={() => setSelectedPuppy(null)} aria-label="Fermer" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     
                     <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left mt-4 sm:mt-0">
