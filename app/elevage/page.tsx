@@ -618,15 +618,14 @@ export default function ElevagePage() {
               
               {/* BLOC HAUT : CARROUSEL & HISTOIRE */}
               <div className="flex flex-col lg:flex-row gap-10">
-                {/* Colonne de gauche (Carrousel Standard Discret) */}
-                <div className="w-full lg:w-2/5">
+              {/* Colonne de gauche (Carrousel Standard Discret - Collant au scroll) */}
+              <div className="w-full lg:w-2/5">
+                <div className="sticky top-6">
                   {litterSlides.length > 0 && (
                     <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group">
                       <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                      <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block">{litterSlides[modalSlideIndex].tag}</span>
-                        <span className="text-xs font-bold text-stone-800 truncate block mt-0.5">{litterSlides[modalSlideIndex].caption}</span>
-                      </div>
+                      
+                      {/* Flèches de navigation uniquement si plus d'une image */}
                       {litterSlides.length > 1 && (
                         <>
                           <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
@@ -636,6 +635,7 @@ export default function ElevagePage() {
                     </div>
                   )}
                 </div>
+              </div>
 
                 {/* Colonne de droite (Histoire du couple) */}
                 <div className="w-full lg:w-3/5 flex flex-col">
