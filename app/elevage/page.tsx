@@ -115,7 +115,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- ÉTATS POUR LA PORTÉE ---
+  // --- NOUVEAUX ÉTATS POUR LA PORTÉE ---
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
   const [showLitterModal, setShowLitterModal] = useState(false);
   const [isImmersionMode, setIsImmersionMode] = useState(false);
@@ -309,7 +309,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE MODIFIÉ */}
+      {/* BANDEAU CANDIDATURE */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -614,11 +614,12 @@ export default function ElevagePage() {
             </div>
 
             {/* Corps de la Modale */}
-            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 relative">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 relative">
               
-              {/* Colonne de gauche (Carrousel Standard Discret - Collant au scroll) */}
-              <div className="w-full lg:w-2/5">
-                <div className="sticky top-6">
+              {/* BLOC HAUT : CARROUSEL & HISTOIRE */}
+              <div className="flex flex-col lg:flex-row gap-10">
+                {/* Colonne de gauche (Carrousel Standard Discret) */}
+                <div className="w-full lg:w-2/5">
                   {litterSlides.length > 0 && (
                     <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group">
                       <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -635,27 +636,28 @@ export default function ElevagePage() {
                     </div>
                   )}
                 </div>
+
+                {/* Colonne de droite (Histoire du couple) */}
+                <div className="w-full lg:w-3/5 flex flex-col">
+                  <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 sm:p-8 rounded-[2rem] border border-stone-100 h-full">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire de cette portée</h4>
+                    <p className="leading-relaxed whitespace-pre-line">{activeLitters[0].story}</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Colonne de droite (Histoire + Chiots / Fiche Détaillée) */}
-              <div className="w-full lg:w-3/5 flex flex-col gap-8">
-                
-                {/* Histoire du couple (Déplacée à droite) */}
-                <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 sm:p-8 rounded-[2rem] border border-stone-100">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire de cette portée</h4>
-                  <p className="leading-relaxed whitespace-pre-line">{activeLitters[0].story}</p>
-                </div>
-
+              {/* BLOC BAS : CHIOTS / FICHE DÉTAILLÉE */}
+              <div className="w-full pt-4 border-t border-stone-100">
                 {selectedPuppy ? (
                   // FICHE DÉTAILLÉE DU CHIOT SÉLECTIONNÉ
-                  <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
+                  <div className="max-w-4xl mx-auto bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
                     
                     {/* CROIX DE RETOUR REMPLACANT LE TEXTE POUR LE MOBILE */}
                     <button onClick={() => setSelectedPuppy(null)} aria-label="Retour aux chiots" className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center justify-center w-8 h-8 bg-white border border-stone-200 shadow-sm rounded-full text-stone-500 hover:text-stone-900 transition cursor-pointer z-20">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                     
-                    <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left mt-4 sm:mt-0">
                       <div className="w-40 h-40 sm:w-48 sm:h-48 shrink-0 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-stone-100">
                         {selectedPuppy.image_url ? (
                           <img src={selectedPuppy.image_url} alt={selectedPuppy.name} className="w-full h-full object-cover" />
@@ -700,7 +702,7 @@ export default function ElevagePage() {
                     {(!activeLitters[0].puppies || activeLitters[0].puppies.length === 0) ? (
                        <p className="text-sm text-stone-500 italic bg-stone-50 p-8 rounded-3xl text-center border border-stone-100">Aucun chiot n'a encore été ajouté à cette portée.</p>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {activeLitters[0].puppies.map((pup: any) => (
                           <button key={pup.id} onClick={() => setSelectedPuppy(pup)} className="group flex flex-col text-left bg-white border border-stone-200 rounded-[1.5rem] overflow-hidden hover:border-orange-400 hover:shadow-md transition-all cursor-pointer">
                             <div className="aspect-square w-full bg-stone-100 relative overflow-hidden">
