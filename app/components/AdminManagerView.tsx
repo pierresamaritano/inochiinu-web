@@ -98,7 +98,7 @@ export default function AdminManagerView() {
         .select("id, full_name, email, phone")
         .or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`)
         .limit(6);
-      searchResults(data || []);
+      setSearchResults(data || []);
     }, 250);
 
     return () => clearTimeout(timer);
