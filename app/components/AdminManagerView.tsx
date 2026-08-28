@@ -4,11 +4,31 @@ import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import AdminLitterForm from "./AdminLitterForm";
 
-interface ActionTarget { table: string; id: string; newStatus: string; title: string; clientName: string; currentNote?: string; }
+interface ActionTarget {
+  table: string;
+  id: string;
+  newStatus: string;
+  title: string;
+  clientName: string;
+  currentNote?: string;
+}
+
 type PeriodOption = "1m" | "6m" | "1y";
 
-interface Dog { id: string; user_id: string; name: string; breed: string; is_vaccinated: boolean; }
-interface ClientProfile { id: string; full_name: string; email: string; phone?: string; }
+interface Dog {
+  id: string;
+  user_id: string;
+  name: string;
+  breed: string;
+  is_vaccinated: boolean;
+}
+
+interface ClientProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+}
 
 export default function AdminManagerView() {
   const supabase = createBrowserClient(
@@ -42,7 +62,7 @@ export default function AdminManagerView() {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
-      // On demande à Supabase de récupérer aussi le nom du chiot lié (puppies(name))
+      // On demande à Supabase de récupérer aussi le nom du chiot lié si existant (puppies(name))
       supabase.from("adoption_requests").select("*, puppies(name)").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
@@ -67,17 +87,23 @@ export default function AdminManagerView() {
   }, [clientSearchQuery, selectedFilterClient, supabase]);
 
   const handleFilterClient = async (client: ClientProfile) => {
-    setSelectedFilterClient(client); setClientSearchQuery(`${client.full_name || client.email}`); setSearchResults([]);
+    setSelectedFilterClient(client);
+    setClientSearchQuery(`${client.full_name || client.email}`);
+    setSearchResults([]);
     const { data } = await supabase.from("dogs").select("*").eq("user_id", client.id);
-    setClientDogs(data || []); setSelectedFilterDogId("all");
+    setClientDogs(data || []);
+    setSelectedFilterDogId("all");
   };
 
-  const resetClientFilter = () => { setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]); };
+  const resetClientFilter = () => {
+    setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
+  };
 
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
-      const diffDays = (now - new Date(item.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24);
+      const itemDate = new Date(item.created_at || Date.now()).getTime();
+      const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
       if (period === "1m" && diffDays > 31) return false;
       if (period === "6m" && diffDays > 183) return false;
       if (period === "1y" && diffDays > 365) return false;
@@ -93,38 +119,47 @@ export default function AdminManagerView() {
   const filteredSellerie = useMemo(() => applyFilters(sellerieList), [sellerieList, period, selectedFilterClient, selectedFilterDogId]);
 
   const openAction = (table: string, id: string, newStatus: string, title: string, clientName: string, currentNote?: string) => {
-    setActionModal({ table, id, newStatus, title, clientName, currentNote }); setNoteText(currentNote || "");
+    setActionModal({ table, id, newStatus, title, clientName, currentNote });
+    setNoteText(currentNote || "");
   };
 
   const handleConfirmAction = async () => {
-    if (!actionModal) return; setUpdating(true);
+    if (!actionModal) return;
+    setUpdating(true);
     try {
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
-      await fetchAll(); setActionModal(null);
-    } catch (err: any) { alert(`Erreur : ${err.message}`); } finally { setUpdating(false); }
+      await fetchAll();
+      setActionModal(null);
+    } catch (err: any) {
+      alert(`Erreur : ${err.message}`);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const toggleLitterStatus = async (id: string, currentStatus: boolean) => {
-    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id); fetchAll();
+    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id);
+    fetchAll();
   };
 
   const deleteLitter = async (id: string) => {
     if(confirm("Êtes-vous sûr de vouloir supprimer cette portée et tous ses chiots ?")) {
-       await supabase.from("litters").delete().eq("id", id); fetchAll();
+       await supabase.from("litters").delete().eq("id", id);
+       fetchAll();
     }
   };
 
   const assignToLitter = async (candidatureId: string, litterId: string) => {
-    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId); fetchAll();
+    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId);
+    fetchAll();
   };
 
-  // NOUVEAU : Assigner manuellement un chiot à un client
   const assignToPuppy = async (candidatureId: string, puppyId: string) => {
-    await supabase.from("adoption_requests").update({ puppy_id: puppyId || null }).eq("id", candidatureId); fetchAll();
+    await supabase.from("adoption_requests").update({ puppy_id: puppyId || null }).eq("id", candidatureId); 
+    fetchAll();
   };
 
-  // Helper pour afficher le texte de préférence
   const renderPreferenceText = (item: any) => {
     if (item.puppy_preference === 'specific' && item.puppies?.name) return `Ce chiot : ${item.puppies.name}`;
     if (item.puppy_preference === 'male') return "Un mâle";
@@ -189,13 +224,14 @@ export default function AdminManagerView() {
           {filteredEdu.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredEdu.map((item) => (
              <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-orange-600">{item.client_name}</span></div>
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span></div>
                 <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
                 <p className="text-xs text-stone-500">{item.objectives}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {item.status !== "confirmé" && <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Confirmer</button>}
-                <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
+                {item.status !== "confirmé" && <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Confirmer</button>}
+                <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
               </div>
             </div>
           ))}
@@ -208,20 +244,21 @@ export default function AdminManagerView() {
            {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredPension.map((item) => (
             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name}</span></div>
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name} • {item.client_phone}</span></div>
                 <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
                 <p className="text-xs text-stone-500">Du {item.start_date} au {item.end_date}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {item.status !== "confirmé" && <button onClick={() => openAction("pension_requests", item.id, "confirmé", item.dog_name, item.client_name)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
-                <button onClick={() => openAction("pension_requests", item.id, "annulé", item.dog_name, item.client_name)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
+                {item.status !== "confirmé" && <button onClick={() => openAction("pension_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
+                <button onClick={() => openAction("pension_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE (INTÉGRÉ & UNIFIÉ) */}
+      {/* 5. CONTENU : ÉLEVAGE */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
@@ -237,7 +274,6 @@ export default function AdminManagerView() {
             </div>
           )}
 
-          {/* SOUS-ONGLETS ÉLEVAGE */}
           {!showLitterForm && (
             <div className="flex gap-4 border-b border-stone-200">
               <button onClick={() => setElevageTab("candidatures")} className={`pb-3 text-xs font-black uppercase tracking-wider transition-colors border-b-2 ${elevageTab === "candidatures" ? "border-orange-500 text-orange-600" : "border-transparent text-stone-400 hover:text-stone-700"}`}>
@@ -251,11 +287,14 @@ export default function AdminManagerView() {
 
           {showLitterForm ? (
             <div className="border border-stone-200 rounded-[2.5rem] p-4 bg-white/50">
-              <AdminLitterForm initialData={editingLitter} onSuccess={() => { setShowLitterForm(false); fetchAll(); }} onCancel={() => setShowLitterForm(false)} />
+              <AdminLitterForm 
+                initialData={editingLitter} 
+                onSuccess={() => { setShowLitterForm(false); fetchAll(); }} 
+                onCancel={() => setShowLitterForm(false)} 
+              />
             </div>
           ) : (
             <>
-              {/* VUE CANDIDATURES GLOBALES */}
               {elevageTab === "candidatures" && (
                 <div className="space-y-4">
                   {filteredAdoption.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune candidature trouvée.</div> : filteredAdoption.map((item) => (
@@ -267,7 +306,7 @@ export default function AdminManagerView() {
                         </div>
                         <p className="text-sm font-bold text-stone-900 mt-1">Préférence : <span className="text-orange-600">{renderPreferenceText(item)}</span></p>
                         <p className="text-xs text-stone-500 mt-1">Cadre : {item.living_environment}</p>
-                        {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message client :</strong> {item.admin_notes}</div>}
+                        {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
                         {item.status === "annulé" ? <span className="text-xs font-bold text-stone-400 italic px-3 py-1 bg-stone-50 rounded-full border border-stone-100">Candidature annulée</span> : <>
@@ -281,7 +320,6 @@ export default function AdminManagerView() {
                 </div>
               )}
 
-              {/* VUE GESTION DES PORTÉES */}
               {elevageTab === "portees" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
@@ -290,9 +328,10 @@ export default function AdminManagerView() {
                     const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
                     
                     return (
-                      <div key={litter.id} className="bg-white border border-stone-200 rounded-[2rem] shadow-sm overflow-hidden">
+                      <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
+                        
                         {/* EN-TÊTE DE LA PORTÉE */}
-                        <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start gap-4">
+                        <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                           <div>
                             <div className="flex items-center gap-3 mb-1.5">
                               <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
@@ -303,29 +342,35 @@ export default function AdminManagerView() {
                             <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition">Modifier</button>
-                            <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition">{litter.is_active ? 'Archiver' : 'Publier'}</button>
-                            <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition">Supprimer</button>
+                            <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition cursor-pointer">Modifier</button>
+                            <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition cursor-pointer">{litter.is_active ? 'Archiver' : 'Publier'}</button>
+                            <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer">Supprimer</button>
                           </div>
                         </div>
 
                         {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
                         <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                           
-                          {/* COLONNE CHIOTS */}
+                          {/* COLONNE DE GAUCHE : LES CHIOTS */}
                           <div>
-                            <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
+                            <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                             <div className="space-y-3">
                               {litter.puppies?.map((pup: any) => (
-                                <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-xl bg-stone-50 border border-stone-100">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xl bg-white p-1.5 rounded-lg shadow-sm border border-stone-100">{pup.gender === 'male' ? '🐕' : '🌸'}</span>
+                                <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
+                                      {pup.image_url ? (
+                                        <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        pup.gender === 'male' ? '🐕' : '🌸'
+                                      )}
+                                    </div>
                                     <div>
-                                      <p className="text-sm font-bold text-stone-800">{pup.name}</p>
-                                      <p className="text-[10px] text-stone-400 font-medium uppercase mt-0.5">{pup.image_tag || 'Sans tag'}</p>
+                                      <p className="text-sm font-black text-stone-900">{pup.name}</p>
+                                      <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
                                     </div>
                                   </div>
-                                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-700' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
                                     {pup.status}
                                   </span>
                                 </div>
@@ -333,30 +378,31 @@ export default function AdminManagerView() {
                             </div>
                           </div>
 
-                          {/* COLONNE CANDIDATURES LIÉES */}
+                          {/* COLONNE DE DROITE : LES CANDIDATURES */}
                           <div>
-                            <h4 className="text-xs font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
+                            <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
                             <div className="space-y-4">
                               {litterCandidatures.length === 0 ? (
-                                <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature directement assignée à cette portée.</p>
+                                <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature assignée à cette portée.</p>
                               ) : litterCandidatures.map(item => (
-                                <div key={item.id} className="p-4 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-3">
+                                <div key={item.id} className="p-5 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-4">
+                                  
                                   <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-black uppercase text-orange-600">{item.client_name}</span>
-                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+                                    <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+                                    <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
                                       {item.status}
                                     </span>
                                   </div>
                                   
-                                  <div className="text-xs text-stone-600">
+                                  <div className="text-xs text-stone-600 space-y-1">
                                     <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
-                                    <p className="mt-1"><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+                                    <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
                                   </div>
                                   
                                   {/* Assigner un chiot précis */}
-                                  <div className="pt-2 border-t border-stone-100">
-                                    <label className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Rattacher à un chiot :</label>
-                                    <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-[11px] rounded-lg border border-stone-200 bg-stone-50 focus:border-orange-500 cursor-pointer">
+                                  <div className="pt-3 border-t border-stone-100">
+                                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">Rattacher à un chiot :</label>
+                                    <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
                                       <option value="">Aucun chiot attribué</option>
                                       {litter.puppies?.map((pup: any) => (
                                         <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
@@ -365,9 +411,9 @@ export default function AdminManagerView() {
                                   </div>
                                   
                                   <div className="pt-2 flex flex-wrap gap-2">
-                                    <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition">Accepter</button>
-                                    <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition">Attente</button>
-                                    <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition">Refuser</button>
+                                    <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
+                                    <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Attente</button>
+                                    <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">Refuser</button>
                                   </div>
                                 </div>
                               ))}
@@ -380,21 +426,22 @@ export default function AdminManagerView() {
 
                   {/* CANDIDATURES NON ASSIGNÉES */}
                   {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
-                    <div className="mt-12 p-6 rounded-[2rem] bg-orange-50/50 border border-orange-100">
-                      <h3 className="text-lg font-black text-stone-900 mb-4">Candidatures non assignées</h3>
+                    <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
+                      <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures non assignées</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {filteredAdoption.filter(a => !a.litter_id).map(item => (
-                          <div key={item.id} className="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
-                            <div className="flex justify-between items-center mb-2">
-                               <span className="text-xs font-black text-stone-900">{item.client_name}</span>
+                          <div key={item.id} className="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                            <div className="flex justify-between items-center mb-3">
+                               <span className="text-sm font-black text-stone-900">{item.client_name}</span>
                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
                             </div>
                             <p className="text-[11px] font-bold text-orange-600 mb-1">Souhait : {renderPreferenceText(item)}</p>
-                            <p className="text-[11px] text-stone-500 mb-4">{item.living_environment}</p>
+                            <p className="text-xs text-stone-500 mb-6">{item.living_environment}</p>
                             
+                            {/* Assigner à une portée */}
                             <div className="flex flex-col gap-2">
                               <label className="text-[10px] font-bold text-stone-400 uppercase">Lier à une portée :</label>
-                              <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-3 py-2 text-xs rounded-xl border border-stone-200 focus:border-orange-500 cursor-pointer">
+                              <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl border border-stone-200 focus:outline-none focus:border-orange-500 cursor-pointer">
                                 <option value="">Sélectionner une portée...</option>
                                 {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                               </select>
@@ -417,9 +464,15 @@ export default function AdminManagerView() {
           {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune commande trouvée.</div> : filteredSellerie.map((item) => (
              <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name}</span></div>
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name} • {item.client_phone}</span></div>
                 <h4 className="text-base font-black mt-1">{item.item_type}</h4>
                 <p className="text-xs text-stone-500">{item.color_finish} • {item.dog_size}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {item.status !== "expédié" && <button onClick={() => openAction("sellerie_orders", item.id, "expédié", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Expédier</button>}
+                {item.status !== "en_atelier" && <button onClick={() => openAction("sellerie_orders", item.id, "en_atelier", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-black">En atelier</button>}
+                <button onClick={() => openAction("sellerie_orders", item.id, "annulé", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Annuler</button>
               </div>
             </div>
           ))}
@@ -429,14 +482,21 @@ export default function AdminManagerView() {
       {/* 7. MODALE ADMINISTRATIVE D'ACTION */}
       {actionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => !updating && setActionModal(null)} />
-          <div className="relative w-full max-w-lg rounded-[2.5rem] bg-[#FDFCF8] p-8 shadow-2xl">
-            <button onClick={() => setActionModal(null)} className="absolute top-6 right-6 text-stone-600">✕</button>
-            <h3 className="text-xl font-black text-stone-900">Passer en statut : <span className="text-orange-600">"{actionModal.newStatus}"</span></h3>
-            <textarea rows={3} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Message au client..." className="w-full mt-4 px-4 py-3 rounded-2xl border text-xs focus:border-orange-500" />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => !updating && setActionModal(null)} />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-8 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setActionModal(null)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 cursor-pointer">✕</button>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">Action administrative</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1">Passer en statut : <span className="capitalize text-orange-600">"{actionModal.newStatus}"</span></h3>
+              <p className="text-xs text-stone-500 mt-1">Pour {actionModal.title} ({actionModal.clientName})</p>
+            </div>
+            <div className="mt-6">
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Message explicatif pour le client (affiché sur son espace)</label>
+              <textarea rows={3} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Ex: Rendez-vous validé..." className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
+            </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setActionModal(null)} className="px-5 py-2.5 text-xs font-bold text-stone-600 bg-stone-100 rounded-full">Annuler</button>
-              <button onClick={handleConfirmAction} className="px-6 py-2.5 text-xs font-bold text-white bg-stone-900 rounded-full">{updating ? "Patientez..." : "Confirmer"}</button>
+              <button onClick={() => setActionModal(null)} disabled={updating} className="px-5 py-2.5 rounded-full text-xs font-bold text-stone-600 hover:bg-stone-100 transition-all cursor-pointer">Annuler</button>
+              <button onClick={handleConfirmAction} disabled={updating} className="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50">{updating ? "Mise à jour..." : "Confirmer et enregistrer"}</button>
             </div>
           </div>
         </div>
