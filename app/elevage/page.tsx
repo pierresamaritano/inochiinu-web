@@ -20,6 +20,8 @@ interface DogProfile {
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInCenter, setIsInCenter] = useState(true); 
+  
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
@@ -35,7 +37,8 @@ function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
     const distance = touchStartX.current - touchEndX.current;
     if (distance > 50) nextSlide();
     if (distance < -50) prevSlide();
-    touchStartX.current = null; touchEndX.current = null;
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   if (!slides || slides.length === 0) return null;
@@ -82,25 +85,26 @@ export default function ElevagePage() {
 
   // --- ÉTATS POUR LES PORTÉES & POP-UP ---
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
-  const [selectedLitterIndex, setSelectedLitterIndex] = useState(0);
+  const [selectedLitterIndex, setSelectedLitterIndex] = useState(0); 
   const [showLitterModal, setShowLitterModal] = useState(false);
   const [isImmersionMode, setIsImmersionMode] = useState(false);
   const [modalSlideIndex, setModalSlideIndex] = useState(0); 
   const [selectedPuppy, setSelectedPuppy] = useState<any>(null); 
   // ------------------------------------------------
 
-  // Sélecteur de reproducteur
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
   const [isDogMenuOpen, setIsDogMenuOpen] = useState(false);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
+  // FORMULAIRE MIS À JOUR (Préférence chiot)
   const [formData, setFormData] = useState({
     puppyPreference: "indifferent", // 'indifferent', 'male', 'female', 'specific'
     puppyId: "",
-    livingEnvironment: "Maison avec jardin clôturé", 
-    motivation: "", 
+    livingEnvironment: "Maison avec jardin clôturé",
+    motivation: "",
     clientPhone: "",
   });
 
@@ -148,25 +152,26 @@ export default function ElevagePage() {
 
   const handleDiscoverClick = () => {
     if (activeLitters.length > 0) {
-      setSelectedPuppy(null); 
+      setSelectedPuppy(null);
       setModalSlideIndex(0);
       setSelectedLitterIndex(0); 
       setShowLitterModal(true);
     } else {
-      handleApplyForLitter();
+      // Aucune portée -> Formulaire standard "Indifférent"
+      setFormData(prev => ({ ...prev, puppyPreference: "indifferent", puppyId: "" }));
+      handleInitialClick();
     }
   };
 
-  // Candidature générale (depuis le bouton de la portée)
-  const handleApplyForLitter = () => {
-    setFormData(prev => ({ ...prev, puppyPreference: "indifferent", puppyId: "" }));
-    setShowLitterModal(false);
-    handleInitialClick();
-  };
-
-  // Candidature spécifique (depuis la fiche d'un chiot)
-  const handleApplyForSpecificPuppy = (pup: any) => {
-    setFormData(prev => ({ ...prev, puppyPreference: "specific", puppyId: pup.id }));
+  // UNIQUE ACTION POUR CANDIDATER
+  const handleCandidater = () => {
+    // Si on regarde la fiche d'un chiot disponible, on le présélectionne
+    if (selectedPuppy && selectedPuppy.status === 'disponible') {
+      setFormData(prev => ({ ...prev, puppyPreference: "specific", puppyId: selectedPuppy.id }));
+    } else {
+      // Sinon, candidature générale pour la portée
+      setFormData(prev => ({ ...prev, puppyPreference: "indifferent", puppyId: "" }));
+    }
     setShowLitterModal(false);
     handleInitialClick();
   };
@@ -174,8 +179,12 @@ export default function ElevagePage() {
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
   const handleActionClick = () => { if (user) { setIsFormOpen(true); } else { setIsAuthOpen(true); } };
-  const handleGoogleLogin = async () => { try { setAuthLoading(true); await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=/elevage` } }); } catch (err) { console.error(err); setAuthLoading(false); } };
   
+  const handleGoogleLogin = async () => {
+    try { setAuthLoading(true); await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=/elevage` } }); } 
+    catch (err) { console.error(err); setAuthLoading(false); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); if (!user) return; setSubmitting(true);
     try {
@@ -184,6 +193,7 @@ export default function ElevagePage() {
         client_name: user.user_metadata?.full_name || "Client", 
         client_email: user.email, 
         client_phone: formData.clientPhone, 
+        preferred_breed: "Akita Inu LOF", 
         living_environment: formData.livingEnvironment, 
         motivation: formData.motivation, 
         status: "en_attente", 
@@ -195,16 +205,55 @@ export default function ElevagePage() {
     } catch (err) { console.error(err); } finally { setSubmitting(false); }
   };
 
-  // (Je réduis le code des chiens ici pour la lisibilité, vous gardez vos profils Baïko/Lice1 habituels)
-  const dogs: DogProfile[] = [
-    { id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No", fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021", images: [{ src: "/hero-akita.jpg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." }, { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." }, { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }], titles: "Lignées de Champions Internationaux & Japonais", description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.", father: { name: "Katsunori Go Senshi Shimai", origin: "Import Pologne", titles: "CH Junior France • Titré CACIB", desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha.", gParents: [{ role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" }, { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" }], ggParents: ["Hiryuu Go Rokkuhando Touwa", "Aihime Go Amakusa Tajiri", "Kou Zan Go Shun'You Kensha", "Lignée Senshi No Inu"], }, mother: { name: "CH. Kazan No Teïumi", origin: "Affixe Kazan No", titles: "Championne de France • Junior World Winner", desc: "Fille directe de CH. Kazan No Rumi.", gParents: [{ role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha" }, { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi" }], ggParents: ["Kanon Go Tamashi Kensha", "Lignée Sara Hana", "Kobe No Minami Go Tamashi", "CH. Nayakiwa Go Tokimitsu"], }, },
-    { id: "lice-1", name: "Lice 1 (À venir)", badgeName: "Lice 1", role: "Lice", affixe: "Affixe Officiel LOF", fullName: "Lice Akita 1", color: "Bringé (Tora)", height: "62 cm", weight: "28 kg", birthDate: "À venir", images: [{ src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." }, { src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 douceur", tag: "Douceur", caption: "Instinct maternel très prononcé." }, { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 parc", tag: "Vitalité", caption: "Chienne très dynamique et joueuse." }], titles: "Sélection LOF & Standard Japonais", description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.", father: { name: "Père de la Lice 1", origin: "Lignée Sélectionnée", titles: "Certifié LOF", desc: "Excellente tête et tempérament stable.", gParents: [{ role: "Grand-Père Paternel", name: "Paternel L1" }, { role: "Grand-Mère Paternelle", name: "Maternelle L1" }], ggParents: ["Arrière G.P 1", "Arrière G.M 1", "Arrière G.P 2", "Arrière G.M 2"], }, mother: { name: "Mère de la Lice 1", origin: "Lignée Reconnue", titles: "Excellente en Exposition", desc: "Lignée indemne de dysplasie.", gParents: [{ role: "Grand-Père Maternel", name: "Paternel L1" }, { role: "Grand-Mère Maternelle", name: "Maternelle L1" }], ggParents: ["Arrière G.P 3", "Arrière G.M 3", "Arrière G.P 4", "Arrière G.M 4"], }, }
-  ];
-
   const slides = [
     { title: "Lignées Japonaises & Sélection LOF", subtitle: "Génétique rigoureusement testée pour des chiots sains.", tag: "Excellence", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
     { title: "Socialisation Précoce Bienveillante", subtitle: "Éveil sensoriel en famille dès les premières semaines.", tag: "Développement", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
     { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
+  ];
+
+  const dogs: DogProfile[] = [
+    {
+      id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No",
+      fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021",
+      images: [
+        { src: "/hero-akita.jpg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
+        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." },
+        { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
+      ],
+      titles: "Lignées de Champions Internationaux & Japonais",
+      description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
+      father: {
+        name: "Katsunori Go Senshi Shimai", origin: "Import Pologne", titles: "CH Junior France • Titré CACIB", desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha.",
+        gParents: [{ role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" }, { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" }],
+        ggParents: ["Hiryuu Go Rokkuhando Touwa", "Aihime Go Amakusa Tajiri", "Kou Zan Go Shun'You Kensha", "Lignée Senshi No Inu"],
+      },
+      mother: {
+        name: "CH. Kazan No Teïumi", origin: "Affixe Kazan No", titles: "Championne de France • Junior World Winner", desc: "Fille directe de CH. Kazan No Rumi.",
+        gParents: [{ role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha" }, { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi" }],
+        ggParents: ["Kanon Go Tamashi Kensha", "Lignée Sara Hana", "Kobe No Minami Go Tamashi", "CH. Nayakiwa Go Tokimitsu"],
+      },
+    },
+    {
+      id: "lice-1", name: "Lice 1 (À venir)", badgeName: "Lice 1", role: "Lice", affixe: "Affixe Officiel LOF",
+      fullName: "Lice Akita 1", color: "Bringé (Tora)", height: "62 cm", weight: "28 kg", birthDate: "À venir",
+      images: [
+        { src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." },
+        { src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 douceur", tag: "Douceur", caption: "Instinct maternel très prononcé." },
+        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 parc", tag: "Vitalité", caption: "Chienne très dynamique et joueuse." }
+      ],
+      titles: "Sélection LOF & Standard Japonais",
+      description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.",
+      father: {
+        name: "Père de la Lice 1", origin: "Lignée Sélectionnée", titles: "Certifié LOF", desc: "Excellente tête et tempérament stable.",
+        gParents: [{ role: "Grand-Père Paternel", name: "Paternel L1" }, { role: "Grand-Mère Paternelle", name: "Maternelle L1" }],
+        ggParents: ["Arrière G.P 1", "Arrière G.M 1", "Arrière G.P 2", "Arrière G.M 2"],
+      },
+      mother: {
+        name: "Mère de la Lice 1", origin: "Lignée Reconnue", titles: "Excellente en Exposition", desc: "Lignée indemne de dysplasie.",
+        gParents: [{ role: "Grand-Père Maternel", name: "Paternel L1" }, { role: "Grand-Mère Maternelle", name: "Maternelle L1" }],
+        ggParents: ["Arrière G.P 3", "Arrière G.M 3", "Arrière G.P 4", "Arrière G.M 4"],
+      },
+    }
   ];
 
   useEffect(() => {
@@ -218,16 +267,16 @@ export default function ElevagePage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      
-      {/* BACKGROUND ELEMENTS */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
         <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
+        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
       </div>
 
       <LiquidNavbar />
 
+      {/* EN-TÊTE PRINCIPAL */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -263,7 +312,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE MODIFIÉ POUR OUVRIR LE POP-UP PORTÉE */}
+      {/* BANDEAU CANDIDATURE MODIFIÉ (Bouton "Découvrir" uniquement) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -276,7 +325,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION REPRODUCTEURS LOF */}
+      {/* SECTION NOS REPRODUCTEURS LOF */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
@@ -351,7 +400,7 @@ export default function ElevagePage() {
           ========================================================================= */}
       {isImmersionMode && activeLitters.length > 0 && (
         <div className="fixed inset-0 z-[200] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-500">
-          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer">
+          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer shadow-xl">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           <div className="absolute top-8 left-8 z-[250]">
@@ -367,13 +416,13 @@ export default function ElevagePage() {
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
-          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl">
+          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
             <button onClick={() => setShowLitterModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 z-50 bg-white p-2 rounded-full shadow-sm cursor-pointer transition hover:scale-110">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
             {/* En-tête de la Modale */}
-            <div className="p-8 sm:p-12 pb-6 border-b border-stone-100 flex flex-col gap-6">
+            <div className="p-8 sm:p-12 pb-6 border-b border-stone-100 flex flex-col gap-6 shrink-0">
               {activeLitters.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {activeLitters.map((litter, idx) => (
@@ -398,13 +447,15 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* Corps de la Modale */}
-            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10">
+            {/* Corps de la Modale (Flexible pour pousser le footer en bas si nécessaire) */}
+            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 flex-1">
               
-              {/* Colonne de gauche */}
+              {/* Colonne de gauche (Carrousel Standard Discret + Histoire) */}
               <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                
+                {/* Carrousel Standard (1 seule image discrète) */}
                 {litterSlides.length > 0 && (
-                  <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group">
+                  <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
                     <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md p-3 rounded-xl border border-white/50 shadow-sm">
                       <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 block">{litterSlides[modalSlideIndex].tag}</span>
@@ -418,15 +469,12 @@ export default function ElevagePage() {
                     )}
                   </div>
                 )}
+
+                {/* Histoire du couple */}
                 <div className="prose prose-sm text-stone-600 bg-stone-50 p-6 rounded-3xl border border-stone-100">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-stone-400 mb-2">L'histoire</h4>
                   <p className="leading-relaxed whitespace-pre-line">{activeLitters[selectedLitterIndex].story}</p>
                 </div>
-                
-                {/* Bouton de candidature générale */}
-                <button onClick={handleApplyForLitter} className="w-full py-3.5 bg-stone-100 hover:bg-stone-200 text-stone-600 font-black text-[11px] uppercase tracking-wider rounded-xl transition-all cursor-pointer">
-                  Candidature spontanée
-                </button>
               </div>
 
               {/* Colonne de droite (Chiots / Fiche Détaillée) */}
@@ -463,26 +511,11 @@ export default function ElevagePage() {
                         <p className="text-sm text-stone-600 leading-relaxed bg-white/50 p-4 rounded-2xl border border-orange-50/50">
                           {selectedPuppy.image_caption || "Aucune description détaillée pour ce chiot."}
                         </p>
-                        
-                        {/* Bouton de candidature uniquement s'il est disponible */}
-                        {selectedPuppy.status === 'disponible' ? (
-                          <div className="pt-4">
-                            <button onClick={() => handleApplyForSpecificPuppy(selectedPuppy)} className="w-full sm:w-auto px-8 py-4 bg-gradient-to-tr from-stone-900 to-stone-800 text-white font-black text-xs uppercase tracking-wider rounded-full shadow-lg hover:scale-105 transition-all cursor-pointer">
-                              Candidater pour ce chiot
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="pt-4">
-                            <p className="text-xs font-bold text-red-600 bg-white px-4 py-2 rounded-xl inline-block border border-red-100">
-                              Ce chiot a déjà trouvé sa famille.
-                            </p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  // GRILLE DES CHIOTS
+                  // GRILLE DES CHIOTS (GALERIE)
                   <div>
                     <h4 className="text-sm font-black uppercase tracking-wider text-stone-900 mb-6 flex items-center gap-2">
                       Découvrez les chiots <span className="text-stone-400 font-bold text-xs">({activeLitters[selectedLitterIndex].puppies?.length || 0})</span>
@@ -518,11 +551,21 @@ export default function ElevagePage() {
                 )}
               </div>
             </div>
+
+            {/* LE BOUTON UNIQUE DE CANDIDATURE (Bas de la pop-up) */}
+            <div className="p-8 sm:p-12 pt-0 shrink-0">
+              <div className="border-t border-stone-100 pt-8 flex justify-center">
+                <button onClick={handleCandidater} className="px-10 py-4 bg-gradient-to-tr from-stone-900 to-stone-800 text-white font-black text-xs sm:text-sm uppercase tracking-wider rounded-full shadow-lg hover:scale-105 transition-all cursor-pointer flex items-center gap-3">
+                  Candidater
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* AUTRES MODALES (Info, Connexion, Formulaire) */}
+      {/* AUTRES MODALES RESTANTES (Info, Connexion, Formulaire) */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
