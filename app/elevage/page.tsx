@@ -173,14 +173,15 @@ export default function ElevagePage() {
     { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // Base de données des reproducteurs
+  // Base de données des reproducteurs (Modifié avec 3 photos pour la perspective du carrousel)
   const dogs: DogProfile[] = [
     {
       id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No",
       fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021",
       images: [
         { src: "/hero-akita.jpg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
-        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." }
+        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Baiko forêt", tag: "Caractère", caption: "Tempérament posé en extérieur." },
+        { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
       ],
       titles: "Lignées de Champions Internationaux & Japonais",
       description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
@@ -199,7 +200,9 @@ export default function ElevagePage() {
       id: "lice-1", name: "Lice 1 (À venir)", badgeName: "Lice 1", role: "Lice", affixe: "Affixe Officiel LOF",
       fullName: "Lice Akita 1", color: "Bringé (Tora)", height: "62 cm", weight: "28 kg", birthDate: "À venir",
       images: [
-        { src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." }
+        { src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1", tag: "Morphologie", caption: "Excellente ligne de dos et aplombs." },
+        { src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 douceur", tag: "Douceur", caption: "Instinct maternel très prononcé." },
+        { src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", alt: "Lice 1 parc", tag: "Vitalité", caption: "Chienne très dynamique et joueuse." }
       ],
       titles: "Sélection LOF & Standard Japonais",
       description: "Notre lice vit au cœur du foyer aux côtés de la famille. Sélectionnée pour sa douceur, sa conformité morphologique et son équilibre.",
@@ -286,7 +289,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE */}
+      {/* BANDEAU CANDIDATURE (Modifié) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -294,7 +297,7 @@ export default function ElevagePage() {
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Découvrez nos naissances confirmées, les futurs départs et réservez votre compagnon.</p>
           </div>
           <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Découvrir
+            Découvrir les futures naissances
           </button>
         </div>
       </section>
@@ -418,6 +421,7 @@ export default function ElevagePage() {
 
           {/* 3. CARROUSEL APPLE DÉDIÉ AU CHIEN */}
           <DogCarousel slides={currentProfile.images} />
+          
           {/* 4. PEDIGREE : PALMARÈS ET ARBRE GÉNÉALOGIQUE */}
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
