@@ -578,8 +578,7 @@ export default function ElevagePage() {
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
-          <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
-            
+            <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">            
             <button onClick={() => setShowLitterModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 z-50 bg-white p-2 rounded-full shadow-sm cursor-pointer transition hover:scale-110">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
