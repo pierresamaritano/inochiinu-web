@@ -16,7 +16,7 @@ interface DogProfile {
 }
 
 // =========================================================================
-// COMPOSANT CARROUSEL APPLE INTEGRE
+// COMPOSANT CARROUSEL APPLE INTEGRE (Galerie Chiens)
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -74,12 +74,15 @@ function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
 // =========================================================================
 export default function ElevagePage() {
   const [user, setUser] = useState<any>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // --- CARROUSEL DES VALEURS (Minuteur intelligent) ---
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [timeToNext, setTimeToNext] = useState(6000);
 
   // --- ÉTATS POUR LES PORTÉES & POP-UP ---
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
@@ -117,13 +120,12 @@ export default function ElevagePage() {
       const currentUser = userData.session?.user || null;
       setUser(currentUser);
 
-      // Vérification d'une candidature existante pour bloquer le bouton
       if (currentUser) {
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
           .eq("user_id", currentUser.id)
-          .neq("status", "annulé") // Si annulée ou refusée, on autorise à nouveau
+          .neq("status", "annulé")
           .limit(1);
           
         if (existingRequests && existingRequests.length > 0) {
@@ -150,6 +152,27 @@ export default function ElevagePage() {
     });
     return () => authListener.subscription.unsubscribe();
   }, [supabase]);
+
+  const slides = [
+    { title: "Lignées Japonaises & Sélection LOF", subtitle: "Génétique rigoureusement testée pour des chiots sains.", tag: "Excellence", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
+    { title: "Socialisation Précoce Bienveillante", subtitle: "Éveil sensoriel en famille dès les premières semaines.", tag: "Développement", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
+    { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
+  ];
+
+  // LOGIQUE DU MINUTEUR INTELLIGENT
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setTimeToNext(6000); // Retour à la vitesse normale (6s)
+    }, timeToNext);
+    return () => clearTimeout(timer);
+  }, [currentSlide, timeToNext, slides.length]);
+
+  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+
+  const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
+  const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
+  const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
   const getLitterSlides = (litter: any): CarouselSlide[] => {
     if (!litter) return [];
@@ -215,15 +238,9 @@ export default function ElevagePage() {
         puppy_id: formData.puppyPreference === 'specific' ? formData.puppyId : null
       }]);
       setSubmitted(true);
-      setHasExistingCandidature(true); // Bloque directement le bouton après soumission
+      setHasExistingCandidature(true);
     } catch (err) { console.error(err); } finally { setSubmitting(false); }
   };
-
-  const slides = [
-    { title: "Lignées Japonaises & Sélection LOF", subtitle: "Génétique rigoureusement testée pour des chiots sains.", tag: "Excellence", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
-    { title: "Socialisation Précoce Bienveillante", subtitle: "Éveil sensoriel en famille dès les premières semaines.", tag: "Développement", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
-    { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
-  ];
 
   const dogs: DogProfile[] = [
     {
@@ -242,18 +259,12 @@ export default function ElevagePage() {
     }
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => { setCurrentSlide((prev) => (prev + 1) % slides.length); }, 6000);
-    return () => clearInterval(interval);
-  }, [slides.length]);
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-
   const currentProfile = dogs[selectedDogIndex];
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
+      {/* BACKGROUND ELEMENTS */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
@@ -274,28 +285,36 @@ export default function ElevagePage() {
         </p>
       </section>
 
+      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT (SWIPE RETIRÉ) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
+          
+          {/* ZONES DE TAPOTEMENT */}
+          <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
+          <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
+
           {slides.map((slide, index) => (
             <div key={index} className={`absolute inset-0 transition-opacity duration-700 flex flex-col justify-center px-8 sm:px-14 ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
               <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
-              <div className="relative z-10 max-w-xl text-white">
+              <div className="relative z-10 max-w-xl text-white pointer-events-none">
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-white/10 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/10 inline-block mb-2">{slide.tag}</span>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight leading-snug">{slide.title}</h2>
                 <p className="mt-2 text-xs sm:text-sm text-stone-300 font-medium leading-relaxed">{slide.subtitle}</p>
               </div>
             </div>
           ))}
-          <button onClick={prevSlide} className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">←</button>
-          <button onClick={nextSlide} className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">→</button>
-          <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-1.5">
+          <button onClick={prevSlide} className="absolute left-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">←</button>
+          <button onClick={nextSlide} className="absolute right-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">→</button>
+          
+          <div className="absolute bottom-4 inset-x-0 z-30 flex justify-center gap-1.5 pointer-events-none">
             {slides.map((_, index) => (
-              <button key={index} onClick={() => setCurrentSlide(index)} className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
+              <button key={index} onClick={() => goToSlide(index)} className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer pointer-events-auto ${index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
             ))}
           </div>
         </div>
       </section>
 
+      {/* BANDEAU CANDIDATURE MODIFIÉ (Bouton "Découvrir" uniquement) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -308,6 +327,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
+      {/* PHILOSOPHIE ÉLEVAGE */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-16">
         <div className="mx-auto max-w-5xl px-6 space-y-12">
           <div>
@@ -336,6 +356,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
+      {/* SECTION NOS REPRODUCTEURS LOF */}
       <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
@@ -347,6 +368,7 @@ export default function ElevagePage() {
                 Nos reproducteurs LOF
               </h2>
             </div>
+
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-[70]">
               <button onClick={() => setIsDogMenuOpen(!isDogMenuOpen)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -360,6 +382,7 @@ export default function ElevagePage() {
                 </div>
                 <span className={`text-stone-400 transition-transform duration-200 ${isDogMenuOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
+
               {isDogMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsDogMenuOpen(false)} />
@@ -572,7 +595,7 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 flex-1">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 flex-1">
               
               {/* LIGNE HAUT : Carrousel à gauche + Histoire à droite */}
               <div className="flex flex-col lg:flex-row gap-10 items-start">
