@@ -48,8 +48,19 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
     }
   }, [initialData]);
 
+  // MODIFICATION ICI : On génère un vrai UUID pour les nouveaux chiots
   const handleAddPuppy = () => {
-    setPuppies([...puppies, { tempId: Date.now(), name: "", gender: "male", status: "disponible", image_file: null, image_tag: "NOUVEAU-NÉ", image_caption: "" }]);
+    const newId = crypto.randomUUID(); 
+    setPuppies([...puppies, { 
+      id: newId, // Assure que la base de données ne plantera pas
+      tempId: newId, 
+      name: "", 
+      gender: "male", 
+      status: "disponible", 
+      image_file: null, 
+      image_tag: "NOUVEAU-NÉ", 
+      image_caption: "" 
+    }]);
   };
 
   const handlePuppyChange = (id: string | number, field: keyof PuppyInput, value: any) => {
@@ -141,7 +152,7 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
           <p className="text-sm text-stone-500 mt-1">Configurez l'histoire et ajoutez les chiots.</p>
         </div>
         {onCancel && (
-          <button type="button" onClick={onCancel} className="text-xs font-bold text-stone-500 hover:text-stone-900 bg-stone-100 px-4 py-2 rounded-full transition">
+          <button type="button" onClick={onCancel} className="text-xs font-bold text-stone-500 hover:text-stone-900 bg-stone-100 px-4 py-2 rounded-full transition cursor-pointer">
             Annuler & Retour
           </button>
         )}
@@ -191,7 +202,7 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
         <section className="space-y-4">
           <div className="flex items-center justify-between border-b border-stone-100 pb-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-orange-600">2. Liste des chiots</h3>
-            <button type="button" onClick={handleAddPuppy} className="text-[11px] font-black text-white bg-stone-900 px-4 py-2 rounded-full hover:bg-stone-700 transition shadow-sm">
+            <button type="button" onClick={handleAddPuppy} className="text-[11px] font-black text-white bg-stone-900 px-4 py-2 rounded-full hover:bg-stone-700 transition shadow-sm cursor-pointer">
               + Ajouter un chiot
             </button>
           </div>
