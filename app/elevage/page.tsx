@@ -113,14 +113,13 @@ export default function ElevagePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-useEffect(() => {
+  useEffect(() => {
     const fetchUserAndLitters = async () => {
       const { data: userData } = await supabase.auth.getSession();
       const currentUser = userData.session?.user || null;
       setUser(currentUser);
 
       if (currentUser) {
-        // MODIFICATION ICI : On cible uniquement les statuts bloquants
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
@@ -222,42 +221,42 @@ useEffect(() => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault(); 
-      if (!user) return; 
-      setSubmitting(true);
+    e.preventDefault(); 
+    if (!user) return; 
+    setSubmitting(true);
+    
+    try {
+      const { error } = await supabase.from("adoption_requests").insert([{ 
+        user_id: user.id, 
+        client_name: user.user_metadata?.full_name || "Client", 
+        client_email: user.email, 
+        client_phone: formData.clientPhone, 
+        preferred_breed: "Akita Inu LOF", 
+        living_environment: formData.livingEnvironment, 
+        motivation: formData.motivation, 
+        experience_primitive: formData.motivation, 
+        status: "en_attente", 
+        litter_id: activeLitters[selectedLitterIndex]?.id || null,
+        puppy_preference: formData.puppyPreference,
+        puppy_id: (formData.puppyPreference === 'specific' && formData.puppyId) ? formData.puppyId : null
+      }]);
       
-      try {
-        const { error } = await supabase.from("adoption_requests").insert([{ 
-          user_id: user.id, 
-          client_name: user.user_metadata?.full_name || "Client", 
-          client_email: user.email, 
-          client_phone: formData.clientPhone, 
-          preferred_breed: "Akita Inu LOF", 
-          living_environment: formData.livingEnvironment, 
-          motivation: formData.motivation, 
-          experience_primitive: formData.motivation, // On associe l'expérience au champ requis
-          status: "en_attente", 
-          litter_id: activeLitters[selectedLitterIndex]?.id || null,
-          puppy_preference: formData.puppyPreference,
-          puppy_id: (formData.puppyPreference === 'specific' && formData.puppyId) ? formData.puppyId : null
-        }]);
-        
-        if (error) {
-          console.error("Erreur détaillée Supabase :", error);
-          alert("Erreur de sauvegarde : " + error.message);
-          setSubmitting(false);
-          return; 
-        }
-        
-        setSubmitted(true);
-        setHasExistingCandidature(true);
-      } catch (err: any) { 
-        console.error(err);
-        alert("Erreur d'application : " + err.message);
-      } finally { 
-        setSubmitting(false); 
+      if (error) {
+        console.error("Erreur détaillée Supabase :", error);
+        alert("Erreur de sauvegarde : " + error.message);
+        setSubmitting(false);
+        return; 
       }
-    };
+      
+      setSubmitted(true);
+      setHasExistingCandidature(true);
+    } catch (err: any) { 
+      console.error(err);
+      alert("Erreur d'application : " + err.message);
+    } finally { 
+      setSubmitting(false); 
+    }
+  };
 
   const dogs: DogProfile[] = [
     {
