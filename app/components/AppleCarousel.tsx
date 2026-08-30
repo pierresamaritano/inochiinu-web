@@ -2,41 +2,29 @@
 
 import { useState, useEffect, useRef } from "react";
 
-interface CarouselSlide {
+// On exporte l'interface pour que les autres pages puissent l'utiliser
+export interface CarouselSlide {
   src: string;
   alt: string;
   tag: string;
   caption: string;
 }
 
-const slides: CarouselSlide[] = [
-  {
-    src: "/hero-akita.jpg",
-    alt: "Akita Inu dans la nature",
-    tag: "Akita Inu",
-    caption: "Noblesse, puissance et équilibre au naturel",
-  },
-  {
-    src: "/DODO-Akita.jpeg",
-    alt: "Shiba Inu",
-    tag: "Shiba Inu",
-    caption: "Vivacité, autonomie et loyauté sans faille",
-  },
-  {
-    src: "/DODO-papa.jpeg",
-    alt: "Grand air et balades en forêt",
-    tag: "Plein Air",
-    caption: "Grands espaces et socialisation bienveillante",
-  },
-];
+// Le composant attend désormais un paramètre "slides"
+interface AppleCarouselProps {
+  slides: CarouselSlide[];
+}
 
-export default function AppleCarousel() {
+export default function AppleCarousel({ slides }: AppleCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isInCenter, setIsInCenter] = useState(false);
   
   const centerTargetRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+
+  // Sécurité : si aucune slide n'est fournie, on ne rend rien
+  if (!slides || slides.length === 0) return null;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -91,7 +79,7 @@ export default function AppleCarousel() {
       }`}
     >
       
-      {/* OVERLAY EFFET CINÉMA (Optimisé : AUCUN backdrop-blur, juste un fond noir opaque à 70%) */}
+      {/* OVERLAY EFFET CINÉMA */}
       <div
         className={`fixed inset-0 bg-black/70 transition-opacity duration-500 ease-out pointer-events-none ${
           isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"
@@ -119,7 +107,7 @@ export default function AppleCarousel() {
 
               return (
                 <div
-                  key={slide.tag}
+                  key={`${slide.tag}-${index}`}
                   onClick={() => setCurrentIndex(index)}
                   className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-stone-200/80 ${
                     isActive
@@ -139,7 +127,7 @@ export default function AppleCarousel() {
                     className="h-full w-full object-cover select-none pointer-events-none"
                   />
                   
-                  {/* Légende en verre poli (ici le flou est petit donc c'est ok pour le téléphone) */}
+                  {/* Légende */}
                   <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">
@@ -161,7 +149,7 @@ export default function AppleCarousel() {
           <button
             onClick={prevSlide}
             aria-label="Image précédente"
-            className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
+            className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -171,7 +159,7 @@ export default function AppleCarousel() {
           <button
             onClick={nextSlide}
             aria-label="Image suivante"
-            className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
+            className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -185,7 +173,7 @@ export default function AppleCarousel() {
               key={i}
               onClick={() => setCurrentIndex(i)}
               aria-label={`Aller à la photo ${i + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 i === currentIndex
                   ? "w-8 bg-stone-700"
                   : "w-2 bg-stone-300 hover:bg-stone-400"

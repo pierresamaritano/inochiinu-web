@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "./components/LiquidNavbar";
-import AppleCarousel from "./components/AppleCarousel";
+import AppleCarousel, { CarouselSlide } from "./components/AppleCarousel"; // On importe le composant et son type
 
 export default function Home() {
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
@@ -56,11 +56,33 @@ export default function Home() {
     },
   ];
 
+  // ICI : On définit les données spécifiques à la page d'accueil
+  const homeSlides: CarouselSlide[] = [
+    {
+      src: "/hero-akita.jpg",
+      alt: "Akita Inu dans la nature",
+      tag: "Akita Inu",
+      caption: "Noblesse, puissance et équilibre au naturel",
+    },
+    {
+      src: "/DODO-Akita.jpeg",
+      alt: "Shiba Inu",
+      tag: "Shiba Inu",
+      caption: "Vivacité, autonomie et loyauté sans faille",
+    },
+    {
+      src: "/DODO-papa.jpeg",
+      alt: "Grand air et balades en forêt",
+      tag: "Plein Air",
+      caption: "Grands espaces et socialisation bienveillante",
+    },
+  ];
+
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900 scroll-smooth">
       
-      {/* HALOS FAUVE (Optimisés pour iOS : Radial Gradient au lieu de Blur CSS) */}
-      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0">
+      {/* HALOS FAUVE */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
       </div>
@@ -102,9 +124,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Carrousel Style Apple */}
+      {/* Carrousel Style Apple - On lui injecte NOS données */}
       <div className="relative">
-        <AppleCarousel />
+        <AppleCarousel slides={homeSlides} />
       </div>
 
       {/* Activités Grid */}
