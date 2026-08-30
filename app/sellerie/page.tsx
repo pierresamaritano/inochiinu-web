@@ -5,6 +5,10 @@ import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 
+// IMPORTS DES COMPOSANTS MAÎTRES
+import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
+import ContactSection from "../components/ContactSection";
+
 // CATALOGUE DE LA BOUTIQUE
 const PRODUCTS = [
   { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
@@ -44,6 +48,28 @@ export default function SelleriePage() {
     };
     fetchUser();
   }, [supabase]);
+
+  // Slides Images pour le carrousel de la sellerie
+  const sellerieCarouselSlides: CarouselSlide[] = [
+    {
+      src: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1080&auto=format&fit=crop",
+      alt: "Matériel de sellerie",
+      tag: "Fabrication Artisanale",
+      caption: "Du matériel robuste et pensé pour durer en extérieur.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?q=80&w=1080&auto=format&fit=crop",
+      alt: "Chien avec harnais",
+      tag: "Confort & Maintien",
+      caption: "Des coupes ergonomiques adaptées à la morphologie des chiens.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1080&auto=format&fit=crop",
+      alt: "Promenade en pleine nature",
+      tag: "Sur-Mesure",
+      caption: "Conçu pour résister aux balades les plus sportives.",
+    }
+  ];
 
   const handleOpenProduct = (product: any) => {
     if (!user) {
@@ -97,10 +123,17 @@ export default function SelleriePage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
+      
+      {/* HALOS FAUVE (Optimisés pour iOS) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
+        <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+        <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+      </div>
+
       <LiquidNavbar />
 
       {/* HERO SECTION */}
-      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-12 text-center px-4">
+      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-amber-700 shadow-sm">
           <span>Fait Main en France</span>
         </div>
@@ -112,8 +145,11 @@ export default function SelleriePage() {
         </p>
       </section>
 
+      {/* CARROUSEL INTÉGRÉ SOUS LE TITRE */}
+      <AppleCarousel slides={sellerieCarouselSlides} />
+
       {/* GRILLE DE LA BOUTIQUE (E-COMMERCE) */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 mb-20">
+      <section className="relative z-10 max-w-6xl mx-auto px-6 my-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {PRODUCTS.map((product) => (
             <div key={product.id} className="group bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
@@ -139,30 +175,37 @@ export default function SelleriePage() {
         </div>
       </section>
 
+      {/* APPEL DU COMPOSANT CONTACT */}
+      <ContactSection />
+
+      <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
+        <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
+      </footer>
+
       {/* MODALE CONNEXION */}
       {isAuthOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
           <div className="w-full max-w-md bg-white p-8 rounded-[2rem] text-center shadow-2xl">
             <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
             <p className="text-sm text-stone-500 mt-2">Connectez-vous pour associer une commande au profil de votre chien.</p>
-            <button onClick={handleGoogleLogin} className="mt-6 w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-900 font-bold rounded-full transition-all">Continuer avec Google</button>
-            <button onClick={() => setIsAuthOpen(false)} className="mt-4 text-xs font-bold text-stone-400">Annuler</button>
+            <button onClick={handleGoogleLogin} className="mt-6 w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-900 font-bold rounded-full transition-all cursor-pointer">Continuer avec Google</button>
+            <button onClick={() => setIsAuthOpen(false)} className="mt-4 text-xs font-bold text-stone-400 cursor-pointer">Annuler</button>
           </div>
         </div>
       )}
 
       {/* MODALE COMMANDE PRODUIT */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white p-8 rounded-[2.5rem] shadow-2xl">
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800">✕</button>
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
             
             {submitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4 text-2xl">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
                 <p className="text-xs text-stone-500 mt-2">Nous préparons votre {selectedProduct.name}. Vous recevrez un lien de paiement par email prochainement.</p>
-                <button onClick={() => setSelectedProduct(null)} className="mt-6 px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full">Retour à la boutique</button>
+                <button onClick={() => setSelectedProduct(null)} className="mt-6 px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Retour à la boutique</button>
               </div>
             ) : (
               <form onSubmit={handleOrder} className="space-y-5">
@@ -176,14 +219,14 @@ export default function SelleriePage() {
                   {/* SÉLECTEUR DE CHIEN */}
                   <ClientDogSelector
                     isAdmin={false}
-                    currentUserId={user.id}
+                    currentUserId={user?.id}
                     onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
                   />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Couleur</label>
-                      <select value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none">
+                      <select value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none cursor-pointer">
                         {selectedProduct.colors.map((c: string) => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>

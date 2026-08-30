@@ -1,95 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import PensionCalendar from "../components/PensionCalendar";
 
-// =========================================================================
-// TYPES ET COMPOSANT CARROUSEL PENSION (Style Apple)
-// =========================================================================
-interface CarouselSlide {
-  src: string;
-  alt: string;
-  tag: string;
-  caption: string;
-}
-
-const pensionSlides: CarouselSlide[] = [
-  {
-    src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
-    alt: "Chiens jouant dans les parcs",
-    tag: "Jeux & Liberté",
-    caption: "Détente en plein air et interactions dans nos parcs arborés.",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", 
-    alt: "Box confortable",
-    tag: "Confort Premium",
-    caption: "6 boxs spacieux, isolés et climatisés avec courette.",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", 
-    alt: "Surveillance",
-    tag: "Sécurité 24/7",
-    caption: "Surveillance vidéo continue pour une tranquillité absolue.",
-  },
-];
-
-function PensionCarousel() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isInCenter, setIsInCenter] = useState(false);
-  const centerTargetRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { setIsInCenter(entry.isIntersecting); },
-      { root: null, rootMargin: "-45% 0px -45% 0px", threshold: 0 }
-    );
-    if (centerTargetRef.current) observer.observe(centerTargetRef.current);
-    return () => { if (centerTargetRef.current) observer.unobserve(centerTargetRef.current); };
-  }, []);
-
-  const prevSlide = () => setCurrentIndex((prev) => (prev === 0 ? pensionSlides.length - 1 : prev - 1));
-  const nextSlide = () => setCurrentIndex((prev) => (prev === pensionSlides.length - 1 ? 0 : prev + 1));
-
-  return (
-    <section className={`relative w-full transition-all duration-300 ${isInCenter ? "z-[60]" : "z-40"}`}>
-      <div className={`fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-700 ease-out pointer-events-none ${isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"}`} />
-      <div className="relative w-full overflow-x-hidden py-10">
-        <div ref={centerTargetRef} className="absolute top-1/2 left-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div className="relative flex items-center justify-center min-h-[380px] sm:min-h-[520px] px-4">
-          <div className="relative flex w-full max-w-5xl items-center justify-center">
-            {pensionSlides.map((slide, index) => {
-              const offset = index - currentIndex;
-              const isActive = index === currentIndex;
-              return (
-                <div key={`${slide.tag}-${index}`} onClick={() => setCurrentIndex(index)} className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-stone-200/80 ${isActive ? "z-20 scale-100 opacity-100 translate-x-0" : offset === 1 || offset === -(pensionSlides.length - 1) ? "z-10 scale-[0.85] opacity-25 brightness-75 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-50" : offset === -1 || offset === pensionSlides.length - 1 ? "z-10 scale-[0.85] opacity-25 brightness-75 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto hover:opacity-50" : "z-0 scale-75 opacity-0 pointer-events-none"}`}>
-                  <img src={slide.src} alt={slide.alt} className="h-full w-full object-cover select-none pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)] pointer-events-none">
-                    <div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">{slide.tag}</span>
-                      <p className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5">{slide.caption}</p>
-                    </div>
-                    <span className="hidden sm:inline-flex text-[11px] font-bold text-stone-500 bg-white/70 px-3 py-1 rounded-full border border-stone-200">{index + 1} / {pensionSlides.length}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <button onClick={prevSlide} className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>
-          <button onClick={nextSlide} className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>
-        </div>
-        <div className="flex justify-center items-center gap-2 mt-8 relative z-40">
-          {pensionSlides.map((_, i) => (
-            <button key={i} onClick={() => setCurrentIndex(i)} className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === currentIndex ? "w-8 bg-stone-700" : "w-2 bg-stone-300 hover:bg-stone-400"}`} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+// IMPORTS DES COMPOSANTS MAÎTRES 
+import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
+import ContactSection from "../components/ContactSection";
 
 // =========================================================================
 // PAGE PRINCIPALE PENSION
@@ -137,6 +56,28 @@ export default function PensionPage() {
     { title: "6 Boxs Spacieux & Isolés", subtitle: "Un confort thermique total été comme hiver avec accès direct à des courettes individuelles sécurisées.", tag: "Capacité Limitée", gradient: "from-emerald-950/90 via-stone-900/60 to-black/80" },
     { title: "Grands Parcs de Détente Arborés", subtitle: "Sorties régulières quotidiennes, jeux et interactions contrôlées selon les affinités.", tag: "Dépense & Éveil", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
     { title: "Journal de Bord Photo Quotidien", subtitle: "Recevez chaque jour des nouvelles et des clichés de votre chien directement sur votre Espace Membre.", tag: "Suivi Digital", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
+  ];
+
+  // DONNÉES DU CARROUSEL INJECTÉES DANS LE COMPOSANT MAÎTRE
+  const pensionCarouselSlides: CarouselSlide[] = [
+    {
+      src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
+      alt: "Chiens jouant dans les parcs",
+      tag: "Jeux & Liberté",
+      caption: "Détente en plein air et interactions dans nos parcs arborés.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", 
+      alt: "Box confortable",
+      tag: "Confort Premium",
+      caption: "6 boxs spacieux, isolés et climatisés avec courette.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", 
+      alt: "Surveillance",
+      tag: "Sécurité 24/7",
+      caption: "Surveillance vidéo continue pour une tranquillité absolue.",
+    },
   ];
 
   // LOGIQUE DU MINUTEUR INTELLIGENT
@@ -192,7 +133,6 @@ export default function PensionPage() {
       const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
       const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
       
-      // Utilisation de la table "pension_bookings" (qui gère l'historique de l'espace membre)
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
         dog_id: formData.dog_id,
@@ -225,11 +165,11 @@ export default function PensionPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
-        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
+      
+      {/* HALOS FAUVE (Optimisés pour iOS) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
+        <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+        <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
       </div>
 
       <LiquidNavbar />
@@ -250,7 +190,6 @@ export default function PensionPage() {
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           
-          {/* ZONES DE TAPOTEMENT */}
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
           <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
 
@@ -340,40 +279,11 @@ export default function PensionPage() {
         </div>
       </section>
 
-      <PensionCarousel />
+      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES DONNÉES PENSION */}
+      <AppleCarousel slides={pensionCarouselSlides} />
 
-      <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/50">Nous Contacter</span>
-            <h2 className="text-3xl font-black text-stone-900 mt-4">Restons en contact</h2>
-            <p className="text-stone-500 text-sm mt-2">Pour toute question sur nos portées, nos disponibilités en pension ou un accompagnement éducatif.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
-              <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
-              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">06 00 00 00 00</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Email</h3>
-              <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
-              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">contact@inochi-inu.fr</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
-              <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
-              <div className="mt-4 flex gap-3">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Instagram ➔</a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Facebook ➔</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* APPEL DU COMPOSANT CONTACT */}
+      <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>

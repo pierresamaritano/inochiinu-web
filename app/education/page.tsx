@@ -5,10 +5,14 @@ import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 
+// IMPORTS DES COMPOSANTS MAÎTRES
+import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
+import ContactSection from "../components/ContactSection";
+
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
   
-  // --- CARROUSEL DES VALEURS HERO (Minuteur intelligent + Pause 12s) ---
+  // --- CARROUSEL DES VALEURS HERO ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -63,6 +67,7 @@ export default function EducationPage() {
     return () => authListener.subscription.unsubscribe();
   }, [supabase]);
 
+  // Slides pour le Carrousel Texte (Hero)
   const slides = [
     {
       title: "Bilan Comportemental Initial",
@@ -84,22 +89,43 @@ export default function EducationPage() {
     },
   ];
 
-  // LOGIQUE DU MINUTEUR INTELLIGENT (Pause 12s au tap/clic)
+  // Slides Images pour le composant AppleCarousel
+  const educationCarouselSlides: CarouselSlide[] = [
+    {
+      src: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1080&auto=format&fit=crop",
+      alt: "Chien attentif en éducation",
+      tag: "Écoute & Complicité",
+      caption: "Apprendre à communiquer avec son chien dans le calme.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?q=80&w=1080&auto=format&fit=crop",
+      alt: "Chien en extérieur",
+      tag: "Mise en situation",
+      caption: "Travail en environnement réel pour des résultats durables.",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1544568100-847a948585b9?q=80&w=1080&auto=format&fit=crop",
+      alt: "Maître et chien",
+      tag: "Relation de confiance",
+      caption: "Renforcer le lien maître-chien par le jeu et la positivité.",
+    }
+  ];
+
+  // LOGIQUE DU MINUTEUR INTELLIGENT
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-      setTimeToNext(6000); // Retour à la vitesse normale (6s)
+      setTimeToNext(6000); 
     }, timeToNext);
     return () => clearTimeout(timer);
   }, [currentSlide, timeToNext, slides.length]);
 
-  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+  const handleUserInteraction = () => setTimeToNext(12000); 
 
   const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
   const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
-  // VÉRIFICATION DU POP-UP AVANT DE CONTINUER
   const handleInitialClick = () => {
     const hideInfo = localStorage.getItem("hideEducationInfo");
     if (hideInfo === "true") {
@@ -187,11 +213,11 @@ export default function EducationPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
-        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
+      
+      {/* HALOS FAUVE (Optimisés pour iOS) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
+        <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+        <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
       </div>
 
       <LiquidNavbar />
@@ -213,11 +239,10 @@ export default function EducationPage() {
         </p>
       </section>
 
-      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT (SWIPE RETIRÉ) */}
+      {/* CARROUSEL VALEURS HERO */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           
-          {/* ZONES DE TAPOTEMENT (Moitié gauche / Moitié droite) */}
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
           <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
 
@@ -336,6 +361,12 @@ export default function EducationPage() {
         </div>
       </section>
 
+      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES IMAGES "ÉDUCATION" */}
+      <AppleCarousel slides={educationCarouselSlides} />
+
+      {/* APPEL DU COMPOSANT CONTACT */}
+      <ContactSection />
+
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
@@ -343,8 +374,8 @@ export default function EducationPage() {
       {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
             
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">
@@ -384,8 +415,8 @@ export default function EducationPage() {
       {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
@@ -406,7 +437,7 @@ export default function EducationPage() {
       {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
+          <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
 
