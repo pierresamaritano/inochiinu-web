@@ -17,16 +17,16 @@ const slides: CarouselSlide[] = [
     caption: "Noblesse, puissance et équilibre au naturel",
   },
   {
-    src: "/DODO-Akita.jepg",
-    alt: "Akita Inu dans la nature",
+    src: "/DODO-Akita.jpeg",
+    alt: "Akita Inu",
     tag: "Shiba Inu",
-    caption: "Noblesse, puissance et équilibre au naturel",
+    caption: "Vivacité, autonomie et loyauté sans faille",
   },
   {
-    src: "/DODO-papa.jepg",
-    alt: "Akita Inu dans la nature",
+    src: "/DODO-papa.jpeg",
+    alt: "Plein Air",
     tag: "Plein Air",
-    caption: "Noblesse, puissance et équilibre au naturel",
+    caption: "Grands espaces et socialisation bienveillante",
   },
 ];
 
