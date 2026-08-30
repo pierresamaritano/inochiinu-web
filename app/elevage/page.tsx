@@ -1,121 +1,21 @@
+// app/elevage/page.tsx
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
+import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
+// ON IMPORTE NOTRE NOUVEAU COMPOSANT
+import ContactSection from "../components/ContactSection";
 
 // =========================================================================
 // INTERFACES & TYPES
 // =========================================================================
 interface GrandParent { role: string; name: string; details?: string; }
 interface DogParent { name: string; origin: string; titles: string; desc: string; gParents: GrandParent[]; ggParents: string[]; }
-interface CarouselSlide { src: string; alt: string; tag: string; caption: string; }
 
 interface DogProfile {
   id: string; name: string; badgeName: string; role: "Étalon" | "Lice"; affixe: string; fullName: string; color: string; height: string; weight: string; birthDate: string; images: CarouselSlide[]; titles: string; description: string; father: DogParent; mother: DogParent;
-}
-
-// =========================================================================
-// COMPOSANT CARROUSEL CHIEN (Optimisé iOS comme la page d'accueil)
-// =========================================================================
-function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-
-  useEffect(() => { setCurrentIndex(0); }, [slides]);
-
-  const prevSlide = () => setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  const nextSlide = () => setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
-  const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
-  const handleTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    if (distance > 50) nextSlide();
-    if (distance < -50) prevSlide();
-    touchStartX.current = null;
-    touchEndX.current = null;
-  };
-
-  if (!slides || slides.length === 0) return null;
-
-  return (
-    <section className="relative w-full py-6 sm:py-10 z-20">
-      <div 
-        className="relative w-full max-w-4xl mx-auto px-4 overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* CONTENEUR FLEX GLISSANT (Aucun "absolute" sur les slides) */}
-        <div 
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-        >
-          {slides.map((slide, index) => (
-            <div key={`${slide.tag}-${index}`} className="w-full shrink-0 px-2">
-              <div className="relative aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-lg border border-stone-200/80 bg-stone-900">
-                <img
-                  src={slide.src}
-                  alt={slide.alt}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover select-none pointer-events-none"
-                />
-                
-                {/* Légende */}
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-black/50 border border-white/20 shadow-sm text-white">
-                  <div>
-                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-orange-400 drop-shadow-md">
-                      {slide.tag}
-                    </span>
-                    <p className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 drop-shadow-md">
-                      {slide.caption}
-                    </p>
-                  </div>
-                  <span className="hidden sm:inline-flex text-[11px] font-bold text-stone-200 bg-black/40 px-3 py-1 rounded-full border border-white/20">
-                    {index + 1} / {slides.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Boutons de navigation (PC) */}
-        <button
-          onClick={prevSlide}
-          aria-label="Précédent"
-          className="hidden md:flex absolute left-6 top-[40%] sm:top-1/2 -translate-y-1/2 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-md text-white hover:scale-110 transition-all cursor-pointer"
-        >
-          ←
-        </button>
-        <button
-          onClick={nextSlide}
-          aria-label="Suivant"
-          className="hidden md:flex absolute right-6 top-[40%] sm:top-1/2 -translate-y-1/2 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-md text-white hover:scale-110 transition-all cursor-pointer"
-        >
-          →
-        </button>
-
-        {/* Indicateurs (petits points en dessous) */}
-        <div className="flex justify-center items-center gap-2 mt-6">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentIndex(i)}
-              aria-label={`Aller à la photo ${i + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                i === currentIndex ? "w-8 bg-stone-700" : "w-2 bg-stone-300 hover:bg-stone-400"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
 }
 
 // =========================================================================
@@ -328,7 +228,6 @@ export default function ElevagePage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* HALOS FAUVE (Optimisés pour iOS : Radial Gradient au lieu de Blur CSS) */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -473,8 +372,8 @@ export default function ElevagePage() {
             </p>
           </div>
 
-          {/* LE NOUVEAU CARROUSEL OPTIMISÉ */}
-          <DogCarousel slides={currentProfile.images} />
+          {/* APPEL DU CARROUSEL MAÎTRE ICI (Photos du chien) */}
+          <AppleCarousel slides={currentProfile.images} />
 
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
@@ -565,45 +464,14 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION CONTACT */}
-      <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3.5 py-1.5 rounded-full border border-orange-200/50">Nous Contacter</span>
-            <h2 className="text-3xl font-black text-stone-900 mt-4">Restons en contact</h2>
-            <p className="text-stone-500 text-sm mt-2">Pour toute question sur nos portées, nos reproducteurs ou le suivi d'un chiot.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Téléphone</h3>
-              <p className="text-xs text-stone-500 mt-1">Du lundi au samedi</p>
-              <a href="tel:0600000000" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">06 00 00 00 00</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Email</h3>
-              <p className="text-xs text-stone-500 mt-1">Réponse sous 24h</p>
-              <a href="mailto:contact@inochi-inu.fr" className="mt-4 text-sm font-black text-orange-600 hover:text-orange-700">contact@inochi-inu.fr</a>
-            </div>
-            <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-              <h3 className="text-base font-bold text-stone-900">Suivez nos aventures</h3>
-              <p className="text-xs text-stone-500 mt-1">Photos quotidiennes & actualités</p>
-              <div className="mt-4 flex gap-3">
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Instagram ➔</a>
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full">Facebook ➔</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* APPEL DU COMPOSANT CONTACT */}
+      <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION (Optimisé) */}
+      {/* POP-UP MODE IMMERSION */}
       {isImmersionMode && activeLitters.length > 0 && (
         <div className="fixed inset-0 z-[200] bg-stone-950 flex flex-col justify-center animate-in fade-in duration-500">
           <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer shadow-xl">
@@ -612,11 +480,12 @@ export default function ElevagePage() {
           <div className="absolute top-8 left-8 z-[250]">
             <span className="text-white/50 text-[10px] font-black uppercase tracking-widest">Mode Immersion</span>
           </div>
-          <DogCarousel slides={litterSlides} />
+          {/* APPEL DU CARROUSEL MAÎTRE ICI AUSSI (Photos des portées en grand) */}
+          <AppleCarousel slides={litterSlides} />
         </div>
       )}
 
-      {/* POP-UP : PORTÉE ET CHIOTS (Optimisé) */}
+      {/* POP-UP : PORTÉE ET CHIOTS */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowLitterModal(false)} />
