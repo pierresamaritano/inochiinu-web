@@ -113,18 +113,19 @@ export default function ElevagePage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
+useEffect(() => {
     const fetchUserAndLitters = async () => {
       const { data: userData } = await supabase.auth.getSession();
       const currentUser = userData.session?.user || null;
       setUser(currentUser);
 
       if (currentUser) {
+        // MODIFICATION ICI : On cible uniquement les statuts bloquants
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
           .eq("user_id", currentUser.id)
-          .neq("status", "annulé")
+          .in("status", ["en_attente", "liste_attente", "accepté"]) 
           .limit(1);
           
         if (existingRequests && existingRequests.length > 0) {
