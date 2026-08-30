@@ -17,18 +17,16 @@ const slides: CarouselSlide[] = [
     caption: "Noblesse, puissance et équilibre au naturel",
   },
   {
-    // Remplacé w=2000 par w=1080 et q=80 par q=70
-    src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=70&w=1080&auto=format&fit=crop",
-    alt: "Shiba Inu",
-    tag: "Shiba Inu",
-    caption: "Vivacité, autonomie et loyauté sans faille",
+    src: "/DODO-akita.jpg",
+    alt: "Akita Inu dans la nature",
+    tag: "Akita Inu",
+    caption: "Noblesse, puissance et équilibre au naturel",
   },
   {
-    // Remplacé w=2000 par w=1080 et q=80 par q=70
-    src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=70&w=1080&auto=format&fit=crop",
-    alt: "Grand air et balades en forêt",
-    tag: "Plein Air",
-    caption: "Grands espaces et socialisation bienveillante",
+    src: "/DODO-papa.jpg",
+    alt: "Akita Inu dans la nature",
+    tag: "Akita Inu",
+    caption: "Noblesse, puissance et équilibre au naturel",
   },
 ];
 
