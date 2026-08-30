@@ -7,7 +7,11 @@ import ClientDogSelector from "../components/ClientDogSelector";
 
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
+  
+  // --- CARROUSEL DES VALEURS HERO (Minuteur intelligent + Pause 12s) ---
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [timeToNext, setTimeToNext] = useState(6000);
+
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -80,15 +84,20 @@ export default function EducationPage() {
     },
   ];
 
+  // LOGIQUE DU MINUTEUR INTELLIGENT (Pause 12s au tap/clic)
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [slides.length]);
+      setTimeToNext(6000); // Retour à la vitesse normale (6s)
+    }, timeToNext);
+    return () => clearTimeout(timer);
+  }, [currentSlide, timeToNext, slides.length]);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+
+  const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
+  const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
+  const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
   // VÉRIFICATION DU POP-UP AVANT DE CONTINUER
   const handleInitialClick = () => {
@@ -204,8 +213,14 @@ export default function EducationPage() {
         </p>
       </section>
 
+      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT (SWIPE RETIRÉ) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
+          
+          {/* ZONES DE TAPOTEMENT (Moitié gauche / Moitié droite) */}
+          <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
+          <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
+
           {slides.map((slide, index) => (
             <div
               key={index}
@@ -214,7 +229,7 @@ export default function EducationPage() {
               }`}
             >
               <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
-              <div className="relative z-10 max-w-xl text-white">
+              <div className="relative z-10 max-w-xl text-white pointer-events-none">
                 <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-white/10 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/10 inline-block mb-2">
                   {slide.tag}
                 </span>
@@ -228,15 +243,15 @@ export default function EducationPage() {
             </div>
           ))}
 
-          <button onClick={prevSlide} className="absolute left-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">←</button>
-          <button onClick={nextSlide} className="absolute right-4 z-20 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">→</button>
+          <button onClick={prevSlide} className="absolute left-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">←</button>
+          <button onClick={nextSlide} className="absolute right-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md cursor-pointer">→</button>
 
-          <div className="absolute bottom-4 inset-x-0 z-20 flex justify-center gap-1.5">
+          <div className="absolute bottom-4 inset-x-0 z-30 flex justify-center gap-1.5 pointer-events-none">
             {slides.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                onClick={() => goToSlide(index)}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer pointer-events-auto ${
                   index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"
                 }`}
               />
@@ -256,7 +271,7 @@ export default function EducationPage() {
             </p>
           </div>
           <button
-            onClick={handleInitialClick} // <--- MODIFICATION ICI
+            onClick={handleInitialClick}
             className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer"
           >
             Prendre rendez-vous
