@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "./components/LiquidNavbar";
+import AppleCarousel from "./components/AppleCarousel";
 
 export default function Home() {
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
@@ -58,17 +59,16 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900 scroll-smooth">
       
-      {/* HALOS FAUVE (Optimisés) */}
-      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
-        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
-        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
+      {/* HALOS FAUVE (Optimisés pour iOS : Radial Gradient au lieu de Blur CSS) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+        <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
       </div>
 
       <LiquidNavbar />
 
       {/* Hero Section */}
-      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-24 text-center px-4">
+      <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-12 text-center px-4">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1.5 text-xs font-bold text-orange-700 shadow-sm">
           <span>Structure Canine & Artisanat</span>
         </div>
@@ -85,7 +85,6 @@ export default function Home() {
           humaine, accompagnement comportemental et sellerie sur-mesure.
         </p>
 
-        {/* BOUTONS HERO */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <button
             onClick={() => setIsReservationModalOpen(true)}
@@ -102,6 +101,11 @@ export default function Home() {
           </a>
         </div>
       </section>
+
+      {/* Carrousel Style Apple */}
+      <div className="relative">
+        <AppleCarousel />
+      </div>
 
       {/* Activités Grid */}
       <section className="relative z-10 border-t border-stone-200/60 bg-transparent py-24">
@@ -144,7 +148,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION CONTACT & COORDONNÉES */}
+      {/* SECTION CONTACT */}
       <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -160,7 +164,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Téléphone */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,7 +177,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Email */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,7 +190,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Réseaux Sociaux */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,12 +211,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* MODALE EXPLICATIVE : RÉSERVATION */}
+      {/* MODALE RÉSERVATION */}
       {isReservationModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -229,7 +229,6 @@ export default function Home() {
             >
               ✕
             </button>
-            
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm shadow-[0_4px_12px_rgba(249,115,22,0.3)]">
                 犬
@@ -241,48 +240,26 @@ export default function Home() {
                 Toutes nos réservations (Pension, Éducation, Élevage et Sellerie) sont centralisées et suivies en direct depuis votre <strong>Espace Membre</strong>.
               </p>
             </div>
-
             <div className="mt-6 space-y-3">
               <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white border border-stone-200/70 shadow-2xs">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">
-                  1
-                </span>
-                <p className="text-xs text-stone-600 font-medium">
-                  <strong>Créez votre compte en 1 clic</strong> avec votre compte Google sécurisé.
-                </p>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">1</span>
+                <p className="text-xs text-stone-600 font-medium"><strong>Créez votre compte en 1 clic</strong> avec votre compte Google sécurisé.</p>
               </div>
-
               <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white border border-stone-200/70 shadow-2xs">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">
-                  2
-                </span>
-                <p className="text-xs text-stone-600 font-medium">
-                  <strong>Remplissez le formulaire du service</strong> souhaité (dates de garde, profil du chien ou commande).
-                </p>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">2</span>
+                <p className="text-xs text-stone-600 font-medium"><strong>Remplissez le formulaire du service</strong> souhaité (dates de garde, profil du chien ou commande).</p>
               </div>
-
               <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white border border-stone-200/70 shadow-2xs">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">
-                  3
-                </span>
-                <p className="text-xs text-stone-600 font-medium">
-                  <strong>Suivez tout en temps réel</strong> : validation, carnet d'éducation, photos de pension et fabrication sellerie.
-                </p>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">3</span>
+                <p className="text-xs text-stone-600 font-medium"><strong>Suivez tout en temps réel</strong> : validation, carnet d'éducation, photos de pension et fabrication sellerie.</p>
               </div>
             </div>
-
             <div className="mt-8">
               <button
                 onClick={handleGoogleLogin}
                 disabled={authLoading}
                 className="group flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer"
               >
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
-                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
-                </svg>
                 <span>{authLoading ? "Redirection..." : "Se connecter / Créer mon compte"}</span>
               </button>
             </div>

@@ -18,13 +18,13 @@ const slides: CarouselSlide[] = [
   },
   {
     src: "/DODO-Akita.jpeg",
-    alt: "Akita Inu",
+    alt: "Shiba Inu",
     tag: "Shiba Inu",
     caption: "Vivacité, autonomie et loyauté sans faille",
   },
   {
     src: "/DODO-papa.jpeg",
-    alt: "Plein Air",
+    alt: "Grand air et balades en forêt",
     tag: "Plein Air",
     caption: "Grands espaces et socialisation bienveillante",
   },
@@ -38,7 +38,6 @@ export default function AppleCarousel() {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  // Détection STRICTE : 10% au centre de l'écran
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -92,9 +91,9 @@ export default function AppleCarousel() {
       }`}
     >
       
-      {/* OVERLAY EFFET CINÉMA */}
+      {/* OVERLAY EFFET CINÉMA (Optimisé : AUCUN backdrop-blur, juste un fond noir opaque à 70%) */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-700 ease-out pointer-events-none ${
+        className={`fixed inset-0 bg-black/70 transition-opacity duration-500 ease-out pointer-events-none ${
           isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"
         }`}
       />
@@ -135,10 +134,12 @@ export default function AppleCarousel() {
                   <img
                     src={slide.src}
                     alt={slide.alt}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover select-none pointer-events-none"
                   />
                   
-                  {/* Légende en verre poli */}
+                  {/* Légende en verre poli (ici le flou est petit donc c'est ok pour le téléphone) */}
                   <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">
@@ -157,7 +158,6 @@ export default function AppleCarousel() {
             })}
           </div>
 
-          {/* Boutons de contrôle latéraux pour PC */}
           <button
             onClick={prevSlide}
             aria-label="Image précédente"
@@ -179,7 +179,6 @@ export default function AppleCarousel() {
           </button>
         </div>
 
-        {/* Indicateurs de pagination adaptatifs */}
         <div className="flex justify-center items-center gap-2 mt-8 relative z-40">
           {slides.map((_, i) => (
             <button
