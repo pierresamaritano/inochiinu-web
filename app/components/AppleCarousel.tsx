@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// =========================================================================
-// COMPOSANT : CARROUSEL APPLE (Optimisé iOS, Navigation Manuelle Uniquement)
-// =========================================================================
 interface CarouselSlide {
   src: string;
   alt: string;
@@ -35,16 +32,50 @@ const slides: CarouselSlide[] = [
 
 export default function AppleCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isInCenter, setIsInCenter] = useState(false);
   
+  const centerTargetRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const prevSlide = () => { setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1)); };
-  const nextSlide = () => { setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1)); };
-  const goToSlide = (index: number) => { setCurrentIndex(index); };
+  // Détection STRICTE : 10% au centre de l'écran
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInCenter(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: "-45% 0px -45% 0px", 
+        threshold: 0 
+      }
+    );
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
-  const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
+    if (centerTargetRef.current) {
+      observer.observe(centerTargetRef.current);
+    }
+
+    return () => {
+      if (centerTargetRef.current) observer.unobserve(centerTargetRef.current);
+    };
+  }, []);
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
     const distance = touchStartX.current - touchEndX.current;
@@ -55,18 +86,33 @@ export default function AppleCarousel() {
   };
 
   return (
-    <section className="relative w-full py-10 z-40 overflow-hidden">
-      <div className="relative w-full overflow-x-hidden">
+    <section 
+      className={`relative w-full transition-all duration-300 ${
+        isInCenter ? "z-[60]" : "z-40"
+      }`}
+    >
+      
+      {/* OVERLAY EFFET CINÉMA */}
+      <div
+        className={`fixed inset-0 bg-black/40 backdrop-blur-md transition-all duration-700 ease-out pointer-events-none ${
+          isInCenter ? "opacity-100 -z-10" : "opacity-0 -z-10"
+        }`}
+      />
+
+      <div className="relative w-full overflow-x-hidden py-10">
+        
+        {/* LE POINT DE DÉTECTION (Au centre exact) */}
+        <div 
+          ref={centerTargetRef} 
+          className="absolute top-1/2 left-1/2 w-4 h-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        />
+
         <div
           className="relative flex items-center justify-center min-h-[380px] sm:min-h-[520px] px-4"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* ZONES DE TAPOTEMENT (Navigation facile sur les côtés) */}
-          <div className="absolute inset-y-0 left-0 w-1/4 z-30 cursor-pointer" onClick={prevSlide} />
-          <div className="absolute inset-y-0 right-0 w-1/4 z-30 cursor-pointer" onClick={nextSlide} />
-
           <div className="relative flex w-full max-w-5xl items-center justify-center">
             {slides.map((slide, index) => {
               const offset = index - currentIndex;
@@ -75,7 +121,7 @@ export default function AppleCarousel() {
               return (
                 <div
                   key={slide.tag}
-                  onClick={() => goToSlide(index)}
+                  onClick={() => setCurrentIndex(index)}
                   className={`absolute w-[88vw] max-w-[820px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-stone-200/80 ${
                     isActive
                       ? "z-20 scale-100 opacity-100 translate-x-0"
@@ -89,13 +135,11 @@ export default function AppleCarousel() {
                   <img
                     src={slide.src}
                     alt={slide.alt}
-                    loading="lazy" 
-                    decoding="async"
                     className="h-full w-full object-cover select-none pointer-events-none"
                   />
                   
-                  {/* Légende */}
-                  <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/80 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)] pointer-events-none">
+                  {/* Légende en verre poli */}
+                  <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-[#FDFCF8]/60 backdrop-blur-xl border border-white/80 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">
                         {slide.tag}
@@ -113,10 +157,11 @@ export default function AppleCarousel() {
             })}
           </div>
 
-          {/* Boutons latéraux (PC) */}
+          {/* Boutons de contrôle latéraux pour PC */}
           <button
             onClick={prevSlide}
-            className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            aria-label="Image précédente"
+            className="hidden md:flex absolute left-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -125,7 +170,8 @@ export default function AppleCarousel() {
 
           <button
             onClick={nextSlide}
-            className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            aria-label="Image suivante"
+            className="hidden md:flex absolute right-8 z-50 h-12 w-12 items-center justify-center rounded-full bg-[#FDFCF8]/80 backdrop-blur-xl border border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-stone-800 hover:scale-110 active:scale-95 transition-all"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -133,13 +179,14 @@ export default function AppleCarousel() {
           </button>
         </div>
 
-        {/* Points de navigation */}
+        {/* Indicateurs de pagination adaptatifs */}
         <div className="flex justify-center items-center gap-2 mt-8 relative z-40">
           {slides.map((_, i) => (
             <button
               key={i}
-              onClick={() => goToSlide(i)}
-              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+              onClick={() => setCurrentIndex(i)}
+              aria-label={`Aller à la photo ${i + 1}`}
+              className={`h-2 rounded-full transition-all duration-300 ${
                 i === currentIndex
                   ? "w-8 bg-stone-700"
                   : "w-2 bg-stone-300 hover:bg-stone-400"
