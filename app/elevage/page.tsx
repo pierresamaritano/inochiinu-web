@@ -221,44 +221,43 @@ useEffect(() => {
     catch (err) { console.error(err); setAuthLoading(false); }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    if (!user) return; 
-    setSubmitting(true);
-    
-    try {
-      const { error } = await supabase.from("adoption_requests").insert([{ 
-        user_id: user.id, 
-        client_name: user.user_metadata?.full_name || "Client", 
-        client_email: user.email, 
-        client_phone: formData.clientPhone, 
-        preferred_breed: "Akita Inu LOF", 
-        living_environment: formData.livingEnvironment, 
-        motivation: formData.motivation, 
-        status: "en_attente", 
-        litter_id: activeLitters[selectedLitterIndex]?.id || null,
-        puppy_preference: formData.puppyPreference,
-        // On s'assure d'envoyer null (et pas "") si aucun chiot précis n'est sélectionné :
-        puppy_id: (formData.puppyPreference === 'specific' && formData.puppyId) ? formData.puppyId : null
-      }]);
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault(); 
+      if (!user) return; 
+      setSubmitting(true);
       
-      // S'il y a une erreur base de données, on l'affiche et ON BLOQUE le faux message de succès
-      if (error) {
-        console.error("Erreur détaillée Supabase :", error);
-        alert("Erreur de sauvegarde : " + error.message);
-        setSubmitting(false);
-        return; 
+      try {
+        const { error } = await supabase.from("adoption_requests").insert([{ 
+          user_id: user.id, 
+          client_name: user.user_metadata?.full_name || "Client", 
+          client_email: user.email, 
+          client_phone: formData.clientPhone, 
+          preferred_breed: "Akita Inu LOF", 
+          living_environment: formData.livingEnvironment, 
+          motivation: formData.motivation, 
+          experience_primitive: formData.motivation, // On associe l'expérience au champ requis
+          status: "en_attente", 
+          litter_id: activeLitters[selectedLitterIndex]?.id || null,
+          puppy_preference: formData.puppyPreference,
+          puppy_id: (formData.puppyPreference === 'specific' && formData.puppyId) ? formData.puppyId : null
+        }]);
+        
+        if (error) {
+          console.error("Erreur détaillée Supabase :", error);
+          alert("Erreur de sauvegarde : " + error.message);
+          setSubmitting(false);
+          return; 
+        }
+        
+        setSubmitted(true);
+        setHasExistingCandidature(true);
+      } catch (err: any) { 
+        console.error(err);
+        alert("Erreur d'application : " + err.message);
+      } finally { 
+        setSubmitting(false); 
       }
-      
-      setSubmitted(true);
-      setHasExistingCandidature(true);
-    } catch (err: any) { 
-      console.error(err);
-      alert("Erreur d'application : " + err.message);
-    } finally { 
-      setSubmitting(false); 
-    }
-  };
+    };
 
   const dogs: DogProfile[] = [
     {
