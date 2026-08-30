@@ -187,6 +187,21 @@ export default function PensionPage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
+  const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 50) nextSlide();
+    if (distance < -50) prevSlide();
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+
   const handleInitialClick = () => {
     const hideInfo = localStorage.getItem("hidePensionInfo");
     if (hideInfo === "true") {
@@ -302,7 +317,12 @@ export default function PensionPage() {
 
       {/* CARROUSEL VALEURS HERO */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
+      <div 
+        className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
           {slides.map((slide, index) => (
             <div
               key={index}
