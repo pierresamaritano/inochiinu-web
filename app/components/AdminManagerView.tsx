@@ -43,9 +43,11 @@ export default function AdminManagerView() {
   const [littersList, setLittersList] = useState<any[]>([]); 
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
-  const [elevageTab, setElevageTab] = useState<"candidatures" | "portees">("candidatures");
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
+
+  // État pour gérer les rubriques repliées par portée (par défaut, seules les "Nouvelles" sont ouvertes)
+  const [collapsedSections, setCollapsedSections] = useState<{ [litterId: string]: { waitlist: boolean; refused: boolean } }>({});
 
   const [period, setPeriod] = useState<PeriodOption>("1m");
   const [selectedFilterClient, setSelectedFilterClient] = useState<ClientProfile | null>(null);
@@ -129,7 +131,6 @@ export default function AdminManagerView() {
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
 
-      // Mise à jour automatique du statut du chiot si on accepte ou annule une candidature
       if (actionModal.table === "adoption_requests") {
         const { data: request } = await supabase.from("adoption_requests").select("puppy_id").eq("id", actionModal.id).single();
         if (request && request.puppy_id) {
@@ -179,86 +180,95 @@ export default function AdminManagerView() {
     return "Indifférent";
   };
 
+  const toggleSectionCollapse = (litterId: string, section: 'waitlist' | 'refused') => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [litterId]: {
+        waitlist: section === 'waitlist' ? !(prev[litterId]?.waitlist ?? true) : (prev[litterId]?.waitlist ?? true),
+        refused: section === 'refused' ? !(prev[litterId]?.refused ?? true) : (prev[litterId]?.refused ?? true),
+      }
+    }));
+  };
+
   const renderAppCard = (item: any, litter: any = null) => {
-      const isRefused = ['annulé', 'refusé'].includes(item.status);
-      const hasPuppySelected = Boolean(item.puppy_id); // Vérifie si un chiot est rattaché
+    const isRefused = ['annulé', 'refusé'].includes(item.status);
+    const hasPuppySelected = Boolean(item.puppy_id);
 
-      return (
-        <div key={item.id} className={`p-4 rounded-2xl border ${isRefused ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'} space-y-3`}>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
-            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
-              {item.status}
-            </span>
-          </div>
-          
-          <div className="text-xs text-stone-600 space-y-1">
-            <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
-            <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
-            <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
-            {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
-          </div>
-          
-          {/* Assigner un chiot (OBLIGATOIRE pour accepter) */}
-          {litter && !isRefused && (
-            <div className="pt-2 border-t border-stone-100">
-              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
-              <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-                <option value="">Sélectionner un chiot (obligatoire)...</option>
-                {litter.puppies?.map((pup: any) => (
-                  <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {!litter && !isRefused && (
-            <div className="pt-2 border-t border-stone-100 flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lier à une portée :</label>
-              <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-                <option value="">Sélectionner une portée...</option>
-                {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* BOUTONS D'ACTION AVEC SÉCURITÉ SUR "ACCEPTER" */}
-          {!isRefused ? (
-            <div className="pt-2 flex flex-wrap gap-2 items-center">
-              <button 
-                onClick={() => {
-                  if (!hasPuppySelected) {
-                    alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
-                    return;
-                  }
-                  openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
-                }} 
-                title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
-                className={`flex-1 py-1.5 rounded-lg text-white text-[11px] font-black shadow-sm transition cursor-pointer ${
-                  !hasPuppySelected ? "bg-emerald-300 cursor-not-allowed" : "bg-emerald-500 hover:bg-emerald-600"
-                }`}
-              >
-                Accepter
-              </button>
-
-              {item.status !== "liste_attente" && (
-                <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
-                  Attente
-                </button>
-              )}
-
-              <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
-                Refuser
-              </button>
-            </div>
-          ) : (
-            <div className="pt-2 flex flex-wrap gap-2">
-              <button onClick={() => openAction("adoption_requests", item.id, "en_attente", item.client_name, item.client_name, item.admin_notes)} className="w-full py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold transition cursor-pointer">Remettre en attente</button>
-            </div>
-          )}
+    return (
+      <div key={item.id} className={`p-4 rounded-2xl border ${isRefused ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'} space-y-3`}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+            {item.status}
+          </span>
         </div>
-      );
-    };
+        
+        <div className="text-xs text-stone-600 space-y-1">
+          <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
+          <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
+          <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+          {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
+        </div>
+        
+        {/* Assigner un chiot (UNIQUEMENT LES CHIOTS DISPONIBLES) */}
+        {litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
+            <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Sélectionner un chiot (obligatoire)...</option>
+              {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
+                <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {!litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100 flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lier à une portée :</label>
+            <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Sélectionner une portée...</option>
+              {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+            </select>
+          </div>
+        )}
+
+        {!isRefused ? (
+          <div className="pt-2 flex flex-wrap gap-2 items-center">
+            <button 
+              onClick={() => {
+                if (!hasPuppySelected) {
+                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
+                  return;
+                }
+                openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
+              }} 
+              title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
+              className={`flex-1 py-1.5 rounded-lg text-white text-[11px] font-black shadow-sm transition cursor-pointer ${
+                !hasPuppySelected ? "bg-emerald-300 cursor-not-allowed" : "bg-emerald-500 hover:bg-emerald-600"
+              }`}
+            >
+              Accepter
+            </button>
+
+            {item.status !== "liste_attente" && (
+              <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
+                Attente
+              </button>
+            )}
+
+            <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
+              Refuser
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2 flex flex-wrap gap-2">
+             <button onClick={() => openAction("adoption_requests", item.id, "en_attente", item.client_name, item.client_name, item.admin_notes)} className="w-full py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold transition cursor-pointer">Remettre en attente</button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="mt-8 space-y-6">
@@ -384,6 +394,9 @@ export default function AdminManagerView() {
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
                 const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
                 const refusedApps = activeLitterApps.filter(a => ['annulé', 'refusé'].includes(a.status));
+
+                const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
+                const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
                 
                 return (
                   <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
@@ -433,7 +446,6 @@ export default function AdminManagerView() {
                                   </span>
                                 </div>
 
-                                {/* BLOC DISCRET : RÉSILIATION SI ACCEPTÉ OU RÉSERVATION MANUELLE */}
                                 {acceptedApp ? (
                                   <div className="mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2">
                                     <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
@@ -462,39 +474,62 @@ export default function AdminManagerView() {
                         </div>
                       </div>
 
-                      {/* COLONNE DE DROITE : LES CANDIDATURES CATÉGORISÉES */}
+                      {/* COLONNE DE DROITE : LES CANDIDATURES REPLIABLES */}
                       <div>
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures en cours ({activeLitterApps.length})</h4>
                         {activeLitterApps.length === 0 ? (
                           <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
                           <div className="space-y-6">
+                            
+                            {/* NOUVELLES (Toujours ouvertes par défaut) */}
                             {newApps.length > 0 && (
                               <div>
-                                <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5">Nouvelles ({newApps.length})</h5>
+                                <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5 flex items-center justify-between">
+                                  <span>Nouvelles ({newApps.length})</span>
+                                </h5>
                                 <div className="space-y-3">
                                   {newApps.map(item => renderAppCard(item, litter))}
                                 </div>
                               </div>
                             )}
 
+                            {/* LISTE D'ATTENTE (Minimisée par défaut) */}
                             {waitlistApps.length > 0 && (
                               <div>
-                                <h5 className="text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5">Liste d'attente ({waitlistApps.length})</h5>
-                                <div className="space-y-3">
-                                  {waitlistApps.map(item => renderAppCard(item, litter))}
-                                </div>
+                                <button 
+                                  onClick={() => toggleSectionCollapse(litter.id, 'waitlist')}
+                                  className="w-full text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5 flex items-center justify-between hover:bg-amber-50/50 transition cursor-pointer"
+                                >
+                                  <span>Liste d'attente ({waitlistApps.length})</span>
+                                  <span className="text-stone-400 font-bold">{isWaitlistCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
+                                </button>
+                                {!isWaitlistCollapsed && (
+                                  <div className="space-y-3 animate-in fade-in duration-200">
+                                    {waitlistApps.map(item => renderAppCard(item, litter))}
+                                  </div>
+                                )}
                               </div>
                             )}
 
+                            {/* ARCHIVÉES / REFUSÉES (Minimisée par défaut) */}
                             {refusedApps.length > 0 && (
                               <div>
-                                <h5 className="text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5">Archivées / Refusées ({refusedApps.length})</h5>
-                                <div className="space-y-3">
-                                  {refusedApps.map(item => renderAppCard(item, litter))}
-                                </div>
+                                <button 
+                                  onClick={() => toggleSectionCollapse(litter.id, 'refused')}
+                                  className="w-full text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5 flex items-center justify-between hover:bg-stone-50 transition cursor-pointer"
+                                >
+                                  <span>Archivées / Refusées ({refusedApps.length})</span>
+                                  <span className="text-stone-400 font-bold">{isRefusedCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
+                                </button>
+                                {!isRefusedCollapsed && (
+                                  <div className="space-y-3 animate-in fade-in duration-200">
+                                    {refusedApps.map(item => renderAppCard(item, litter))}
+                                  </div>
+                                )}
                               </div>
                             )}
+
                           </div>
                         )}
                       </div>
@@ -503,7 +538,6 @@ export default function AdminManagerView() {
                 );
               })}
 
-              {/* CANDIDATURES GLOBALES (NON ASSIGNÉES À UNE PORTÉE) */}
               {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
                 <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
                   <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures spontanées (Non assignées)</h3>
