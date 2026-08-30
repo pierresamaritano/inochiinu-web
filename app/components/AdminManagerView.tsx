@@ -414,8 +414,8 @@ export default function AdminManagerView() {
                                   </span>
                                 </div>
 
-                                {/* BLOC DISCRET : RÉSILIATION SI ACCEPTÉ */}
-                                {acceptedApp && (
+                                {/* BLOC DISCRET : RÉSILIATION SI ACCEPTÉ OU RÉSERVATION MANUELLE */}
+                                {acceptedApp ? (
                                   <div className="mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2">
                                     <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
                                       👤 Réservé par {acceptedApp.client_name}
@@ -427,7 +427,16 @@ export default function AdminManagerView() {
                                       </button>
                                     </div>
                                   </div>
-                                )}
+                                ) : (pup.status === 'reserve' || pup.status === 'adopte') ? (
+                                  <div className="mt-3 pt-3 border-t border-stone-100 flex flex-col gap-1.5">
+                                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-wider">
+                                      📝 Réservation hors plateforme
+                                    </p>
+                                    <p className="text-[9px] font-bold text-stone-400 leading-tight">
+                                      Ce chiot a été réservé manuellement. Modifiez la portée pour changer son statut.
+                                    </p>
+                                  </div>
+                                ) : null}
                               </div>
                             );
                           })}
