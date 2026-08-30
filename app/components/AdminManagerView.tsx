@@ -43,6 +43,7 @@ export default function AdminManagerView() {
   const [littersList, setLittersList] = useState<any[]>([]); 
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  const [elevageTab, setElevageTab] = useState<"candidatures" | "portees">("candidatures");
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
 
@@ -178,7 +179,6 @@ export default function AdminManagerView() {
     return "Indifférent";
   };
 
-  // Composant interne pour afficher les cartes de candidatures (réutilisable)
   const renderAppCard = (item: any, litter: any = null) => {
     const isRefused = ['annulé', 'refusé'].includes(item.status);
     return (
@@ -197,7 +197,6 @@ export default function AdminManagerView() {
           {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
         </div>
         
-        {/* Assigner un chiot (si dans une portée et non refusé) */}
         {litter && !isRefused && (
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot :</label>
@@ -210,7 +209,6 @@ export default function AdminManagerView() {
           </div>
         )}
 
-        {/* Assigner une portée (si non rattaché et non refusé) */}
         {!litter && !isRefused && (
           <div className="pt-2 border-t border-stone-100 flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lier à une portée :</label>
@@ -221,7 +219,6 @@ export default function AdminManagerView() {
           </div>
         )}
 
-        {/* BOUTONS D'ACTION */}
         {!isRefused ? (
           <div className="pt-2 flex flex-wrap gap-2">
             <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
@@ -328,7 +325,7 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE (INTÉGRÉ & CATÉGORISÉ) */}
+      {/* 5. CONTENU : ÉLEVAGE */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
@@ -357,10 +354,7 @@ export default function AdminManagerView() {
               {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
               
               {littersList.map(litter => {
-                // Candidatures rattachées à cette portée, à l'EXCLUSION des "acceptées" pour un chiot spécifique (qui vont sous le chiot)
                 const activeLitterApps = filteredAdoption.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
-                
-                // Groupement par statut
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
                 const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
                 const refusedApps = activeLitterApps.filter(a => ['annulé', 'refusé'].includes(a.status));
@@ -394,7 +388,6 @@ export default function AdminManagerView() {
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
-                            // On cherche la candidature acceptée pour ce chiot
                             const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
                             
                             return (
@@ -410,7 +403,7 @@ export default function AdminManagerView() {
                                     </div>
                                   </div>
                                   <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
-                                    {pup.status}
+                                    {pup.status === 'reserve' ? 'RÉSERVÉ' : pup.status === 'adopte' ? 'ADOPTÉ' : 'DISPONIBLE'}
                                   </span>
                                 </div>
 
@@ -450,7 +443,6 @@ export default function AdminManagerView() {
                           <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
                           <div className="space-y-6">
-                            {/* NOUVELLES */}
                             {newApps.length > 0 && (
                               <div>
                                 <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5">Nouvelles ({newApps.length})</h5>
@@ -460,7 +452,6 @@ export default function AdminManagerView() {
                               </div>
                             )}
 
-                            {/* LISTE D'ATTENTE */}
                             {waitlistApps.length > 0 && (
                               <div>
                                 <h5 className="text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5">Liste d'attente ({waitlistApps.length})</h5>
@@ -470,7 +461,6 @@ export default function AdminManagerView() {
                               </div>
                             )}
 
-                            {/* REFUSÉES / ARCHIVÉES */}
                             {refusedApps.length > 0 && (
                               <div>
                                 <h5 className="text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5">Archivées / Refusées ({refusedApps.length})</h5>
