@@ -50,7 +50,7 @@ function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
             const isActive = index === currentIndex;
             return (
               <div key={`${slide.tag}-${index}`} onClick={() => setCurrentIndex(index)} className={`absolute w-[88vw] max-w-[900px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/20 ${isActive ? "z-20 scale-100 opacity-100 translate-x-0" : offset === 1 || offset === -(slides.length - 1) ? "z-10 scale-[0.85] opacity-40 brightness-50 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-70" : offset === -1 || offset === slides.length - 1 ? "z-10 scale-[0.85] opacity-40 brightness-50 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto hover:opacity-70" : "z-0 scale-75 opacity-0 pointer-events-none"}`}>
-                <img src={slide.src} alt={slide.alt} className="h-full w-full object-cover select-none pointer-events-none" />
+                <img src={slide.src} alt={slide.alt} loading="lazy" decoding="async" className="h-full w-full object-cover select-none pointer-events-none" />
                 <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8 flex items-center justify-between p-5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/30 shadow-2xl text-white">
                   <div>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-orange-400 drop-shadow-md">{slide.tag}</span>
@@ -618,7 +618,7 @@ export default function ElevagePage() {
                 <div className="w-full lg:w-1/2">
                   {litterSlides.length > 0 && (
                     <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
-                      <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                       {litterSlides.length > 1 && (
                         <>
                           <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-stone-800 shadow-sm hover:bg-white transition cursor-pointer">←</button>
@@ -648,7 +648,7 @@ export default function ElevagePage() {
                     <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left mt-4 sm:mt-0">
                       <div className="w-40 h-40 sm:w-48 sm:h-48 shrink-0 rounded-3xl overflow-hidden shadow-md border-4 border-white bg-stone-100">
                         {selectedPuppy.image_url ? (
-                          <img src={selectedPuppy.image_url} alt={selectedPuppy.name} className="w-full h-full object-cover" />
+                          <img src={selectedPuppy.image_url} alt={selectedPuppy.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-4xl">🐕</div>
                         )}
@@ -686,7 +686,7 @@ export default function ElevagePage() {
                           <button key={pup.id} onClick={() => setSelectedPuppy(pup)} className="group flex flex-col text-left bg-white border border-stone-200 rounded-[1.5rem] overflow-hidden hover:border-orange-400 hover:shadow-md transition-all cursor-pointer">
                             <div className="aspect-square w-full bg-stone-100 relative overflow-hidden">
                               {pup.image_url ? (
-                                <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
+                                <img src={pup.image_url} alt={pup.name} loading="lazy" decoding="async" className="w-full h-full object-cover transition duration-500 group-hover:scale-110" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-3xl">🐕</div>
                               )}
