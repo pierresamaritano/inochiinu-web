@@ -128,7 +128,7 @@ export default function AdminManagerView() {
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
 
-      // NOUVEAUTÉ : Mise à jour automatique du statut du chiot (Réservé / Disponible)
+      // Mise à jour automatique du statut du chiot si on accepte ou annule une candidature
       if (actionModal.table === "adoption_requests") {
         const { data: request } = await supabase.from("adoption_requests").select("puppy_id").eq("id", actionModal.id).single();
         if (request && request.puppy_id) {
@@ -176,6 +176,65 @@ export default function AdminManagerView() {
     if (item.puppy_preference === 'male') return "Un mâle";
     if (item.puppy_preference === 'female') return "Une femelle";
     return "Indifférent";
+  };
+
+  // Composant interne pour afficher les cartes de candidatures (réutilisable)
+  const renderAppCard = (item: any, litter: any = null) => {
+    const isRefused = ['annulé', 'refusé'].includes(item.status);
+    return (
+      <div key={item.id} className={`p-4 rounded-2xl border ${isRefused ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'} space-y-3`}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+            {item.status}
+          </span>
+        </div>
+        
+        <div className="text-xs text-stone-600 space-y-1">
+          <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
+          <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
+          <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+          {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
+        </div>
+        
+        {/* Assigner un chiot (si dans une portée et non refusé) */}
+        {litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot :</label>
+            <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Aucun chiot attribué</option>
+              {litter.puppies?.map((pup: any) => (
+                <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Assigner une portée (si non rattaché et non refusé) */}
+        {!litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100 flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lier à une portée :</label>
+            <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Sélectionner une portée...</option>
+              {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* BOUTONS D'ACTION */}
+        {!isRefused ? (
+          <div className="pt-2 flex flex-wrap gap-2">
+            <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
+            {item.status !== "liste_attente" && <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Attente</button>}
+            <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">Refuser</button>
+          </div>
+        ) : (
+          <div className="pt-2 flex flex-wrap gap-2">
+             <button onClick={() => openAction("adoption_requests", item.id, "en_attente", item.client_name, item.client_name, item.admin_notes)} className="w-full py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold transition cursor-pointer">Remettre en attente</button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -269,14 +328,14 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE (SANS SOUS-ONGLETS) */}
+      {/* 5. CONTENU : ÉLEVAGE (INTÉGRÉ & CATÉGORISÉ) */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           
           {!showLitterForm && (
-            <div className="flex justify-between items-center border-b border-stone-200 pb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
               <div>
-                <h2 className="text-xl font-black text-stone-900">Gestion de l'Élevage</h2>
+                <h2 className="text-xl font-black text-stone-900">Gestion des Portées</h2>
                 <p className="text-xs text-stone-500 mt-1">Gérez vos portées, vos chiots et les candidatures associées.</p>
               </div>
               <button onClick={() => { setEditingLitter(null); setShowLitterForm(true); }} className="px-5 py-2.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white rounded-full text-xs font-black shadow-md hover:scale-105 transition-all cursor-pointer">
@@ -298,7 +357,13 @@ export default function AdminManagerView() {
               {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
               
               {littersList.map(litter => {
-                const litterCandidatures = filteredAdoption.filter(a => a.litter_id === litter.id);
+                // Candidatures rattachées à cette portée, à l'EXCLUSION des "acceptées" pour un chiot spécifique (qui vont sous le chiot)
+                const activeLitterApps = filteredAdoption.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
+                
+                // Groupement par statut
+                const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
+                const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
+                const refusedApps = activeLitterApps.filter(a => ['annulé', 'refusé'].includes(a.status));
                 
                 return (
                   <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
@@ -321,106 +386,104 @@ export default function AdminManagerView() {
                       </div>
                     </div>
 
-                    {/* CORPS DE LA PORTÉE : CHIOTS & CANDIDATURES */}
+                    {/* CORPS DE LA PORTÉE */}
                     <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                       
                       {/* COLONNE DE GAUCHE : LES CHIOTS */}
                       <div>
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
-                          {litter.puppies?.map((pup: any) => (
-                            <div key={pup.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
-                                  {pup.image_url ? (
-                                    <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    pup.gender === 'male' ? '🐕' : '🌸'
-                                  )}
+                          {litter.puppies?.map((pup: any) => {
+                            // On cherche la candidature acceptée pour ce chiot
+                            const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
+                            
+                            return (
+                              <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
+                                      {pup.image_url ? <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" /> : (pup.gender === 'male' ? '🐕' : '🌸')}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-black text-stone-900">{pup.name}</p>
+                                      <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
+                                    {pup.status}
+                                  </span>
                                 </div>
-                                <div>
-                                  <p className="text-sm font-black text-stone-900">{pup.name}</p>
-                                  <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
-                                </div>
+
+                                {/* BLOC DISCRET : RÉSILIATION SI ACCEPTÉ */}
+                                {acceptedApp && (
+                                  <div className="mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2">
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
+                                      👤 Réservé par {acceptedApp.client_name}
+                                    </p>
+                                    <div className="flex items-center justify-between">
+                                      <a href={`tel:${acceptedApp.client_phone}`} className="text-[11px] font-bold text-stone-500 hover:text-stone-900">📞 {acceptedApp.client_phone}</a>
+                                      <button onClick={() => openAction("adoption_requests", acceptedApp.id, "annulé", acceptedApp.client_name, acceptedApp.client_name, acceptedApp.admin_notes)} className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer">
+                                        Annuler la résa.
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
-                                {pup.status}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* COLONNE DE DROITE : LES CANDIDATURES */}
+                      {/* COLONNE DE DROITE : LES CANDIDATURES CATÉGORISÉES */}
                       <div>
-                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures liées ({litterCandidatures.length})</h4>
-                        <div className="space-y-4">
-                          {litterCandidatures.length === 0 ? (
-                            <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature assignée à cette portée.</p>
-                          ) : litterCandidatures.map(item => (
-                            <div key={item.id} className="p-5 rounded-2xl border border-stone-200 bg-white shadow-sm space-y-4">
-                              
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
-                                <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : item.status === "annulé" ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
-                                  {item.status}
-                                </span>
+                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures en cours ({activeLitterApps.length})</h4>
+                        {activeLitterApps.length === 0 ? (
+                          <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
+                        ) : (
+                          <div className="space-y-6">
+                            {/* NOUVELLES */}
+                            {newApps.length > 0 && (
+                              <div>
+                                <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5">Nouvelles ({newApps.length})</h5>
+                                <div className="space-y-3">
+                                  {newApps.map(item => renderAppCard(item, litter))}
+                                </div>
                               </div>
-                              
-                              <div className="text-xs text-stone-600 space-y-1">
-                                <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
-                                <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
-                                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
+                            )}
+
+                            {/* LISTE D'ATTENTE */}
+                            {waitlistApps.length > 0 && (
+                              <div>
+                                <h5 className="text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5">Liste d'attente ({waitlistApps.length})</h5>
+                                <div className="space-y-3">
+                                  {waitlistApps.map(item => renderAppCard(item, litter))}
+                                </div>
                               </div>
-                              
-                              {/* Assigner un chiot précis */}
-                              <div className="pt-3 border-t border-stone-100">
-                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-2">Rattacher à un chiot :</label>
-                                <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-                                  <option value="">Aucun chiot attribué</option>
-                                  {litter.puppies?.map((pup: any) => (
-                                    <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
-                                  ))}
-                                </select>
+                            )}
+
+                            {/* REFUSÉES / ARCHIVÉES */}
+                            {refusedApps.length > 0 && (
+                              <div>
+                                <h5 className="text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5">Archivées / Refusées ({refusedApps.length})</h5>
+                                <div className="space-y-3">
+                                  {refusedApps.map(item => renderAppCard(item, litter))}
+                                </div>
                               </div>
-                              
-                              <div className="pt-2 flex flex-wrap gap-2">
-                                <button onClick={() => openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Accepter</button>
-                                <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">Attente</button>
-                                <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">Refuser</button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })}
 
-              {/* CANDIDATURES NON ASSIGNÉES (S'il y en a) */}
+              {/* CANDIDATURES GLOBALES (NON ASSIGNÉES À UNE PORTÉE) */}
               {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
                 <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
-                  <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures non assignées</h3>
+                  <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures spontanées (Non assignées)</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredAdoption.filter(a => !a.litter_id).map(item => (
-                      <div key={item.id} className="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-3">
-                           <span className="text-sm font-black text-stone-900">{item.client_name}</span>
-                           <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-100">{item.status}</span>
-                        </div>
-                        <p className="text-[11px] font-bold text-orange-600 mb-1">Souhait : {renderPreferenceText(item)}</p>
-                        <p className="text-xs text-stone-500 mb-6">{item.living_environment}</p>
-                        
-                        <div className="flex flex-col gap-2">
-                          <label className="text-[10px] font-bold text-stone-400 uppercase">Lier à une portée :</label>
-                          <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl border border-stone-200 focus:outline-none focus:border-orange-500 cursor-pointer">
-                            <option value="">Sélectionner une portée...</option>
-                            {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                    ))}
+                    {filteredAdoption.filter(a => !a.litter_id).map(item => renderAppCard(item, null))}
                   </div>
                 </div>
               )}
