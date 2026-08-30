@@ -16,7 +16,7 @@ interface DogProfile {
 }
 
 // =========================================================================
-// COMPOSANT CARROUSEL APPLE INTEGRE (Galerie Chiens)
+// COMPOSANT CARROUSEL APPLE INTEGRE (Galerie Chiens / Mode Immersion)
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -80,7 +80,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- CARROUSEL DES VALEURS (Minuteur intelligent) ---
+  // --- CARROUSEL DES VALEURS HERO (Minuteur intelligent + Pause 12s + Tapotement) ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -92,7 +92,6 @@ export default function ElevagePage() {
   const [modalSlideIndex, setModalSlideIndex] = useState(0); 
   const [selectedPuppy, setSelectedPuppy] = useState<any>(null); 
   const [hasExistingCandidature, setHasExistingCandidature] = useState(false);
-  // ------------------------------------------------
 
   const [selectedDogIndex, setSelectedDogIndex] = useState(0);
   const [isDogMenuOpen, setIsDogMenuOpen] = useState(false);
@@ -159,16 +158,16 @@ export default function ElevagePage() {
     { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // LOGIQUE DU MINUTEUR INTELLIGENT
+  // LOGIQUE DU MINUTEUR INTELLIGENT (Pause 12s au tap/clic)
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-      setTimeToNext(6000); // Retour à la vitesse normale (6s)
+      setTimeToNext(6000);
     }, timeToNext);
     return () => clearTimeout(timer);
   }, [currentSlide, timeToNext, slides.length]);
 
-  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+  const handleUserInteraction = () => setTimeToNext(12000);
 
   const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
@@ -176,14 +175,14 @@ export default function ElevagePage() {
 
   const getLitterSlides = (litter: any): CarouselSlide[] => {
     if (!litter) return [];
-    const slides: CarouselSlide[] = [];
-    if (litter.image_url) slides.push({ src: litter.image_url, alt: "Couple", tag: litter.image_tag || "Le Couple", caption: litter.image_caption || "Les parents" });
+    const slidesList: CarouselSlide[] = [];
+    if (litter.image_url) slidesList.push({ src: litter.image_url, alt: "Couple", tag: litter.image_tag || "Le Couple", caption: litter.image_caption || "Les parents" });
     if (litter.puppies && litter.puppies.length > 0) {
       litter.puppies.forEach((pup: any) => {
-        if (pup.image_url) slides.push({ src: pup.image_url, alt: pup.name, tag: pup.image_tag || "Chiot", caption: pup.image_caption || pup.name });
+        if (pup.image_url) slidesList.push({ src: pup.image_url, alt: pup.name, tag: pup.image_tag || "Chiot", caption: pup.image_caption || pup.name });
       });
     }
-    return slides;
+    return slidesList;
   };
 
   const litterSlides = activeLitters.length > 0 ? getLitterSlides(activeLitters[selectedLitterIndex]) : [];
@@ -285,11 +284,11 @@ export default function ElevagePage() {
         </p>
       </section>
 
-      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT (SWIPE RETIRÉ) */}
+      {/* CARROUSEL VALEURS HERO (AVEC ZONES DE TAPOTEMENT + PAUSE 12s) */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           
-          {/* ZONES DE TAPOTEMENT */}
+          {/* ZONES DE TAPOTEMENT (Moitié gauche / Moitié droite) */}
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
           <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
 
@@ -303,6 +302,7 @@ export default function ElevagePage() {
               </div>
             </div>
           ))}
+
           <button onClick={prevSlide} className="absolute left-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">←</button>
           <button onClick={nextSlide} className="absolute right-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">→</button>
           
@@ -314,7 +314,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE MODIFIÉ (Bouton "Découvrir" uniquement) */}
+      {/* BANDEAU CANDIDATURE */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
@@ -368,7 +368,6 @@ export default function ElevagePage() {
                 Nos reproducteurs LOF
               </h2>
             </div>
-
             <div className="relative w-full max-w-xs mx-auto lg:mx-0 z-[70]">
               <button onClick={() => setIsDogMenuOpen(!isDogMenuOpen)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-stone-200/80 bg-white p-3.5 shadow-sm transition-all hover:bg-stone-50 hover:border-stone-300 focus:outline-none cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -382,7 +381,6 @@ export default function ElevagePage() {
                 </div>
                 <span className={`text-stone-400 transition-transform duration-200 ${isDogMenuOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
-
               {isDogMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsDogMenuOpen(false)} />
@@ -595,7 +593,7 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            <div className="p-8 sm:p-12 pt-8 flex flex-col lg:flex-row gap-10 flex-1">
+            <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 flex-1">
               
               {/* LIGNE HAUT : Carrousel à gauche + Histoire à droite */}
               <div className="flex flex-col lg:flex-row gap-10 items-start">
