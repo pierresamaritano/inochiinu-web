@@ -16,7 +16,7 @@ interface DogProfile {
 }
 
 // =========================================================================
-// COMPOSANT CARROUSEL APPLE INTEGRE (Galerie Chiens / Mode Immersion)
+// COMPOSANT CARROUSEL CHIEN (Optimisé iOS comme la page d'accueil)
 // =========================================================================
 function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -42,28 +42,77 @@ function DogCarousel({ slides }: { slides: CarouselSlide[] }) {
   if (!slides || slides.length === 0) return null;
 
   return (
-    <section className="relative w-full h-full flex items-center justify-center">
-      <div className="relative w-full overflow-x-hidden py-10 flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-        <div className="relative flex w-full max-w-5xl items-center justify-center min-h-[400px] sm:min-h-[600px]">
-          {slides.map((slide, index) => {
-            const offset = index - currentIndex;
-            const isActive = index === currentIndex;
-            return (
-              <div key={`${slide.tag}-${index}`} onClick={() => setCurrentIndex(index)} className={`absolute w-[88vw] max-w-[900px] aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-white/20 ${isActive ? "z-20 scale-100 opacity-100 translate-x-0" : offset === 1 || offset === -(slides.length - 1) ? "z-10 scale-[0.85] opacity-40 brightness-50 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-70" : offset === -1 || offset === slides.length - 1 ? "z-10 scale-[0.85] opacity-40 brightness-50 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto hover:opacity-70" : "z-0 scale-75 opacity-0 pointer-events-none"}`}>
-                <img src={slide.src} alt={slide.alt} loading="lazy" decoding="async" className="h-full w-full object-cover select-none pointer-events-none" />
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8 flex items-center justify-between p-5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/30 shadow-2xl text-white">
+    <section className="relative w-full py-6 sm:py-10 z-20">
+      <div 
+        className="relative w-full max-w-4xl mx-auto px-4 overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* CONTENEUR FLEX GLISSANT (Aucun "absolute" sur les slides) */}
+        <div 
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {slides.map((slide, index) => (
+            <div key={`${slide.tag}-${index}`} className="w-full shrink-0 px-2">
+              <div className="relative aspect-[4/3] sm:aspect-[16/9] rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-lg border border-stone-200/80 bg-stone-900">
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover select-none pointer-events-none"
+                />
+                
+                {/* Légende */}
+                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex items-center justify-between p-4 rounded-2xl bg-black/50 border border-white/20 shadow-sm text-white">
                   <div>
-                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-orange-400 drop-shadow-md">{slide.tag}</span>
-                    <p className="text-sm sm:text-lg font-bold mt-1 drop-shadow-md">{slide.caption}</p>
+                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-orange-400 drop-shadow-md">
+                      {slide.tag}
+                    </span>
+                    <p className="text-xs sm:text-sm font-bold text-stone-100 mt-0.5 drop-shadow-md">
+                      {slide.caption}
+                    </p>
                   </div>
-                  <span className="hidden sm:inline-flex text-xs font-bold bg-black/40 px-4 py-2 rounded-full border border-white/20">{index + 1} / {slides.length}</span>
+                  <span className="hidden sm:inline-flex text-[11px] font-bold text-stone-200 bg-black/40 px-3 py-1 rounded-full border border-white/20">
+                    {index + 1} / {slides.length}
+                  </span>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-        <button onClick={prevSlide} className="hidden md:flex absolute left-8 z-50 h-14 w-14 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/30 shadow-xl text-white hover:scale-110 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg></button>
-        <button onClick={nextSlide} className="hidden md:flex absolute right-8 z-50 h-14 w-14 items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/30 shadow-xl text-white hover:scale-110 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></button>
+
+        {/* Boutons de navigation (PC) */}
+        <button
+          onClick={prevSlide}
+          aria-label="Précédent"
+          className="hidden md:flex absolute left-6 top-[40%] sm:top-1/2 -translate-y-1/2 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-md text-white hover:scale-110 transition-all cursor-pointer"
+        >
+          ←
+        </button>
+        <button
+          onClick={nextSlide}
+          aria-label="Suivant"
+          className="hidden md:flex absolute right-6 top-[40%] sm:top-1/2 -translate-y-1/2 z-30 h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-md text-white hover:scale-110 transition-all cursor-pointer"
+        >
+          →
+        </button>
+
+        {/* Indicateurs (petits points en dessous) */}
+        <div className="flex justify-center items-center gap-2 mt-6">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentIndex(i)}
+              aria-label={`Aller à la photo ${i + 1}`}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                i === currentIndex ? "w-8 bg-stone-700" : "w-2 bg-stone-300 hover:bg-stone-400"
+              }`}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -80,7 +129,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- CARROUSEL DES VALEURS HERO (Minuteur intelligent + Pause 12s + Tapotement) ---
+  // --- CARROUSEL DES VALEURS HERO ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -158,7 +207,6 @@ export default function ElevagePage() {
     { title: "Suivi de Croissance & Conseils à Vie", subtitle: "Courbe de poids interactive sur votre Espace Membre.", tag: "Engagement", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // LOGIQUE DU MINUTEUR INTELLIGENT (Pause 12s au tap/clic)
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -280,11 +328,10 @@ export default function ElevagePage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* BACKGROUND ELEMENTS */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
-        <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
+      {/* HALOS FAUVE (Optimisés pour iOS : Radial Gradient au lieu de Blur CSS) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
+        <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
+        <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
       </div>
 
       <LiquidNavbar />
@@ -301,14 +348,11 @@ export default function ElevagePage() {
         </p>
       </section>
 
-      {/* CARROUSEL VALEURS HERO (AVEC ZONES DE TAPOTEMENT + PAUSE 12s) */}
+      {/* CARROUSEL VALEURS HERO */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
-          
-          {/* ZONES DE TAPOTEMENT (Moitié gauche / Moitié droite) */}
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
           <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
-
           {slides.map((slide, index) => (
             <div key={index} className={`absolute inset-0 transition-opacity duration-700 flex flex-col justify-center px-8 sm:px-14 ${index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
               <div className={`absolute inset-0 bg-gradient-to-r ${slide.gradient}`} />
@@ -319,10 +363,6 @@ export default function ElevagePage() {
               </div>
             </div>
           ))}
-
-          <button onClick={prevSlide} className="absolute left-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">←</button>
-          <button onClick={nextSlide} className="absolute right-4 z-30 hidden sm:flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer">→</button>
-          
           <div className="absolute bottom-4 inset-x-0 z-30 flex justify-center gap-1.5 pointer-events-none">
             {slides.map((_, index) => (
               <button key={index} onClick={() => goToSlide(index)} className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer pointer-events-auto ${index === currentSlide ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
@@ -433,6 +473,7 @@ export default function ElevagePage() {
             </p>
           </div>
 
+          {/* LE NOUVEAU CARROUSEL OPTIMISÉ */}
           <DogCarousel slides={currentProfile.images} />
 
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
@@ -562,9 +603,9 @@ export default function ElevagePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION */}
+      {/* POP-UP MODE IMMERSION (Optimisé) */}
       {isImmersionMode && activeLitters.length > 0 && (
-        <div className="fixed inset-0 z-[200] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[200] bg-stone-950 flex flex-col justify-center animate-in fade-in duration-500">
           <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer shadow-xl">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -575,10 +616,10 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* POP-UP : PORTÉE ET CHIOTS (STANDARD) */}
+      {/* POP-UP : PORTÉE ET CHIOTS (Optimisé) */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowLitterModal(false)} />
+          <div className="fixed inset-0 bg-black/80" onClick={() => setShowLitterModal(false)} />
           <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
             
             <button onClick={() => setShowLitterModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 z-50 bg-white p-2 rounded-full shadow-sm cursor-pointer transition hover:scale-110">
@@ -612,9 +653,7 @@ export default function ElevagePage() {
 
             <div className="p-8 sm:p-12 pt-8 flex flex-col gap-10 flex-1">
               
-              {/* LIGNE HAUT : Carrousel à gauche + Histoire à droite */}
               <div className="flex flex-col lg:flex-row gap-10 items-start">
-                
                 <div className="w-full lg:w-1/2">
                   {litterSlides.length > 0 && (
                     <div className="relative w-full aspect-square rounded-[2rem] overflow-hidden shadow-sm border border-stone-200 bg-stone-100 group shrink-0">
@@ -637,7 +676,6 @@ export default function ElevagePage() {
                 </div>
               </div>
 
-              {/* LIGNE BAS : Chiots */}
               <div className="w-full border-t border-stone-100 pt-8">
                 {selectedPuppy ? (
                   <div className="bg-orange-50/50 p-6 sm:p-10 rounded-[2.5rem] border border-orange-100 relative animate-in slide-in-from-right-4 duration-300">
@@ -709,7 +747,6 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* LE BOUTON UNIQUE DE CANDIDATURE */}
             <div className="p-8 sm:p-12 pt-0 shrink-0">
               <div className="border-t border-stone-100 pt-8 flex justify-center">
                 <button 
@@ -736,8 +773,8 @@ export default function ElevagePage() {
 
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600 mb-4 text-xl">⚖️</div>
             <h3 className="text-xl font-black text-stone-900">Conditions d'adoption</h3>
@@ -762,8 +799,8 @@ export default function ElevagePage() {
 
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
@@ -779,7 +816,7 @@ export default function ElevagePage() {
 
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
+          <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             {submitted ? (
