@@ -59,12 +59,11 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900 scroll-smooth">
       
-      {/* HALOS FAUVE */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      {/* HALOS FAUVE (Corrigé pour Safari iOS : absolute au lieu de fixed + transform-gpu) */}
+      <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-0 inset-x-0 h-[10vh] bg-gradient-to-b from-orange-600/10 to-transparent blur-[40px]" />
         <div className="absolute top-[20%] -left-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
         <div className="absolute top-[20%] -right-[25%] w-[30vw] h-[60vh] rounded-full bg-orange-600/10 blur-[130px]" />
-        <div className="absolute -bottom-10 inset-x-0 h-[10vh] bg-gradient-to-t from-orange-600/8 to-transparent blur-[50px]" />
       </div>
 
       <LiquidNavbar />
@@ -87,7 +86,7 @@ export default function Home() {
           humaine, accompagnement comportemental et sellerie sur-mesure.
         </p>
 
-        {/* NOUVEAUX BOUTONS HERO : RÉSERVATION (GAUCHE / ORANGE) & CONTACT (DROITE / BLANC) */}
+        {/* BOUTONS HERO */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <button
             onClick={() => setIsReservationModalOpen(true)}
@@ -151,7 +150,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECTION CONTACT & COORDONNÉES (ANCRE #contact) */}
+      {/* SECTION CONTACT */}
       <section id="contact" className="relative z-10 border-t border-stone-200/60 bg-white/40 backdrop-blur-md py-20 scroll-mt-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center max-w-2xl mx-auto mb-12">
@@ -167,7 +166,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Téléphone */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,7 +179,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Email */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,7 +192,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Réseaux Sociaux */}
             <div className="p-8 rounded-[2rem] bg-white border border-stone-200/80 shadow-sm text-center flex flex-col items-center justify-center">
               <div className="h-12 w-12 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-4">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -222,9 +218,7 @@ export default function Home() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* =========================================================================
-          MODALE EXPLICATIVE : RÉSERVATION & ESPACE MEMBRE
-          ========================================================================= */}
+      {/* MODALE EXPLICATIVE */}
       {isReservationModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -251,7 +245,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Étapes claires */}
             <div className="mt-6 space-y-3">
               <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-white border border-stone-200/70 shadow-2xs">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-black">
