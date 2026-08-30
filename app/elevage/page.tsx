@@ -1,11 +1,10 @@
-// app/elevage/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
+// ON IMPORTE LE CARROUSEL MAÎTRE ET SON TYPE
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
-// ON IMPORTE NOTRE NOUVEAU COMPOSANT
 import ContactSection from "../components/ContactSection";
 
 // =========================================================================
@@ -228,6 +227,7 @@ export default function ElevagePage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
+      {/* HALOS FAUVE */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -371,10 +371,17 @@ export default function ElevagePage() {
               {currentProfile.description}
             </p>
           </div>
+        </div>
 
-          {/* APPEL DU CARROUSEL MAÎTRE ICI (Photos du chien) */}
+        {/* =========================================================
+            VOICI LA CORRECTION : LE CARROUSEL EST EN PLEINE LARGEUR !
+            ========================================================= */}
+        <div className="relative w-full py-6 sm:py-8">
           <AppleCarousel slides={currentProfile.images} />
+        </div>
 
+        {/* ON ROUVRE LE CONTENEUR POUR L'ARBRE GÉNÉALOGIQUE */}
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
             
