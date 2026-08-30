@@ -221,10 +221,13 @@ useEffect(() => {
     catch (err) { console.error(err); setAuthLoading(false); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!user) return; setSubmitting(true);
+const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); 
+    if (!user) return; 
+    setSubmitting(true);
+    
     try {
-      await supabase.from("adoption_requests").insert([{ 
+      const { error } = await supabase.from("adoption_requests").insert([{ 
         user_id: user.id, 
         client_name: user.user_metadata?.full_name || "Client", 
         client_email: user.email, 
@@ -235,11 +238,26 @@ useEffect(() => {
         status: "en_attente", 
         litter_id: activeLitters[selectedLitterIndex]?.id || null,
         puppy_preference: formData.puppyPreference,
-        puppy_id: formData.puppyPreference === 'specific' ? formData.puppyId : null
+        // On s'assure d'envoyer null (et pas "") si aucun chiot précis n'est sélectionné :
+        puppy_id: (formData.puppyPreference === 'specific' && formData.puppyId) ? formData.puppyId : null
       }]);
+      
+      // S'il y a une erreur base de données, on l'affiche et ON BLOQUE le faux message de succès
+      if (error) {
+        console.error("Erreur détaillée Supabase :", error);
+        alert("Erreur de sauvegarde : " + error.message);
+        setSubmitting(false);
+        return; 
+      }
+      
       setSubmitted(true);
       setHasExistingCandidature(true);
-    } catch (err) { console.error(err); } finally { setSubmitting(false); }
+    } catch (err: any) { 
+      console.error(err);
+      alert("Erreur d'application : " + err.message);
+    } finally { 
+      setSubmitting(false); 
+    }
   };
 
   const dogs: DogProfile[] = [
