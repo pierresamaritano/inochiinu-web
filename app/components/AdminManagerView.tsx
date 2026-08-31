@@ -64,7 +64,8 @@ export default function AdminManagerView() {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
-      supabase.from("adoption_requests").select("*, puppies(name)").order("created_at", { ascending: false }),
+      // NOUVEAU: Exclut complètement les statuts annulés et refusés pour nettoyer la vue
+      supabase.from("adoption_requests").select("*, puppies(name)").neq("status", "annulé").neq("status", "refusé").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
     ]);
@@ -82,7 +83,7 @@ export default function AdminManagerView() {
     if (clientSearchQuery.trim().length < 2) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
       const { data } = await supabase.from("profiles").select("id, full_name, email, phone").or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`).limit(6);
-      setSearchResults(data || []);
+      searchResults(data || []);
     }, 250);
     return () => clearTimeout(timer);
   }, [clientSearchQuery, selectedFilterClient, supabase]);

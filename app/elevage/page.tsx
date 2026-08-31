@@ -33,6 +33,7 @@ export default function ElevagePage() {
   const [timeToNext, setTimeToNext] = useState(6000);
 
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
+  const [isShowingPastLitter, setIsShowingPastLitter] = useState(false);
   const [selectedLitterIndex, setSelectedLitterIndex] = useState(0); 
   const [showLitterModal, setShowLitterModal] = useState(false);
   const [isImmersionMode, setIsImmersionMode] = useState(false);
@@ -81,14 +82,29 @@ export default function ElevagePage() {
         }
       }
 
+      // 1. On cherche d'abord les portées actives
       const { data: littersData } = await supabase
         .from("litters")
         .select("*, puppies(*)")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       
-      if (littersData) {
+      if (littersData && littersData.length > 0) {
         setActiveLitters(littersData);
+        setIsShowingPastLitter(false);
+      } else {
+        // 2. S'il n'y en a pas, on cherche la dernière portée passée
+        const { data: pastLitterData } = await supabase
+          .from("litters")
+          .select("*, puppies(*)")
+          .eq("is_active", false)
+          .order("created_at", { ascending: false })
+          .limit(1);
+          
+        if (pastLitterData && pastLitterData.length > 0) {
+          setActiveLitters(pastLitterData);
+          setIsShowingPastLitter(true); // On active le mode "Archive"
+        }
       }
     };
     fetchUserAndLitters();
@@ -159,9 +175,6 @@ export default function ElevagePage() {
       setModalSlideIndex(0);
       setSelectedLitterIndex(0); 
       setShowLitterModal(true);
-    } else {
-      setFormData(prev => ({ ...prev, puppyPreference: "indifferent", puppyId: "" }));
-      handleInitialClick();
     }
   };
 
@@ -258,7 +271,6 @@ export default function ElevagePage() {
 
       <LiquidNavbar />
 
-      {/* SECTION HERO AVEC LE MESSAGE EN ROUGE */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -651,25 +663,28 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            <div className="p-8 sm:p-12 pt-0 shrink-0">
-              <div className="border-t border-stone-100 pt-8 flex justify-center">
-                <button 
-                  onClick={handleCandidater} 
-                  disabled={isCandidatureDisabled}
-                  className={`px-10 py-4 font-black text-xs sm:text-sm uppercase tracking-wider rounded-full transition-all flex items-center gap-3 ${
-                    isCandidatureDisabled 
-                      ? "bg-stone-200 text-stone-400 cursor-not-allowed" 
-                      : "bg-gradient-to-tr from-stone-900 to-stone-800 text-white shadow-lg hover:scale-105 cursor-pointer"
-                  }`}
-                >
-                  {hasExistingCandidature 
-                    ? "Vous avez déjà une demande en cours" 
-                    : selectedPuppy && selectedPuppy.status !== 'disponible' 
-                      ? "Ce chiot est réservé" 
-                      : "Candidater"}
-                </button>
+            {/* On affiche le bouton uniquement si ce n'est PAS une ancienne portée */}
+            {!isShowingPastLitter && (
+              <div className="p-8 sm:p-12 pt-0 shrink-0">
+                <div className="border-t border-stone-100 pt-8 flex justify-center">
+                  <button 
+                    onClick={handleCandidater} 
+                    disabled={isCandidatureDisabled}
+                    className={`px-10 py-4 font-black text-xs sm:text-sm uppercase tracking-wider rounded-full transition-all flex items-center gap-3 ${
+                      isCandidatureDisabled 
+                        ? "bg-stone-200 text-stone-400 cursor-not-allowed" 
+                        : "bg-gradient-to-tr from-stone-900 to-stone-800 text-white shadow-lg hover:scale-105 cursor-pointer"
+                    }`}
+                  >
+                    {hasExistingCandidature 
+                      ? "Vous avez déjà une demande en cours" 
+                      : selectedPuppy && selectedPuppy.status !== 'disponible' 
+                        ? "Ce chiot est réservé" 
+                        : "Candidater"}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
         </div>
