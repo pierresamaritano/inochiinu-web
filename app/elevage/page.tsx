@@ -188,7 +188,15 @@ export default function ElevagePage() {
     handleInitialClick();
   };
 
-  const isCandidatureDisabled = hasExistingCandidature || (selectedPuppy && selectedPuppy.status !== 'disponible');
+  // ======= NOUVELLE LOGIQUE DE VERROUILLAGE =======
+  const currentLitter = activeLitters.length > 0 ? activeLitters[selectedLitterIndex] : null;
+  const hasAvailablePuppies = currentLitter?.puppies?.some((p: any) => p.status === 'disponible') || false;
+
+  const isCandidatureDisabled = 
+    hasExistingCandidature || 
+    !hasAvailablePuppies || 
+    (selectedPuppy && selectedPuppy.status !== 'disponible');
+  // =================================================
 
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
@@ -680,9 +688,11 @@ export default function ElevagePage() {
                   >
                     {hasExistingCandidature 
                       ? "Vous avez déjà une demande en cours" 
-                      : selectedPuppy && selectedPuppy.status !== 'disponible' 
-                        ? "Ce chiot est réservé" 
-                        : "Candidater"}
+                      : !hasAvailablePuppies
+                        ? "Plus de chiots disponibles"
+                        : selectedPuppy && selectedPuppy.status !== 'disponible' 
+                          ? "Ce chiot est réservé" 
+                          : "Candidater"}
                   </button>
                 </div>
               </div>
