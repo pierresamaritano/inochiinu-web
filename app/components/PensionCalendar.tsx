@@ -42,11 +42,11 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
       const userId = sessionData.session?.user?.id || null;
       setCurrentUser(userId);
 
-      // 2. Récupérer TOUTES les réservations (pour calculer la limite de 6 boxs)
+      // 2. Récupérer TOUTES les réservations pour calculer la disponibilité
       const { data } = await supabase
         .from("pension_bookings")
         .select("user_id, start_date, end_date, status")
-        .neq("status", "annulé"); // On ignore les annulées
+        .neq("status", "annulé"); 
       
       setReservations(data || []);
     };
@@ -54,8 +54,23 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
   }, [month, year, supabase]);
 
   // =========================================================================
-  // CALCUL DES DISPONIBILITÉS & STATUT PERSONNEL
+  // LOGIQUE DE VÉRIFICATION ANTI-CHEVAUCHEMENT (SCANNER)
   // =========================================================================
+  const isDateDisabled = (isoDate: string) => {
+    let boxesOccupes = 0;
+    let hasPersonal = false;
+    
+    reservations.forEach((res) => {
+      if (isoDate >= res.start_date && isoDate <= res.end_date) {
+        if (res.status === "confirmé") boxesOccupes++;
+        if (res.user_id === currentUser) hasPersonal = true;
+      }
+    });
+    
+    // Le jour est désactivé s'il y a 6 chiens, OU si j'ai déjà un séjour ce jour-là
+    return (6 - boxesOccupes <= 0) || hasPersonal;
+  };
+
   const getAvailability = (day: number) => {
     const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     
@@ -63,18 +78,9 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     let myPersonalStatus = null;
     
     reservations.forEach((res) => {
-      // Si la date tombe pendant un séjour
       if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
-        
-        // Pour la capacité globale : seuls les confirmés occupent physiquement un box
-        if (res.status === "confirmé") {
-          boxesOccupes++;
-        }
-        
-        // Pour l'affichage personnel (points bleus/jaunes)
-        if (res.user_id === currentUser) {
-          myPersonalStatus = res.status; 
-        }
+        if (res.status === "confirmé") boxesOccupes++;
+        if (res.user_id === currentUser) myPersonalStatus = res.status; 
       }
     });
 
@@ -88,16 +94,36 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
   };
 
   const handleDayClick = (day: number) => {
-    const { status } = getAvailability(day);
-    if (status === "complet") return; 
-
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
+
+    // Sécurité 1 : Impossible de cliquer sur un jour plein ou déjà réservé par nous-même
+    if (isDateDisabled(clickedDate)) return;
 
     if (!startDate || (startDate && endDate)) {
       onChange(clickedDate, "");
     } else {
       if (clickedDate > startDate) {
-        onChange(startDate, clickedDate);
+        
+        // Sécurité 2 : On scanne tous les jours entre le début et la fin
+        let hasOverlap = false;
+        let current = new Date(startDate + "T00:00:00Z");
+        const end = new Date(clickedDate + "T00:00:00Z");
+        
+        while (current <= end) {
+          const checkISODate = current.toISOString().split("T")[0];
+          if (isDateDisabled(checkISODate)) {
+            hasOverlap = true;
+            break;
+          }
+          current.setUTCDate(current.getUTCDate() + 1);
+        }
+
+        if (hasOverlap) {
+          alert("Votre sélection chevauche des dates indisponibles ou que vous avez déjà réservées.");
+          onChange(clickedDate, ""); // On réinitialise avec le nouveau clic
+        } else {
+          onChange(startDate, clickedDate);
+        }
       } else {
         onChange(clickedDate, ""); 
       }
@@ -120,7 +146,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     return (
       <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-4">
         
-        {/* LÉGENDE PERSONNELLE (Conditionnelle) */}
+        {/* LÉGENDE PERSONNELLE (Points jaunes et bleus) */}
         {(hasMyPending || hasMyConfirmed) && (
           <div className="pb-4 border-b border-stone-200/80 space-y-2">
             <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Vos séjours</p>
@@ -193,24 +219,33 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
           const isSelectedStart = startDate === currentISODate;
           const isSelectedEnd = endDate === currentISODate;
           const isBetween = startDate && endDate && currentISODate > startDate && currentISODate < endDate;
+          
+          // CORRECTION: Le bouton est désactivé s'il n'y a plus de place, OU si c'est un jour qui vous appartient déjà.
           const isComplet = status === "complet";
+          const isMyDay = !!myPersonalStatus;
+          const isDisabled = isComplet || isMyDay;
 
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
           let textClass = "text-stone-700";
           let badgeColor = "bg-emerald-400"; 
 
-          // 1. Définition de la couleur par défaut (Capacité globale)
           if (status === "haute") badgeColor = "bg-orange-400";
           if (status === "complet") badgeColor = "bg-red-500";
-
-          // 2. Surcharge par le statut personnel (Le Jaune et le Bleu demandés)
+          
           if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
           if (myPersonalStatus === "confirmé") badgeColor = "bg-blue-500 shadow-sm ring-1 ring-blue-200";
 
-          // 3. Application des styles visuels (Sélection, Complet, etc.)
-          if (isComplet && !myPersonalStatus) {
-            bgClass = "bg-stone-100 border border-stone-100 opacity-50 cursor-not-allowed";
-            textClass = "text-stone-400 line-through";
+          // Styles visuels pour les jours bloqués / cliqués
+          if (isDisabled) {
+            if (isMyDay) {
+              // Apparence d'un de vos propres jours (désactivé mais visible)
+              bgClass = "bg-stone-50 border border-stone-200 opacity-60 cursor-not-allowed";
+              textClass = "text-stone-500 font-bold";
+            } else {
+              // Apparence d'un jour complet pour un autre client
+              bgClass = "bg-stone-100 border border-stone-100 opacity-50 cursor-not-allowed";
+              textClass = "text-stone-400 line-through";
+            }
           } else if (isSelectedStart || isSelectedEnd) {
             bgClass = "bg-orange-600 border border-orange-600 shadow-md";
             textClass = "text-white font-black";
@@ -224,9 +259,9 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
             <button
               key={day}
               type="button"
-              disabled={isComplet && !myPersonalStatus} 
+              disabled={isDisabled} 
               onClick={() => handleDayClick(day)}
-              className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
+              className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${isDisabled ? "" : "cursor-pointer"} ${bgClass}`}
             >
               <span className={`text-xs ${textClass}`}>{day}</span>
               <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${badgeColor}`}></span>
