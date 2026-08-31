@@ -12,13 +12,9 @@ import ContactSection from "../components/ContactSection";
 
 const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
 
-// =========================================================================
-// PAGE PRINCIPALE PENSION
-// =========================================================================
 export default function PensionPage() {
   const [user, setUser] = useState<any>(null);
   
-  // MINUTEUR INTELLIGENT (Pause 12s au clic/tapotement)
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -31,6 +27,11 @@ export default function PensionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [hasSecondDog, setHasSecondDog] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState("");
   
   const [formData, setFormData] = useState({
     dog_id: "", dogName: "", dogBreed: "", dog2_id: "", dog2Name: "", dog2Breed: "",
@@ -60,7 +61,6 @@ export default function PensionPage() {
     { title: "Journal de Bord Photo Quotidien", subtitle: "Recevez chaque jour des nouvelles et des clichés de votre chien directement sur votre Espace Membre.", tag: "Suivi Digital", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // DONNÉES DU CARROUSEL INJECTÉES DANS LE COMPOSANT MAÎTRE
   const pensionCarouselSlides: CarouselSlide[] = [
     {
       src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
@@ -82,7 +82,6 @@ export default function PensionPage() {
     },
   ];
 
-  // LOGIQUE DU MINUTEUR INTELLIGENT
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -91,7 +90,7 @@ export default function PensionPage() {
     return () => clearTimeout(timer);
   }, [currentSlide, timeToNext, slides.length]);
 
-  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+  const handleUserInteraction = () => setTimeToNext(12000);
 
   const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
@@ -115,11 +114,36 @@ export default function PensionPage() {
   const handleGoogleLogin = async () => {
     try {
       setAuthLoading(true);
+      setAuthError("");
       const redirectUrl = `${window.location.origin}/auth/callback?next=/pension`;
       const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirectUrl } });
       if (error) throw error;
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setAuthError(err.message);
+      setAuthLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        alert("Inscription réussie ! Veuillez vérifier votre boîte mail pour confirmer votre compte.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setIsAuthOpen(false);
+        setIsFormOpen(true);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAuthError("Email ou mot de passe incorrect.");
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -137,7 +161,7 @@ export default function PensionPage() {
       
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
-        dog_id: formData.dog_id,
+        dog_id: formData.dog_id || null,
         client_name: user.user_metadata?.full_name || "Client",
         client_email: user.email,
         client_phone: formData.clientPhone,
@@ -168,7 +192,6 @@ export default function PensionPage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* HALOS FAUVE (Optimisés pour iOS) */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -188,14 +211,12 @@ export default function PensionPage() {
         </p>
         <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
           <p className="text-sm font-bold text-red-700 leading-relaxed">
-            Actuellement en recherche de notre future terrain, l'ouverture est prévue d'ici mi-2027.<br className="hidden sm:block" />
+            Actuellement en recherche de notre futur terrain, l'ouverture est prévue d'ici mi-2027.<br className="hidden sm:block" />
             Rejoignez nous sur instagram pour suivre la construction de la pension ! 
           </p>
         </div>
-        
       </section>
 
-      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           
@@ -288,17 +309,14 @@ export default function PensionPage() {
         </div>
       </section>
 
-      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES DONNÉES PENSION */}
       <AppleCarousel slides={pensionCarouselSlides} />
 
-      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* MODALES */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
@@ -329,15 +347,69 @@ export default function PensionPage() {
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
               <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
-              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation de pension et recevoir vos photos quotidiennes.</p>
+              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation et recevoir vos photos quotidiennes.</p>
             </div>
-            <button onClick={handleGoogleLogin} disabled={authLoading} className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer">
-              <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
+
+            {authError && <p className="mt-4 text-xs font-bold text-red-500 text-center bg-red-50 p-2 rounded-lg">{authError}</p>}
+
+            <form onSubmit={handleEmailAuth} className="mt-6 space-y-4">
+              <div>
+                <input 
+                  type="email" 
+                  required 
+                  placeholder="Votre adresse e-mail" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                />
+              </div>
+              <div>
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="Votre mot de passe" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={authLoading} 
+                className="w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {authLoading ? "Chargement..." : (isSignUp ? "Créer mon compte" : "Se connecter par e-mail")}
+              </button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button 
+                type="button" 
+                onClick={() => setIsSignUp(!isSignUp)} 
+                className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer underline underline-offset-2"
+              >
+                {isSignUp ? "Déjà un compte ? Connectez-vous" : "Pas de compte ? Inscrivez-vous"}
+              </button>
+            </div>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="flex-1 h-px bg-stone-200"></div>
+              <span className="text-[10px] font-black uppercase text-stone-400">Ou</span>
+              <div className="flex-1 h-px bg-stone-200"></div>
+            </div>
+
+            <button 
+              onClick={handleGoogleLogin} 
+              disabled={authLoading} 
+              className="flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50"
+            >
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+              <span>Continuer avec Google</span>
             </button>
           </div>
         </div>

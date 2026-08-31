@@ -63,7 +63,8 @@ export default function AdminManagerView() {
   const fetchAll = async () => {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
-      supabase.from("pension_requests").select("*").order("created_at", { ascending: false }),
+      // CORRECTION ICI : Pointage vers la nouvelle table fusionnée pension_bookings
+      supabase.from("pension_bookings").select("*").order("created_at", { ascending: false }),
       // NOUVEAU: Exclut complètement les statuts annulés et refusés pour nettoyer la vue
       supabase.from("adoption_requests").select("*, puppies(name)").neq("status", "annulé").neq("status", "refusé").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
@@ -354,8 +355,9 @@ export default function AdminManagerView() {
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {item.status !== "confirmé" && <button onClick={() => openAction("pension_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
-                <button onClick={() => openAction("pension_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
+                {/* CORRECTION ICI : Pointage vers la nouvelle table fusionnée pension_bookings lors d'une action */}
+                {item.status !== "confirmé" && <button onClick={() => openAction("pension_bookings", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
+                <button onClick={() => openAction("pension_bookings", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
               </div>
             </div>
           ))}

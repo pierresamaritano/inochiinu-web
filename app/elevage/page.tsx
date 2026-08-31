@@ -188,7 +188,15 @@ export default function ElevagePage() {
     handleInitialClick();
   };
 
-  const isCandidatureDisabled = hasExistingCandidature || (selectedPuppy && selectedPuppy.status !== 'disponible');
+  // ======= NOUVELLE LOGIQUE DE VERROUILLAGE =======
+  const currentLitter = activeLitters.length > 0 ? activeLitters[selectedLitterIndex] : null;
+  const hasAvailablePuppies = currentLitter?.puppies?.some((p: any) => p.status === 'disponible') || false;
+
+  const isCandidatureDisabled = 
+    hasExistingCandidature || 
+    !hasAvailablePuppies || 
+    (selectedPuppy && selectedPuppy.status !== 'disponible');
+  // =================================================
 
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
@@ -520,17 +528,45 @@ export default function ElevagePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION */}
+      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC OBJECT-CONTAIN) */}
       {isImmersionMode && activeLitters.length > 0 && (
-        <div className="fixed inset-0 z-[200] bg-stone-950 flex flex-col justify-center animate-in fade-in duration-500">
-          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition cursor-pointer shadow-xl">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 z-[200] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
+          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
+          
           <div className="absolute top-8 left-8 z-[250]">
             <span className="text-white/50 text-[10px] font-black uppercase tracking-widest">Mode Immersion</span>
           </div>
-          {/* APPEL DU CARROUSEL MAÎTRE ICI AUSSI (Photos des portées en grand) */}
-          <AppleCarousel slides={litterSlides} />
+
+          <div className="relative w-full h-[85vh] flex items-center justify-center px-4 sm:px-16">
+            {litterSlides.length > 1 && (
+              <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-4 sm:left-8 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+                ←
+              </button>
+            )}
+            
+            <div className="relative w-full h-full flex flex-col items-center justify-center">
+              {litterSlides[modalSlideIndex].type === "video" ? (
+                <video src={litterSlides[modalSlideIndex].src} autoPlay loop muted playsInline className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl" />
+              ) : (
+                <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl" />
+              )}
+              
+              <div className="absolute bottom-8 inset-x-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl text-center border border-white/10 max-w-md">
+                  <span className="text-orange-400 text-[10px] font-black uppercase tracking-wider block mb-1">{litterSlides[modalSlideIndex].tag}</span>
+                  <p className="text-white text-sm font-medium">{litterSlides[modalSlideIndex].caption}</p>
+                </div>
+              </div>
+            </div>
+
+            {litterSlides.length > 1 && (
+              <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-4 sm:right-8 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+                →
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -680,9 +716,11 @@ export default function ElevagePage() {
                   >
                     {hasExistingCandidature 
                       ? "Vous avez déjà une demande en cours" 
-                      : selectedPuppy && selectedPuppy.status !== 'disponible' 
-                        ? "Ce chiot est réservé" 
-                        : "Candidater"}
+                      : !hasAvailablePuppies
+                        ? "Plus de chiots disponibles"
+                        : selectedPuppy && selectedPuppy.status !== 'disponible' 
+                          ? "Ce chiot est réservé" 
+                          : "Candidater"}
                   </button>
                 </div>
               </div>
