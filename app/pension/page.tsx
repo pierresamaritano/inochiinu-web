@@ -186,6 +186,13 @@ export default function PensionPage() {
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
           Capacité limitée à 6 places pour un accueil ultra-personnalisé, attentif et respectueux du rythme naturel de votre animal.
         </p>
+        <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+          <p className="text-sm font-bold text-red-700 leading-relaxed">
+            Actuellement en recherche de notre future terrain, l'ouverture est prévue d'ici mi-2027.<br className="hidden sm:block" />
+            Rejoignez nous sur instagram pour suivre la construction de la pension ! 
+          </p>
+        </div>
+        
       </section>
 
       {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT */}
