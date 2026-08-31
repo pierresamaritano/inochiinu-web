@@ -43,7 +43,7 @@ export default function Home() {
 
   const homeSlides: CarouselSlide[] = [
       { src: `${BUCKET_URL}/accueil/carrousel-1.jpeg`, type: "image", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
-      { src: `${BUCKET_URL}/accueil/carrousel-2.mp4`, type: "video", alt: "Baiko en mouvement", tag: "En Action", caption: "Mouvement fluide..." },
+      { src: `${BUCKET_URL}/accueil/carrousel-2.jpeg`, type: "image", alt: "Baiko en mouvement", tag: "En Action", caption: "Mouvement fluide..." },
       { src: `${BUCKET_URL}/accueil/carrousel-3.jpeg`, type: "image", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
   ];
 
