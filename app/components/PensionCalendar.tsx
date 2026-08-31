@@ -12,6 +12,7 @@ interface PensionCalendarProps {
 export default function PensionCalendar({ startDate, endDate, onChange }: PensionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,33 +33,48 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
   // =========================================================================
-  // RÉCUPÉRATION SUPABASE EN TEMPS RÉEL
+  // RÉCUPÉRATION SUPABASE (Capacité Globale + Séjours Personnels)
   // =========================================================================
   useEffect(() => {
-    const fetchReservations = async () => {
+    const fetchData = async () => {
+      // 1. Récupérer l'utilisateur connecté
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id || null;
+      setCurrentUser(userId);
+
+      // 2. Récupérer TOUTES les réservations (pour calculer la limite de 6 boxs)
       const { data } = await supabase
-        .from("pension_requests")
-        .select("start_date, end_date")
-        .eq("status", "confirmé"); // ➔ Modifiez ici si votre statut s'appelle autrement (ex: 'acceptee')
+        .from("pension_bookings")
+        .select("user_id, start_date, end_date, status")
+        .neq("status", "annulé"); // On ignore les annulées
       
       setReservations(data || []);
     };
-    fetchReservations();
+    fetchData();
   }, [month, year, supabase]);
 
   // =========================================================================
-  // CALCUL DES DISPONIBILITÉS (Max 6 boxs)
+  // CALCUL DES DISPONIBILITÉS & STATUT PERSONNEL
   // =========================================================================
   const getAvailability = (day: number) => {
-    // Formatage sécurisé de la date en YYYY-MM-DD
     const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     
     let boxesOccupes = 0;
+    let myPersonalStatus = null;
     
     reservations.forEach((res) => {
-      // Si la date du calendrier tombe pendant le séjour d'un chien
+      // Si la date tombe pendant un séjour
       if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
-        boxesOccupes++;
+        
+        // Pour la capacité globale : seuls les confirmés occupent physiquement un box
+        if (res.status === "confirmé") {
+          boxesOccupes++;
+        }
+        
+        // Pour l'affichage personnel (points bleus/jaunes)
+        if (res.user_id === currentUser) {
+          myPersonalStatus = res.status; 
+        }
       }
     });
 
@@ -68,7 +84,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     if (available === 0) status = "complet";
     else if (available <= 3) status = "haute";
     
-    return { available, status };
+    return { available, status, myPersonalStatus };
   };
 
   const handleDayClick = (day: number) => {
@@ -98,25 +114,52 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
       if (status === "complet") complets.push(i);
     }
 
+    const hasMyPending = reservations.some(r => r.user_id === currentUser && r.status === "en_attente");
+    const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.status === "confirmé");
+
     return (
-      <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
-        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Aperçu de {monthNames[month]}</p>
-        {complets.length > 0 && (
-          <div className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 mt-0.5"></span>
-            <p><strong>Complet :</strong> Les jours {complets.join(", ")}.</p>
+      <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-4">
+        
+        {/* LÉGENDE PERSONNELLE (Conditionnelle) */}
+        {(hasMyPending || hasMyConfirmed) && (
+          <div className="pb-4 border-b border-stone-200/80 space-y-2">
+            <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Vos séjours</p>
+            {hasMyPending && (
+              <div className="flex items-start gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
+                <p><strong>En attente :</strong> Demande en cours de traitement.</p>
+              </div>
+            )}
+            {hasMyConfirmed && (
+              <div className="flex items-start gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0 mt-0.5 shadow-sm ring-1 ring-blue-200"></span>
+                <p><strong>Validé :</strong> Votre séjour est confirmé.</p>
+              </div>
+            )}
           </div>
         )}
-        {hauteAffluence.length > 0 && (
+
+        {/* LÉGENDE GLOBALE DE CAPACITÉ */}
+        <div className="space-y-2">
+          <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Disponibilité de {monthNames[month]}</p>
+          {complets.length > 0 && (
+            <div className="flex items-start gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0 mt-0.5"></span>
+              <p><strong>Complet :</strong> Les jours {complets.join(", ")}.</p>
+            </div>
+          )}
+          {hauteAffluence.length > 0 && (
+            <div className="flex items-start gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0 mt-0.5"></span>
+              <p><strong>Forte demande (1 à 3 boxs restants) :</strong> Les {hauteAffluence.join(", ")}.</p>
+            </div>
+          )}
           <div className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0 mt-0.5"></span>
-            <p><strong>Forte demande (1 à 3 boxs restants) :</strong> Les {hauteAffluence.join(", ")}.</p>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 mt-0.5"></span>
+            <p>Le reste du mois bénéficie d'une disponibilité optimale.</p>
           </div>
-        )}
-        <div className="flex items-start gap-2 mt-2 pt-2 border-t border-stone-200/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 mt-0.5"></span>
-          <p>Le reste du mois bénéficie d'une disponibilité optimale.</p>
         </div>
+
       </div>
     );
   };
@@ -144,7 +187,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
 
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
-          const { status } = getAvailability(day);
+          const { status, myPersonalStatus } = getAvailability(day);
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           
           const isSelectedStart = startDate === currentISODate;
@@ -156,10 +199,16 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
           let textClass = "text-stone-700";
           let badgeColor = "bg-emerald-400"; 
 
+          // 1. Définition de la couleur par défaut (Capacité globale)
           if (status === "haute") badgeColor = "bg-orange-400";
           if (status === "complet") badgeColor = "bg-red-500";
 
-          if (isComplet) {
+          // 2. Surcharge par le statut personnel (Le Jaune et le Bleu demandés)
+          if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
+          if (myPersonalStatus === "confirmé") badgeColor = "bg-blue-500 shadow-sm ring-1 ring-blue-200";
+
+          // 3. Application des styles visuels (Sélection, Complet, etc.)
+          if (isComplet && !myPersonalStatus) {
             bgClass = "bg-stone-100 border border-stone-100 opacity-50 cursor-not-allowed";
             textClass = "text-stone-400 line-through";
           } else if (isSelectedStart || isSelectedEnd) {
@@ -175,13 +224,13 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
             <button
               key={day}
               type="button"
-              disabled={isComplet}
+              disabled={isComplet && !myPersonalStatus} 
               onClick={() => handleDayClick(day)}
               className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
             >
               <span className={`text-xs ${textClass}`}>{day}</span>
               <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${badgeColor}`}></span>
-              {isComplet && <span className="absolute bottom-1 text-[8px] font-bold text-red-500 uppercase tracking-tighter">Plein</span>}
+              {(isComplet && !myPersonalStatus) && <span className="absolute bottom-1 text-[8px] font-bold text-red-500 uppercase tracking-tighter">Plein</span>}
             </button>
           );
         })}
