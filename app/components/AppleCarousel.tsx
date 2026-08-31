@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 export interface CarouselSlide {
   src: string;
-  type?: "image" | "video"; // On ajoute ce paramètre
+  type?: "image" | "video"; 
   alt: string;
   tag: string;
   caption: string;
@@ -95,18 +95,18 @@ export default function AppleCarousel({ slides }: AppleCarouselProps) {
                   }`}
                 >
                 {/* GESTION IMAGE VS VIDÉO */}
-                    {isVideo ? (
-                      <video
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        preload="auto"
-                        className="h-full w-full object-cover select-none pointer-events-none"
-                      >
-                        <source src={slide.src} type="video/mp4" />
-                      </video>
-                    ) : (
+                  {isVideo ? (
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="auto"
+                      className="h-full w-full object-cover select-none pointer-events-none"
+                    >
+                      <source src={slide.src} type="video/mp4" />
+                    </video>
+                  ) : (
                     <img
                       src={slide.src}
                       alt={slide.alt}
