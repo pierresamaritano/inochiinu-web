@@ -208,7 +208,11 @@ export default function ElevagePage() {
   const dogs: DogProfile[] = [
     {
       id: "baiko", name: "Baïko (Ryu)", badgeName: "Baïko", role: "Étalon", affixe: "Affixe Kazan No", fullName: "Baïko Ryu Go Kazan No", color: "Roux (Aka)", height: "67 cm", weight: "34 kg", birthDate: "12 Octobre 2021",
-      images: [{ src: "/FULL-Akita.jpeg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },{ src: "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/medias/VID-Akita.mp4", type: "video", alt: "Baiko en mouvement", tag: "En Action", caption: "Mouvement fluide..." },{ src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }],
+      images: [
+        { src: "/FULL-Akita.jpeg", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
+        { src: "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media/VID-Akita.mp4", type: "video", alt: "Baiko en mouvement", tag: "En Action", caption: "Mouvement fluide..." },
+        { src: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=2000&auto=format&fit=crop", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
+      ],
       titles: "Lignées de Champions Internationaux & Japonais", description: "Issu du mariage d'excellence entre Katsunori Go et la championne Kazan No Teïumi. Il transmet une ossature puissante, un port de tête altier et un tempérament d'une rare sérénité.",
       father: { name: "Katsunori Go Senshi Shimai", origin: "Import Pologne", titles: "CH Junior France • Titré CACIB", desc: "Descendant direct des affixes Senshi No Inu et Isegumo Kensha.", gParents: [{ role: "Grand-Père Paternel", name: "Ryuseimaru Go Isegumo Kensha" }, { role: "Grand-Mère Paternelle", name: "Chikako Go Senshi No Inu", details: "Championne Pologne" }], ggParents: ["Hiryuu Go Rokkuhando Touwa", "Aihime Go Amakusa Tajiri", "Kou Zan Go Shun'You Kensha", "Lignée Senshi No Inu"], },
       mother: { name: "CH. Kazan No Teïumi", origin: "Affixe Kazan No", titles: "Championne de France • Junior World Winner", desc: "Fille directe de CH. Kazan No Rumi.", gParents: [{ role: "Grand-Père Maternel", name: "Kotei Go Sara Hana Kensha" }, { role: "Grand-Mère Maternelle", name: "CH. Kazan No Rumi" }], ggParents: ["Kanon Go Tamashi Kensha", "Lignée Sara Hana", "Kobe No Minami Go Tamashi", "CH. Nayakiwa Go Tokimitsu"], },
