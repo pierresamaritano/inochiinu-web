@@ -239,6 +239,14 @@ export default function EducationPage() {
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
           Des méthodes bienveillantes, claires et adaptées à la psychologie de votre chien pour bâtir une relation de confiance et de respect mutuel.
         </p>
+        {/* NOUVEAU MESSAGE EN ROUGE */}
+        <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+          <p className="text-sm font-bold text-red-700 leading-relaxed">
+            Actuellement en révision pour passage de l'ACACED ! Objectif, obtention en septembre 2026.<br className="hidden sm:block" />
+            Restez connectés pour en savoir plus. 
+          </p>
+        </div>
+
       </section>
 
       {/* CARROUSEL VALEURS HERO */}
