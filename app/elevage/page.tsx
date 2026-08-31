@@ -68,6 +68,7 @@ export default function ElevagePage() {
       setUser(currentUser);
 
       if (currentUser) {
+        // Recherche si une candidature est en cours
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
@@ -79,6 +80,17 @@ export default function ElevagePage() {
           setHasExistingCandidature(true);
         } else {
           setHasExistingCandidature(false);
+        }
+
+        // NOUVEAU : Récupération du numéro de téléphone
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (profile && profile.phone) {
+          setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
         }
       }
 
@@ -188,7 +200,6 @@ export default function ElevagePage() {
     handleInitialClick();
   };
 
-  // ======= NOUVELLE LOGIQUE DE VERROUILLAGE =======
   const currentLitter = activeLitters.length > 0 ? activeLitters[selectedLitterIndex] : null;
   const hasAvailablePuppies = currentLitter?.puppies?.some((p: any) => p.status === 'disponible') || false;
 
@@ -196,7 +207,6 @@ export default function ElevagePage() {
     hasExistingCandidature || 
     !hasAvailablePuppies || 
     (selectedPuppy && selectedPuppy.status !== 'disponible');
-  // =================================================
 
   const handleInitialClick = () => { if (localStorage.getItem("hideElevageInfo") === "true") { handleActionClick(); } else { setShowInfoModal(true); } };
   const handleContinueFromInfo = () => { if (dontShowAgain) { localStorage.setItem("hideElevageInfo", "true"); } setShowInfoModal(false); handleActionClick(); };
@@ -233,6 +243,14 @@ export default function ElevagePage() {
         alert("Erreur de sauvegarde : " + error.message);
         setSubmitting(false);
         return; 
+      }
+
+      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
+      if (formData.clientPhone) {
+        await supabase
+          .from("profiles")
+          .update({ phone: formData.clientPhone })
+          .eq("id", user.id);
       }
       
       setSubmitted(true);

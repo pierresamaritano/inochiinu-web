@@ -58,7 +58,21 @@ export default function EducationPage() {
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
+      const currentUser = data.session?.user || null;
+      setUser(currentUser);
+
+      // NOUVEAU : Si l'utilisateur est connecté, on cherche son numéro de téléphone
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (profile && profile.phone) {
+          setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
+        }
+      }
     };
     fetchUser();
 
@@ -205,6 +219,15 @@ export default function EducationPage() {
         },
       ]);
       if (error) throw error;
+
+      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
+      if (formData.clientPhone) {
+        await supabase
+          .from("profiles")
+          .update({ phone: formData.clientPhone })
+          .eq("id", user.id);
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);

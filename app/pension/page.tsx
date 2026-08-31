@@ -46,9 +46,24 @@ export default function PensionPage() {
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
+      const currentUser = data.session?.user || null;
+      setUser(currentUser);
+
+      // NOUVEAU : Récupération du numéro de téléphone
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (profile && profile.phone) {
+          setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
+        }
+      }
     };
     fetchUser();
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
@@ -178,6 +193,14 @@ export default function PensionPage() {
         alert(`Erreur de réservation : ${error.message}`);
         setSubmitting(false);
         return;
+      }
+
+      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
+      if (formData.clientPhone) {
+        await supabase
+          .from("profiles")
+          .update({ phone: formData.clientPhone })
+          .eq("id", user.id);
       }
       
       setSubmitted(true);
