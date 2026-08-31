@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
-// ON IMPORTE LE CARROUSEL MAÎTRE ET SON TYPE
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
 
@@ -30,11 +29,9 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- CARROUSEL DES VALEURS HERO ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
-  // --- ÉTATS POUR LES PORTÉES & POP-UP ---
   const [activeLitters, setActiveLitters] = useState<any[]>([]);
   const [selectedLitterIndex, setSelectedLitterIndex] = useState(0); 
   const [showLitterModal, setShowLitterModal] = useState(false);
@@ -122,13 +119,33 @@ export default function ElevagePage() {
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
   const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
+  // DÉTECTION DES VIDÉOS POUR LES PORTÉES
   const getLitterSlides = (litter: any): CarouselSlide[] => {
     if (!litter) return [];
     const slidesList: CarouselSlide[] = [];
-    if (litter.image_url) slidesList.push({ src: litter.image_url, alt: "Couple", tag: litter.image_tag || "Le Couple", caption: litter.image_caption || "Les parents" });
+
+    const isVideoUrl = (url: string) => url.toLowerCase().includes('.mp4') || url.toLowerCase().includes('.mov');
+
+    if (litter.image_url) {
+      slidesList.push({ 
+        src: litter.image_url, 
+        type: isVideoUrl(litter.image_url) ? "video" : "image",
+        alt: "Couple", 
+        tag: litter.image_tag || "Le Couple", 
+        caption: litter.image_caption || "Les parents" 
+      });
+    }
     if (litter.puppies && litter.puppies.length > 0) {
       litter.puppies.forEach((pup: any) => {
-        if (pup.image_url) slidesList.push({ src: pup.image_url, alt: pup.name, tag: pup.image_tag || "Chiot", caption: pup.image_caption || pup.name });
+        if (pup.image_url) {
+          slidesList.push({ 
+            src: pup.image_url, 
+            type: isVideoUrl(pup.image_url) ? "video" : "image",
+            alt: pup.name, 
+            tag: pup.image_tag || "Chiot", 
+            caption: pup.image_caption || pup.name 
+          });
+        }
       });
     }
     return slidesList;
@@ -379,14 +396,10 @@ export default function ElevagePage() {
           </div>
         </div>
 
-        {/* =========================================================
-            VOICI LA CORRECTION : LE CARROUSEL EST EN PLEINE LARGEUR !
-            ========================================================= */}
         <div className="relative w-full py-6 sm:py-8">
           <AppleCarousel slides={currentProfile.images} />
         </div>
 
-        {/* ON ROUVRE LE CONTENEUR POUR L'ARBRE GÉNÉALOGIQUE */}
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="pt-8 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>

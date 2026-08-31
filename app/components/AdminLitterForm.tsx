@@ -28,7 +28,6 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
   });
   const [puppies, setPuppies] = useState<PuppyInput[]>([]);
 
-  // Initialisation si on est en mode "Modification"
   useEffect(() => {
     if (initialData) {
       setLitterData({
@@ -48,11 +47,10 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
     }
   }, [initialData]);
 
-  // MODIFICATION ICI : On génère un vrai UUID pour les nouveaux chiots
   const handleAddPuppy = () => {
     const newId = crypto.randomUUID(); 
     setPuppies([...puppies, { 
-      id: newId, // Assure que la base de données ne plantera pas
+      id: newId, 
       tempId: newId, 
       name: "", 
       gender: "male", 
@@ -71,13 +69,14 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
     setPuppies(puppies.filter(p => p.tempId !== id));
   };
 
-  const uploadImage = async (file: File, folder: string) => {
+  // Envoi vers le bucket "media"
+  const uploadMedia = async (file: File, folder: string) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
-    const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file);
     if (uploadError) throw uploadError;
-    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+    const { data } = supabase.storage.from('media').getPublicUrl(filePath);
     return data.publicUrl;
   };
 
@@ -86,13 +85,12 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
     setLoading(true);
 
     try {
-      // 1. Gérer l'image du couple (nouvelle ou existante)
       let coupleImageUrl = initialData?.image_url || "";
       if (litterData.image_file) {
-        coupleImageUrl = await uploadImage(litterData.image_file, 'couples');
+        // NOUVEAU CHEMIN POUR LE COUPLE
+        coupleImageUrl = await uploadMedia(litterData.image_file, 'portees/couples');
       }
 
-      // 2. Enregistrer ou mettre à jour la portée
       const litterPayload = {
         ...(initialData ? { id: initialData.id } : {}),
         title: litterData.title,
@@ -107,7 +105,6 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
       const { data: litterInsert, error: litterError } = await supabase.from("litters").upsert([litterPayload]).select().single();
       if (litterError) throw litterError;
 
-      // 3. Supprimer les chiots qui ont été retirés via le formulaire
       if (initialData) {
         const currentPuppyIds = puppies.map(p => p.id).filter(Boolean);
         const originalPuppyIds = initialData.puppies?.map((p: any) => p.id) || [];
@@ -117,12 +114,12 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
         }
       }
 
-      // 4. Enregistrer ou mettre à jour les chiots actuels
       if (puppies.length > 0) {
         const puppiesToUpsert = await Promise.all(puppies.map(async (p) => {
           let pupImageUrl = p.image_url || "";
           if (p.image_file) {
-            pupImageUrl = await uploadImage(p.image_file, 'chiots');
+            // NOUVEAU CHEMIN POUR LES CHIOTS
+            pupImageUrl = await uploadMedia(p.image_file, 'portees/chiots');
           }
           return {
             ...(p.id ? { id: p.id } : {}),
@@ -159,7 +156,6 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-10">
-        {/* SECTION 1 : LE COUPLE */}
         <section className="space-y-5">
           <h3 className="text-xs font-black uppercase tracking-wider text-orange-600 border-b border-stone-100 pb-2">1. Le Couple & L'histoire</h3>
           <div>
@@ -178,8 +174,8 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
           </div>
           <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Photo du couple {initialData?.image_url && "(Une image est déjà enregistrée)"}</label>
-              <input type="file" accept="image/*" onChange={(e) => setLitterData({ ...litterData, image_file: e.target.files?.[0] || null })} className="w-full text-xs text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer" />
+              <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Photo ou Vidéo du couple {initialData?.image_url && "(Média existant)"}</label>
+              <input type="file" accept="image/*,video/mp4,video/quicktime" onChange={(e) => setLitterData({ ...litterData, image_file: e.target.files?.[0] || null })} className="w-full text-xs text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -198,7 +194,6 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
           </div>
         </section>
 
-        {/* SECTION 2 : LES CHIOTS */}
         <section className="space-y-4">
           <div className="flex items-center justify-between border-b border-stone-100 pb-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-orange-600">2. Liste des chiots</h3>
@@ -233,8 +228,8 @@ export default function AdminLitterForm({ initialData, onSuccess, onCancel }: { 
                   </div>
                   <div className="pt-3 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Photo du chiot {puppy.image_url && "(Image existante)"}</label>
-                      <input type="file" accept="image/*" onChange={(e) => handlePuppyChange(puppy.tempId, "image_file", e.target.files?.[0] || null)} className="w-full text-xs text-stone-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer" />
+                      <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Photo ou Vidéo du chiot {puppy.image_url && "(Existant)"}</label>
+                      <input type="file" accept="image/*,video/mp4,video/quicktime" onChange={(e) => handlePuppyChange(puppy.tempId, "image_file", e.target.files?.[0] || null)} className="w-full text-xs text-stone-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer" />
                     </div>
                     <div className="space-y-3">
                       <div>
