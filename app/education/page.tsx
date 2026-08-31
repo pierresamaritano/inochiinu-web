@@ -61,7 +61,7 @@ export default function EducationPage() {
       const currentUser = data.session?.user || null;
       setUser(currentUser);
 
-      // NOUVEAU : Si l'utilisateur est connecté, on cherche son numéro de téléphone
+      // Si l'utilisateur est connecté, on cherche son numéro de téléphone
       if (currentUser) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -191,6 +191,30 @@ export default function EducationPage() {
     }));
   };
 
+  // NOUVEAU : Fonction utilitaire pour calculer l'âge
+  const calculateDogAge = (birthDateString: string) => {
+    if (!birthDateString) return "";
+    
+    // Essai de conversion si la date est "31 août 2026" ou au format YYYY-MM-DD
+    const dateObj = new Date(birthDateString);
+    if (isNaN(dateObj.getTime())) return "";
+
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - dateObj.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 30) {
+      return `${diffDays} jours`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} mois`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const remainingMonths = Math.floor((diffDays % 365) / 30);
+      return remainingMonths > 0 ? `${years} ans et ${remainingMonths} mois` : `${years} ans`;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -220,7 +244,7 @@ export default function EducationPage() {
       ]);
       if (error) throw error;
 
-      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
+      // Sauvegarde du téléphone dans le profil de l'utilisateur
       if (formData.clientPhone) {
         await supabase
           .from("profiles")
@@ -503,6 +527,8 @@ export default function EducationPage() {
                             dog_id: dog.id,
                             dogName: dog.name,
                             dogBreed: dog.breed,
+                            // NOUVEAU : Calcul automatique de l'âge lors de la sélection du chien
+                            dogAge: calculateDogAge(dog.birth_date),
                           })
                         }
                       />
