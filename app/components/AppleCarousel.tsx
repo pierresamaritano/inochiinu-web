@@ -94,17 +94,19 @@ export default function AppleCarousel({ slides }: AppleCarouselProps) {
                     isActive ? "z-20 scale-100 opacity-100 translate-x-0" : offset === 1 || offset === -(slides.length - 1) ? "z-10 scale-[0.85] opacity-25 brightness-75 translate-x-[70%] sm:translate-x-[60%] pointer-events-auto hover:opacity-50" : offset === -1 || offset === slides.length - 1 ? "z-10 scale-[0.85] opacity-25 brightness-75 -translate-x-[70%] sm:-translate-x-[60%] pointer-events-auto hover:opacity-50" : "z-0 scale-75 opacity-0 pointer-events-none"
                   }`}
                 >
-                  {/* GESTION IMAGE VS VIDÉO */}
-                  {isVideo ? (
-                    <video
-                      src={slide.src}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="h-full w-full object-cover select-none pointer-events-none"
-                    />
-                  ) : (
+                {/* GESTION IMAGE VS VIDÉO */}
+                    {isVideo ? (
+                      <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="auto"
+                        className="h-full w-full object-cover select-none pointer-events-none"
+                      >
+                        <source src={slide.src} type="video/mp4" />
+                      </video>
+                    ) : (
                     <img
                       src={slide.src}
                       alt={slide.alt}
