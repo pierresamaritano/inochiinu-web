@@ -5,6 +5,8 @@ import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDashboardHub from "../components/ClientDashboardHub";
 import AdminManagerView from "../components/AdminManagerView";
 
+const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
+
 export default async function EspaceMembre() {
   const cookieStore = await cookies();
   const supabase = createServerClient(

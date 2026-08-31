@@ -9,6 +9,8 @@ import ClientDogSelector from "../components/ClientDogSelector";
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
 
+const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
+
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
   

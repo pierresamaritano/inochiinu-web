@@ -8,6 +8,8 @@ import AppleCarousel, { CarouselSlide } from "./components/AppleCarousel";
 // ON IMPORTE NOTRE NOUVEAU COMPOSANT
 import ContactSection from "./components/ContactSection";
 
+const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
+
 export default function Home() {
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -40,9 +42,9 @@ export default function Home() {
   ];
 
   const homeSlides: CarouselSlide[] = [
-    { src: "/hero-akita.jpg", alt: "Akita Inu dans la nature", tag: "Akita Inu", caption: "Noblesse, puissance et équilibre au naturel" },
-    { src: "/DODO-Akita.jpeg", alt: "Shiba Inu", tag: "Shiba Inu", caption: "Vivacité, autonomie et loyauté sans faille" },
-    { src: "/DODO-papa.jpeg", alt: "Grand air et balades en forêt", tag: "Plein Air", caption: "Grands espaces et socialisation bienveillante" },
+      { src: `${BUCKET_URL}/accueil/carrousel-1.jpeg`, type: "image", alt: "Baiko", tag: "Morphologie", caption: "Construction puissante et ossature forte." },
+      { src: `${BUCKET_URL}/accueil/carrousel-2.mp4`, type: "video", alt: "Baiko en mouvement", tag: "En Action", caption: "Mouvement fluide..." },
+      { src: `${BUCKET_URL}/accueil/carrousel-3.jpeg`, type: "image", alt: "Baiko", tag: "Standard", caption: "Respect rigoureux du standard japonais." }
   ];
 
   return (

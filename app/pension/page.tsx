@@ -10,6 +10,8 @@ import PensionCalendar from "../components/PensionCalendar";
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
 
+const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
+
 // =========================================================================
 // PAGE PRINCIPALE PENSION
 // =========================================================================
