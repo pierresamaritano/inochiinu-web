@@ -58,7 +58,21 @@ export default function EducationPage() {
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
+      const currentUser = data.session?.user || null;
+      setUser(currentUser);
+
+      // Si l'utilisateur est connecté, on cherche son numéro de téléphone
+      if (currentUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (profile && profile.phone) {
+          setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
+        }
+      }
     };
     fetchUser();
 
@@ -177,6 +191,30 @@ export default function EducationPage() {
     }));
   };
 
+  // CORRECTION TYPESCRIPT : On accepte undefined ou null pour valider le build Vercel
+  const calculateDogAge = (birthDateString?: string | null) => {
+    if (!birthDateString) return "";
+    
+    // Essai de conversion si la date est "31 août 2026" ou au format YYYY-MM-DD
+    const dateObj = new Date(birthDateString);
+    if (isNaN(dateObj.getTime())) return "";
+
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - dateObj.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 30) {
+      return `${diffDays} jours`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} mois`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const remainingMonths = Math.floor((diffDays % 365) / 30);
+      return remainingMonths > 0 ? `${years} ans et ${remainingMonths} mois` : `${years} ans`;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -205,6 +243,15 @@ export default function EducationPage() {
         },
       ]);
       if (error) throw error;
+
+      // Sauvegarde du téléphone dans le profil de l'utilisateur
+      if (formData.clientPhone) {
+        await supabase
+          .from("profiles")
+          .update({ phone: formData.clientPhone })
+          .eq("id", user.id);
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -239,7 +286,6 @@ export default function EducationPage() {
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
           Des méthodes bienveillantes, claires et adaptées à la psychologie de votre chien pour bâtir une relation de confiance et de respect mutuel.
         </p>
-        {/* NOUVEAU MESSAGE EN ROUGE */}
         <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
           <p className="text-sm font-bold text-red-700 leading-relaxed">
             Actuellement en révision pour passage de l'ACACED ! Objectif, obtention en septembre 2026.<br className="hidden sm:block" />
@@ -371,17 +417,14 @@ export default function EducationPage() {
         </div>
       </section>
 
-      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES IMAGES "ÉDUCATION" */}
       <AppleCarousel slides={educationCarouselSlides} />
 
-      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
@@ -422,7 +465,6 @@ export default function EducationPage() {
         </div>
       )}
 
-      {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
@@ -444,7 +486,6 @@ export default function EducationPage() {
         </div>
       )}
 
-      {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
@@ -480,6 +521,8 @@ export default function EducationPage() {
                             dog_id: dog.id,
                             dogName: dog.name,
                             dogBreed: dog.breed,
+                            // CORRECTION : On s'assure d'envoyer une chaîne vide au lieu de undefined
+                            dogAge: calculateDogAge(dog.birth_date || ""),
                           })
                         }
                       />
