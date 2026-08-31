@@ -20,7 +20,6 @@ export default function ClientDashboardHub() {
   const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filtre de période côté client : 1 mois par défaut
   const [period, setPeriod] = useState<PeriodOption>("1m");
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
@@ -37,7 +36,7 @@ export default function ClientDashboardHub() {
 
     const [edu, pen, adp, sel] = await Promise.all([
       supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("pension_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("pension_bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("adoption_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
@@ -91,18 +90,14 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // FONCTION DE DÉFILEMENT AUTOMATIQUE
   const toggleWidget = (widgetId: string) => {
     const isExpanding = expandedWidget !== widgetId;
     setExpandedWidget(isExpanding ? widgetId : null);
 
-    // Si on ouvre le widget, on attend un tout petit peu que l'animation CSS 
-    // fasse sauter le bloc à la ligne, puis on scrolle vers lui.
     if (isExpanding) {
       setTimeout(() => {
         const element = document.getElementById(`widget-${widgetId}`);
         if (element) {
-          // On calcule la position de l'élément moins 80 pixels pour laisser un peu d'espace au-dessus
           const y = element.getBoundingClientRect().top + window.scrollY - 80;
           window.scrollTo({ top: y, behavior: "smooth" });
         }
@@ -118,7 +113,6 @@ export default function ClientDashboardHub() {
 
   return (
     <>
-      {/* SÉLECTEUR DE PÉRIODE CÔTÉ CLIENT */}
       <div className="flex items-center justify-end gap-2 mt-6">
         <label htmlFor="client-period" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
           Période :
@@ -135,7 +129,6 @@ export default function ClientDashboardHub() {
         </select>
       </div>
 
-      {/* GESTIONNAIRE DE FICHES CHIENS (Rétractable par défaut) */}
       <DogProfileManager />
 
       {!hasAnyService ? (
@@ -154,7 +147,6 @@ export default function ClientDashboardHub() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
           
-          {/* 1. WIDGET ÉDUCATION */}
           {filteredEdu.length > 0 && (
             <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -168,7 +160,6 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {/* LIMITÉ À 2 PAR DÉFAUT */}
                 {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
@@ -212,7 +203,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -226,7 +216,6 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {/* LIMITÉ À 2 PAR DÉFAUT */}
                 {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
@@ -244,7 +233,7 @@ export default function ClientDashboardHub() {
 
                       {item.status !== "annulé" && item.status !== "terminé" && (
                         <button
-                          onClick={() => setCancelModal({ table: "pension_requests", id: item.id, title: `le séjour de ${item.dog_name}` })}
+                          onClick={() => setCancelModal({ table: "pension_bookings", id: item.id, title: `le séjour de ${item.dog_name}` })}
                           className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
                         >
                           Annuler
@@ -270,7 +259,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* 3. WIDGET ÉLEVAGE */}
           {filteredAdoption.length > 0 && (
             <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -284,7 +272,6 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {/* LIMITÉ À 2 PAR DÉFAUT */}
                 {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
@@ -328,7 +315,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* 4. WIDGET SELLERIE */}
           {filteredSellerie.length > 0 && (
             <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -342,7 +328,6 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {/* LIMITÉ À 2 PAR DÉFAUT */}
                 {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => (
                   <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
                     <div className="flex items-start justify-between gap-2">
@@ -389,7 +374,6 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
-      {/* MODALE CONFIRMATION ANNULATION CLIENT */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 

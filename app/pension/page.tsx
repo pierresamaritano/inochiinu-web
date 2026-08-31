@@ -12,13 +12,9 @@ import ContactSection from "../components/ContactSection";
 
 const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
 
-// =========================================================================
-// PAGE PRINCIPALE PENSION
-// =========================================================================
 export default function PensionPage() {
   const [user, setUser] = useState<any>(null);
   
-  // MINUTEUR INTELLIGENT (Pause 12s au clic/tapotement)
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -32,7 +28,6 @@ export default function PensionPage() {
   const [submitted, setSubmitted] = useState(false);
   const [hasSecondDog, setHasSecondDog] = useState(false);
 
-  // NOUVEAUX ÉTATS POUR L'AUTHENTIFICATION PAR EMAIL
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -66,7 +61,6 @@ export default function PensionPage() {
     { title: "Journal de Bord Photo Quotidien", subtitle: "Recevez chaque jour des nouvelles et des clichés de votre chien directement sur votre Espace Membre.", tag: "Suivi Digital", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
   ];
 
-  // DONNÉES DU CARROUSEL INJECTÉES DANS LE COMPOSANT MAÎTRE
   const pensionCarouselSlides: CarouselSlide[] = [
     {
       src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
@@ -88,7 +82,6 @@ export default function PensionPage() {
     },
   ];
 
-  // LOGIQUE DU MINUTEUR INTELLIGENT
   useEffect(() => {
     const timer = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -97,7 +90,7 @@ export default function PensionPage() {
     return () => clearTimeout(timer);
   }, [currentSlide, timeToNext, slides.length]);
 
-  const handleUserInteraction = () => setTimeToNext(12000); // Pause de 12s
+  const handleUserInteraction = () => setTimeToNext(12000);
 
   const nextSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev + 1) % slides.length); };
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
@@ -132,7 +125,6 @@ export default function PensionPage() {
     }
   };
 
-  // NOUVELLE FONCTION POUR L'AUTHENTIFICATION PAR EMAIL
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -145,7 +137,6 @@ export default function PensionPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Succès : on ferme la modale d'auth et on ouvre le formulaire de pension
         setIsAuthOpen(false);
         setIsFormOpen(true);
       }
@@ -170,7 +161,7 @@ export default function PensionPage() {
       
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
-        dog_id: formData.dog_id,
+        dog_id: formData.dog_id || null,
         client_name: user.user_metadata?.full_name || "Client",
         client_email: user.email,
         client_phone: formData.clientPhone,
@@ -201,7 +192,6 @@ export default function PensionPage() {
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
       
-      {/* HALOS FAUVE (Optimisés pour iOS) */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -225,10 +215,8 @@ export default function PensionPage() {
             Rejoignez nous sur instagram pour suivre la construction de la pension ! 
           </p>
         </div>
-        
       </section>
 
-      {/* CARROUSEL VALEURS HERO AVEC TAPOTEMENT */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           
@@ -321,17 +309,14 @@ export default function PensionPage() {
         </div>
       </section>
 
-      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES DONNÉES PENSION */}
       <AppleCarousel slides={pensionCarouselSlides} />
 
-      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* MODALES */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
@@ -359,7 +344,6 @@ export default function PensionPage() {
         </div>
       )}
 
-      {/* MODALE CONNEXION (GOOGLE + EMAIL) */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
