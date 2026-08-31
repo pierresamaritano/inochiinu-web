@@ -31,6 +31,12 @@ export default function PensionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [hasSecondDog, setHasSecondDog] = useState(false);
+
+  // NOUVEAUX ÉTATS POUR L'AUTHENTIFICATION PAR EMAIL
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState("");
   
   const [formData, setFormData] = useState({
     dog_id: "", dogName: "", dogBreed: "", dog2_id: "", dog2Name: "", dog2Breed: "",
@@ -115,11 +121,38 @@ export default function PensionPage() {
   const handleGoogleLogin = async () => {
     try {
       setAuthLoading(true);
+      setAuthError("");
       const redirectUrl = `${window.location.origin}/auth/callback?next=/pension`;
       const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirectUrl } });
       if (error) throw error;
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setAuthError(err.message);
+      setAuthLoading(false);
+    }
+  };
+
+  // NOUVELLE FONCTION POUR L'AUTHENTIFICATION PAR EMAIL
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        alert("Inscription réussie ! Veuillez vérifier votre boîte mail pour confirmer votre compte.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        // Succès : on ferme la modale d'auth et on ouvre le formulaire de pension
+        setIsAuthOpen(false);
+        setIsFormOpen(true);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAuthError("Email ou mot de passe incorrect.");
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -188,7 +221,7 @@ export default function PensionPage() {
         </p>
         <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
           <p className="text-sm font-bold text-red-700 leading-relaxed">
-            Actuellement en recherche de notre future terrain, l'ouverture est prévue d'ici mi-2027.<br className="hidden sm:block" />
+            Actuellement en recherche de notre futur terrain, l'ouverture est prévue d'ici mi-2027.<br className="hidden sm:block" />
             Rejoignez nous sur instagram pour suivre la construction de la pension ! 
           </p>
         </div>
@@ -326,18 +359,73 @@ export default function PensionPage() {
         </div>
       )}
 
+      {/* MODALE CONNEXION (GOOGLE + EMAIL) */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>
               <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
-              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation de pension et recevoir vos photos quotidiennes.</p>
+              <p className="mt-2 text-sm text-stone-500 font-medium">Connectez-vous pour demander une réservation et recevoir vos photos quotidiennes.</p>
             </div>
-            <button onClick={handleGoogleLogin} disabled={authLoading} className="mt-8 flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer">
-              <span>{authLoading ? "Redirection..." : "Continuer avec Google"}</span>
+
+            {authError && <p className="mt-4 text-xs font-bold text-red-500 text-center bg-red-50 p-2 rounded-lg">{authError}</p>}
+
+            <form onSubmit={handleEmailAuth} className="mt-6 space-y-4">
+              <div>
+                <input 
+                  type="email" 
+                  required 
+                  placeholder="Votre adresse e-mail" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                />
+              </div>
+              <div>
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="Votre mot de passe" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={authLoading} 
+                className="w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md disabled:opacity-50"
+              >
+                {authLoading ? "Chargement..." : (isSignUp ? "Créer mon compte" : "Se connecter par e-mail")}
+              </button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button 
+                type="button" 
+                onClick={() => setIsSignUp(!isSignUp)} 
+                className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer underline underline-offset-2"
+              >
+                {isSignUp ? "Déjà un compte ? Connectez-vous" : "Pas de compte ? Inscrivez-vous"}
+              </button>
+            </div>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="flex-1 h-px bg-stone-200"></div>
+              <span className="text-[10px] font-black uppercase text-stone-400">Ou</span>
+              <div className="flex-1 h-px bg-stone-200"></div>
+            </div>
+
+            <button 
+              onClick={handleGoogleLogin} 
+              disabled={authLoading} 
+              className="flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50"
+            >
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+              <span>Continuer avec Google</span>
             </button>
           </div>
         </div>
