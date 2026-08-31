@@ -258,6 +258,7 @@ export default function ElevagePage() {
 
       <LiquidNavbar />
 
+      {/* SECTION HERO AVEC LE MESSAGE EN ROUGE */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-orange-700 shadow-sm">
           <span>Les Héritiers de Boshin • Élevage Passion</span>
@@ -268,6 +269,14 @@ export default function ElevagePage() {
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base leading-relaxed">
           Membre à part entière de la famille, notre lice vit et élève ses chiots à la maison.
         </p>
+
+        {/* NOUVEAU MESSAGE EN ROUGE */}
+        <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+          <p className="text-sm font-bold text-red-700 leading-relaxed">
+            Actuellement en recherche de notre future lice, les premières portées de l'élevage sont prévues d'ici mi-2028.<br className="hidden sm:block" />
+            Restez connectés pour suivre l'évolution de ce beau projet.
+          </p>
+        </div>
       </section>
 
       {/* CARROUSEL VALEURS HERO */}
