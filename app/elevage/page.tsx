@@ -314,7 +314,7 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* BANDEAU CANDIDATURE */}
+      {/* BANDEAU CANDIDATURE  */}
       {activeLitters.length > 0 && (
         <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
