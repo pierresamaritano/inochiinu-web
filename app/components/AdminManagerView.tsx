@@ -2,871 +2,793 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import DogProfileManager from "./DogProfileManager";
-import ClientDogSelector from "./ClientDogSelector";
-import EducationCalendar from "./EducationCalendar";
-import MiniEducationCalendar from "./MiniEducationCalendar";
-import PensionCalendar from "./PensionCalendar"; 
-import MiniPensionCalendar from "./MiniPensionCalendar"; 
-import PaymentSimulation from "./PaymentSimulation"; 
+import AdminLitterForm from "./AdminLitterForm";
 
-interface CancelTarget {
+interface ActionTarget {
   table: string;
   id: string;
+  newStatus: string;
   title: string;
+  clientName: string;
+  currentNote?: string;
 }
 
 type PeriodOption = "1m" | "6m" | "1y";
 
-export default function ClientDashboardHub() {
-  const [expandedWidget, setExpandedWidget] = useState<string | null>(null);
-  const [eduRequests, setEduRequests] = useState<any[]>([]);
-  const [pensionRequests, setPensionRequests] = useState<any[]>([]);
-  const [adoptionRequests, setAdoptionRequests] = useState<any[]>([]);
-  const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface Dog {
+  id: string;
+  user_id: string;
+  name: string;
+  breed: string;
+  is_vaccinated: boolean;
+}
 
-  const [period, setPeriod] = useState<PeriodOption>("1m");
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [clientPhone, setClientPhone] = useState("");
+interface ClientProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+}
 
-  const [userDogs, setUserDogs] = useState<any[]>([]);
-
-  const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
-  const [cancelling, setCancelling] = useState(false);
-
-  // --- ÉTATS ÉDUCATION ---
-  const [showEduCalendar, setShowEduCalendar] = useState(false);
-  const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
-  const [quickSubmitting, setQuickSubmitting] = useState(false);
-  const [quickSubmitted, setQuickSubmitted] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-
-  const [quickForm, setQuickForm] = useState({
-    dog_id: "", dogName: "", dogBreed: "", dogAge: "",
-    objectives: "", location: "terrain" as "terrain" | "domicile",
-    scheduledDate: "", timeSlot: "",
-  });
-
-  // --- NOUVEAUX ÉTATS PENSION ---
-  const [showPenCalendar, setShowPenCalendar] = useState(false);
-  const [isQuickPenBookOpen, setIsQuickPenBookOpen] = useState(false);
-  const [quickPenSubmitting, setQuickPenSubmitting] = useState(false);
-  const [quickPenSubmitted, setQuickPenSubmitted] = useState(false);
-  const [hasSecondDog, setHasSecondDog] = useState(false);
-
-  const [quickPenForm, setQuickPenForm] = useState({
-    dog_id: "", dogName: "", dogBreed: "",
-    dog2_id: "", dog2Name: "", dog2Breed: "",
-    startDate: "", endDate: "", specialNeeds: ""
-  });
-
+export default function AdminManagerView() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const fetchUserServices = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setCurrentUser(user);
+  const [eduList, setEduList] = useState<any[]>([]);
+  const [pensionList, setPensionList] = useState<any[]>([]);
+  const [adoptionList, setAdoptionList] = useState<any[]>([]);
+  const [sellerieList, setSellerieList] = useState<any[]>([]);
+  const [littersList, setLittersList] = useState<any[]>([]); 
 
-    const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
-    if (profile && profile.phone) setClientPhone(profile.phone);
+  const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  const [editingLitter, setEditingLitter] = useState<any>(null);
+  const [showLitterForm, setShowLitterForm] = useState(false);
 
-    const [edu, pen, adp, sel, dogsData] = await Promise.all([
-      supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("pension_bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("adoption_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("sellerie_orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("dogs").select("id, name, breed, birth_date").eq("user_id", user.id),
+  // État pour gérer les rubriques repliées par portée (par défaut, seules les "Nouvelles" sont ouvertes)
+  const [collapsedSections, setCollapsedSections] = useState<{ [litterId: string]: { waitlist: boolean; refused: boolean } }>({});
+
+  const [period, setPeriod] = useState<PeriodOption>("1m");
+  const [selectedFilterClient, setSelectedFilterClient] = useState<ClientProfile | null>(null);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ClientProfile[]>([]);
+  const [clientDogs, setClientDogs] = useState<Dog[]>([]);
+  const [selectedFilterDogId, setSelectedFilterDogId] = useState<string>("all");
+
+  const [actionModal, setActionModal] = useState<ActionTarget | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [updating, setUpdating] = useState(false);
+
+  // --- NOUVEAU : États pour l'arrêt d'urgence ET les fermetures occasionnelles ---
+  const [isEmergencyStop, setIsEmergencyStop] = useState(false);
+  const [togglingEmergency, setTogglingEmergency] = useState(false);
+  const [closureStart, setClosureStart] = useState("");
+  const [closureEnd, setClosureEnd] = useState("");
+  const [savingClosure, setSavingClosure] = useState(false);
+
+  const fetchAll = async () => {
+    // Récupération de l'état de l'arrêt d'urgence et des fermetures
+    try {
+      const { data: settings } = await supabase.from("site_settings").select("key, value");
+      if (settings) {
+        const emergency = settings.find(s => s.key === "emergency_stop");
+        if (emergency && emergency.value === "true") setIsEmergencyStop(true);
+        else setIsEmergencyStop(false);
+
+        const start = settings.find(s => s.key === "closure_start");
+        if (start) setClosureStart(start.value || "");
+
+        const end = settings.find(s => s.key === "closure_end");
+        if (end) setClosureEnd(end.value || "");
+      }
+    } catch (e) {
+      // Ignorer si la table n'existe pas encore
+    }
+
+    const [edu, pen, adp, sel, lit] = await Promise.all([
+      supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("pension_bookings").select("*").order("created_at", { ascending: false }),
+      supabase.from("adoption_requests").select("*, puppies(name)").neq("status", "annulé").neq("status", "refusé").order("created_at", { ascending: false }),
+      supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
+      supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
     ]);
-
-    setEduRequests(edu.data || []);
-    setPensionRequests(pen.data || []);
-    setAdoptionRequests(adp.data || []);
-    setSellerieOrders(sel.data || []);
-    setUserDogs(dogsData.data || []);
-    setLoading(false);
+    setEduList(edu.data || []);
+    setPensionList(pen.data || []);
+    setAdoptionList(adp.data || []);
+    setSellerieList(sel.data || []);
+    setLittersList(lit.data || []);
   };
 
-  useEffect(() => {
-    fetchUserServices();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const filterByPeriod = (items: any[]) => {
+  useEffect(() => {
+    if (selectedFilterClient) { setSearchResults([]); return; }
+    if (clientSearchQuery.trim().length < 2) { setSearchResults([]); return; }
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id, full_name, email, phone").or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`).limit(6);
+      setSearchResults(data || []); 
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [clientSearchQuery, selectedFilterClient, supabase]);
+
+  const handleFilterClient = async (client: ClientProfile) => {
+    setSelectedFilterClient(client);
+    setClientSearchQuery(`${client.full_name || client.email}`);
+    setSearchResults([]);
+    const { data } = await supabase.from("dogs").select("*").eq("user_id", client.id);
+    setClientDogs(data || []);
+    setSelectedFilterDogId("all");
+  };
+
+  const resetClientFilter = () => {
+    setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
+  };
+
+  const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
       const itemDate = new Date(item.created_at || Date.now()).getTime();
       const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
-      if (period === "1m") return diffDays <= 31;
-      if (period === "6m") return diffDays <= 183;
-      if (period === "1y") return diffDays <= 365;
+      if (period === "1m" && diffDays > 31) return false;
+      if (period === "6m" && diffDays > 183) return false;
+      if (period === "1y" && diffDays > 365) return false;
+      if (selectedFilterClient && item.user_id !== selectedFilterClient.id) return false;
+      if (selectedFilterDogId !== "all" && item.dog_id !== selectedFilterDogId) return false;
       return true;
     });
   };
 
-  const filteredEdu = useMemo(() => filterByPeriod(eduRequests), [eduRequests, period]);
-  const filteredPension = useMemo(() => filterByPeriod(pensionRequests), [pensionRequests, period]);
-  const filteredAdoption = useMemo(() => filterByPeriod(adoptionRequests), [adoptionRequests, period]);
-  const filteredSellerie = useMemo(() => filterByPeriod(sellerieOrders), [sellerieOrders, period]);
+  const filteredEdu = useMemo(() => applyFilters(eduList), [eduList, period, selectedFilterClient, selectedFilterDogId]);
+  const filteredPension = useMemo(() => applyFilters(pensionList), [pensionList, period, selectedFilterClient, selectedFilterDogId]);
+  const filteredAdoption = useMemo(() => applyFilters(adoptionList), [adoptionList, period, selectedFilterClient, selectedFilterDogId]);
+  const filteredSellerie = useMemo(() => applyFilters(sellerieList), [sellerieList, period, selectedFilterClient, selectedFilterDogId]);
 
-  const handleConfirmCancel = async () => {
-    if (!cancelModal) return;
-    setCancelling(true);
-    try {
-      const { error } = await supabase.from(cancelModal.table).update({ status: "annulé" }).eq("id", cancelModal.id);
-      if (error) throw error;
-      await fetchUserServices();
-      setCancelModal(null);
-    } catch (err: any) {
-      alert(`Impossible d'annuler : ${err.message}`);
-    } finally {
-      setCancelling(false);
-    }
+  const openAction = (table: string, id: string, newStatus: string, title: string, clientName: string, currentNote?: string) => {
+    setActionModal({ table, id, newStatus, title, clientName, currentNote });
+    setNoteText(currentNote || "");
   };
 
-  const toggleWidget = (widgetId: string) => {
-    const isExpanding = expandedWidget !== widgetId;
-    setExpandedWidget(isExpanding ? widgetId : null);
-    if (isExpanding) {
-      setTimeout(() => {
-        const element = document.getElementById(`widget-${widgetId}`);
-        if (element) {
-          const y = element.getBoundingClientRect().top + window.scrollY - 80;
-          window.scrollTo({ top: y, behavior: "smooth" });
+  const handleConfirmAction = async () => {
+    if (!actionModal) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
+      if (error) throw error;
+
+      if (actionModal.table === "adoption_requests") {
+        const { data: request } = await supabase.from("adoption_requests").select("puppy_id").eq("id", actionModal.id).single();
+        if (request && request.puppy_id) {
+          if (actionModal.newStatus === "accepté") {
+            await supabase.from("puppies").update({ status: "reserve" }).eq("id", request.puppy_id);
+          } else if (actionModal.newStatus === "annulé" || actionModal.newStatus === "refusé") {
+            await supabase.from("puppies").update({ status: "disponible" }).eq("id", request.puppy_id);
+          }
         }
-      }, 150);
-    }
-  };
+      }
 
-  const calculateDogAge = (birthDateString?: string | null) => {
-    if (!birthDateString) return "";
-    const dateObj = new Date(birthDateString);
-    if (isNaN(dateObj.getTime())) return "";
-    const diffDays = Math.ceil(Math.abs(new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 30) return `${diffDays} jours`;
-    else if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`;
-    else return `${Math.floor(diffDays / 365)} ans`;
-  };
-
-  // ---------------------------------------------------------------------------
-  // GESTIONNAIRES ÉDUCATION
-  // ---------------------------------------------------------------------------
-  const handleMiniCalClick = (dateStr: string, dogId?: string) => {
-    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "", dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) }));
-    setQuickSubmitted(false);
-    setShowPayment(false);
-    setIsQuickBookOpen(true);
-  };
-
-  const handleProceedToPayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    if (!quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives) {
-      alert("Veuillez remplir toutes les informations nécessaires.");
-      return;
-    }
-    setShowPayment(true);
-  };
-
-  const handleFinalSubmit = async () => {
-    setQuickSubmitting(true);
-    try {
-      const { error } = await supabase.from("education_requests").insert([{
-        user_id: currentUser.id, dog_id: quickForm.dog_id, client_name: currentUser.user_metadata?.full_name || "Client",
-        client_email: currentUser.email, client_phone: clientPhone, dog_name: quickForm.dogName,
-        dog_breed: quickForm.dogBreed, dog_age: quickForm.dogAge, objectives: quickForm.objectives,
-        issues: [], scheduled_date: quickForm.scheduledDate, preferred_slot: quickForm.timeSlot,
-        session_type: "suivi", location_preference: quickForm.location,
-        price_estimate: quickForm.location === "domicile" ? 65 : 45, status: "en_attente",
-      }]);
-      if (error) throw error;
-      setQuickSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données pour mettre à jour la liste et le calendrier
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la réservation.");
+      await fetchAll();
+      setActionModal(null);
+    } catch (err: any) {
+      alert(`Erreur : ${err.message}`);
     } finally {
-      setQuickSubmitting(false);
+      setUpdating(false);
     }
   };
 
-  const dogBilanStatus = useMemo(() => {
-    if (!quickForm.dog_id) return { isValid: false, isPending: false, needsNew: false };
-    const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
-    const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
-    const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const hasRecentSession = dogReqs.some(r => {
-      if (!r.scheduled_date) return true;
-      return new Date(r.scheduled_date) >= oneYearAgo;
-    });
-
-    if (hasCompletedBilan && hasRecentSession) return { isValid: true, isPending: false, needsNew: false };
-    if (hasPendingBilan) return { isValid: false, isPending: true, needsNew: false };
-    return { isValid: false, isPending: false, needsNew: true };
-  }, [quickForm.dog_id, eduRequests]);
-
-
-  // ---------------------------------------------------------------------------
-  // GESTIONNAIRES PENSION
-  // ---------------------------------------------------------------------------
-  const handleMiniPenCalClick = (dateStr: string) => {
-    setQuickPenForm(prev => ({ ...prev, startDate: dateStr, endDate: "", dog_id: userDogs.length === 1 ? userDogs[0].id : prev.dog_id }));
-    setQuickPenSubmitted(false);
-    setIsQuickPenBookOpen(true);
+  const toggleEmergencyStop = async () => {
+    if (confirm(isEmergencyStop ? "Réactiver toutes les réservations sur le site ?" : "ATTENTION : Suspendre immédiatement TOUTES les nouvelles réservations sur le site ?")) {
+      setTogglingEmergency(true);
+      try {
+        const newValue = isEmergencyStop ? "false" : "true";
+        const { error } = await supabase.from("site_settings").upsert({ key: "emergency_stop", value: newValue }, { onConflict: "key" });
+        if (error) throw error;
+        setIsEmergencyStop(!isEmergencyStop);
+      } catch (err: any) {
+        alert(`Erreur lors de la modification de l'état : ${err.message}`);
+      } finally {
+        setTogglingEmergency(false);
+      }
+    }
   };
 
-  const openQuickPenBooking = () => {
-    setQuickPenForm(prev => ({ ...prev, startDate: "", endDate: "", dog_id: userDogs.length === 1 ? userDogs[0].id : prev.dog_id }));
-    setQuickPenSubmitted(false);
-    setIsQuickPenBookOpen(true);
-  };
-
-  const handleQuickPenSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    if (!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate) return;
-    if (hasSecondDog && !quickPenForm.dog2_id) return;
-
-    setQuickPenSubmitting(true);
+  // --- NOUVEAU : Sauvegarde des dates de fermetures ---
+  const saveClosureDates = async () => {
+    setSavingClosure(true);
     try {
-      const finalDogName = hasSecondDog ? `${quickPenForm.dogName} & ${quickPenForm.dog2Name}` : quickPenForm.dogName;
-      const finalDogBreed = hasSecondDog ? `${quickPenForm.dogBreed} - ${quickPenForm.dog2Breed}` : quickPenForm.dogBreed;
-
-      const { error } = await supabase.from("pension_bookings").insert([{
-        user_id: currentUser.id, dog_id: quickPenForm.dog_id || null,
-        client_name: currentUser.user_metadata?.full_name || "Client", client_email: currentUser.email,
-        client_phone: clientPhone, dog_name: finalDogName, dog_breed: finalDogBreed,
-        start_date: quickPenForm.startDate, end_date: quickPenForm.endDate,
-        special_needs: quickPenForm.specialNeeds, status: "en_attente",
-      }]);
-
-      if (error) throw error;
-      setQuickPenSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données pour mettre à jour le calendrier pension
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la réservation de la pension.");
+      await supabase.from("site_settings").upsert([
+        { key: "closure_start", value: closureStart },
+        { key: "closure_end", value: closureEnd }
+      ], { onConflict: "key" });
+      alert("Dates de fermetures enregistrées avec succès ! Elles bloquent désormais les calendriers.");
+    } catch (err: any) {
+      alert(`Erreur : ${err.message}`);
     } finally {
-      setQuickPenSubmitting(false);
+      setSavingClosure(false);
     }
   };
 
+  const clearClosureDates = async () => {
+    setClosureStart("");
+    setClosureEnd("");
+    setSavingClosure(true);
+    try {
+      await supabase.from("site_settings").upsert([
+        { key: "closure_start", value: "" },
+        { key: "closure_end", value: "" }
+      ], { onConflict: "key" });
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setSavingClosure(false);
+    }
+  };
 
-  if (loading) {
-    return <div className="mt-12 text-center text-xs font-bold text-stone-400">Chargement de votre tableau de bord...</div>;
-  }
+  const toggleLitterStatus = async (id: string, currentStatus: boolean) => {
+    await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id);
+    fetchAll();
+  };
 
-  const hasAnyService = eduRequests.length > 0 || pensionRequests.length > 0 || adoptionRequests.length > 0 || sellerieOrders.length > 0;
+  const deleteLitter = async (id: string) => {
+    if(confirm("Êtes-vous sûr de vouloir supprimer cette portée et tous ses chiots ?")) {
+       await supabase.from("litters").delete().eq("id", id);
+       fetchAll();
+    }
+  };
+
+  const assignToLitter = async (candidatureId: string, litterId: string) => {
+    await supabase.from("adoption_requests").update({ litter_id: litterId }).eq("id", candidatureId);
+    fetchAll();
+  };
+
+  const assignToPuppy = async (candidatureId: string, puppyId: string) => {
+    await supabase.from("adoption_requests").update({ puppy_id: puppyId || null }).eq("id", candidatureId); 
+    fetchAll();
+  };
+
+  const renderPreferenceText = (item: any) => {
+    if (item.puppy_preference === 'specific' && item.puppies?.name) return `Ce chiot : ${item.puppies.name}`;
+    if (item.puppy_preference === 'male') return "Un mâle";
+    if (item.puppy_preference === 'female') return "Une femelle";
+    return "Indifférent";
+  };
+
+  const toggleSectionCollapse = (litterId: string, section: 'waitlist' | 'refused') => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [litterId]: {
+        waitlist: section === 'waitlist' ? !(prev[litterId]?.waitlist ?? true) : (prev[litterId]?.waitlist ?? true),
+        refused: section === 'refused' ? !(prev[litterId]?.refused ?? true) : (prev[litterId]?.refused ?? true),
+      }
+    }));
+  };
+
+  const renderAppCard = (item: any, litter: any = null) => {
+    const isRefused = ['annulé', 'refusé'].includes(item.status);
+    const hasPuppySelected = Boolean(item.puppy_id);
+
+    return (
+      <div key={item.id} className={`p-4 rounded-2xl border ${isRefused ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'} space-y-3`}>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+          <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
+            {item.status}
+          </span>
+        </div>
+
+        <div className="text-xs text-stone-600 space-y-1">
+          <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
+          <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
+          <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
+          {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
+        </div>
+
+        {/* Assigner un chiot (UNIQUEMENT LES CHIOTS DISPONIBLES) */}
+        {litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
+            <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Sélectionner un chiot (obligatoire)...</option>
+              {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
+                <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {!litter && !isRefused && (
+          <div className="pt-2 border-t border-stone-100 flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lier à une portée :</label>
+            <select onChange={(e) => assignToLitter(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="">Sélectionner une portée...</option>
+              {littersList.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+            </select>
+          </div>
+        )}
+
+        {!isRefused ? (
+          <div className="pt-2 flex flex-wrap gap-2 items-center">
+            <button 
+              onClick={() => {
+                if (!hasPuppySelected) {
+                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
+                  return;
+                }
+                openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
+              }} 
+              title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
+              className={`flex-1 py-1.5 rounded-lg text-white text-[11px] font-black shadow-sm transition cursor-pointer ${
+                !hasPuppySelected ? "bg-emerald-300 cursor-not-allowed" : "bg-emerald-500 hover:bg-emerald-600"
+              }`}
+            >
+              Accepter
+            </button>
+
+            {item.status !== "liste_attente" && (
+              <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
+                Attente
+              </button>
+            )}
+
+            <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
+              Refuser
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2 flex flex-wrap gap-2">
+             <button onClick={() => openAction("adoption_requests", item.id, "en_attente", item.client_name, item.client_name, item.admin_notes)} className="w-full py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-[11px] font-bold transition cursor-pointer">Remettre en attente</button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <>
-      <div className="flex items-center justify-end gap-2 mt-6">
-        <label htmlFor="client-period" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
-          Période :
-        </label>
-        <select
-          id="client-period"
-          value={period}
-          onChange={(e) => setPeriod(e.target.value as PeriodOption)}
-          className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black text-stone-800 shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer"
-        >
-          <option value="1m">1 Mois (Défaut)</option>
-          <option value="6m">6 Mois</option>
-          <option value="1y">1 Année</option>
-        </select>
+    <div className="mt-8 space-y-6">
+
+      {/* 0. NOUVEAU BLOC: PARAMÈTRES DU SITE (Urgence & Vacances) */}
+      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-end bg-white p-5 rounded-[2rem] border border-stone-200/90 shadow-xs">
+        
+        {/* BOUTON ARRÊT URGENCE */}
+        <div className="w-full xl:w-auto">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-stone-500 mb-2">Arrêt d'urgence</label>
+            <button 
+              onClick={toggleEmergencyStop}
+              disabled={togglingEmergency}
+              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all shadow-sm ${isEmergencyStop ? 'bg-stone-800 text-white hover:bg-stone-900 cursor-pointer' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer'}`}
+            >
+              {isEmergencyStop ? (
+                <><span>🟢</span> Suspendu (Réactiver)</>
+              ) : (
+                <><span>🔴</span> Suspendre le site</>
+              )}
+            </button>
+        </div>
+
+        {/* FERMETURES EXCEPTIONNELLES */}
+        <div className="w-full xl:w-auto border-t xl:border-t-0 xl:border-l border-stone-100 pt-4 xl:pt-0 xl:pl-5 flex flex-col sm:flex-row items-start sm:items-end gap-3">
+          <div className="w-full sm:w-auto">
+            <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Fermeture (Début)</label>
+            <input type="date" value={closureStart} onChange={e => setClosureStart(e.target.value)} className="w-full sm:w-auto px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+          </div>
+          <div className="w-full sm:w-auto">
+            <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Fermeture (Fin)</label>
+            <input type="date" value={closureEnd} onChange={e => setClosureEnd(e.target.value)} className="w-full sm:w-auto px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {(closureStart || closureEnd) && (
+              <button onClick={clearClosureDates} title="Effacer les dates" className="h-[34px] px-3 bg-stone-100 text-stone-500 hover:text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 transition cursor-pointer">✕</button>
+            )}
+            <button onClick={saveClosureDates} disabled={savingClosure || (!closureStart && !closureEnd)} className="w-full sm:w-auto h-[34px] px-5 bg-stone-900 text-white rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer">
+              {savingClosure ? "..." : "Valider"}
+            </button>
+          </div>
+        </div>
+
       </div>
 
-      <DogProfileManager />
-
-      {!hasAnyService ? (
-        <div className="mt-12 p-10 sm:p-16 rounded-[2.5rem] bg-white/40 border border-stone-200 border-dashed text-center flex flex-col items-center justify-center max-w-3xl mx-auto shadow-sm">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-6 shadow-inner">犬</div>
-          <h2 className="text-2xl font-black text-stone-900 tracking-tight">Votre historique de réservations est vide</h2>
-          <p className="text-stone-500 mt-3 text-sm leading-relaxed max-w-lg">Vos demandes de pension, d'éducation ou commandes de sellerie apparaîtront ici.</p>
-          <a href="/education" className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 transition-all">Découvrir nos services</a>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
-
-          {/* ========================================================================= */}
-          {/* WIDGET ÉDUCATION */}
-          {/* ========================================================================= */}
-          {filteredEdu.length > 0 && (
-            <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
-              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
-                  <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setShowEduCalendar(!showEduCalendar)}
-                    title="Afficher/Masquer le calendrier"
-                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm cursor-pointer ${showEduCalendar ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500'}`}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      {/* 1. BARRE DE FILTRAGE */}
+      <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full md:w-1/2">
+            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">Rechercher par Client :</label>
+            <div className="relative">
+              <input type="text" placeholder="Tapez un nom ou e-mail..." value={clientSearchQuery} onChange={(e) => { setClientSearchQuery(e.target.value); if (selectedFilterClient) resetClientFilter(); }} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 pr-8" />
+              {selectedFilterClient && <button onClick={resetClientFilter} className="absolute right-3 top-2.5 text-xs font-bold text-stone-400">✕</button>}
+            </div>
+            {searchResults.length > 0 && !selectedFilterClient && (
+              <div className="absolute top-full inset-x-0 mt-1.5 z-50 rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden divide-y divide-stone-100">
+                {searchResults.map((c) => (
+                  <button key={c.id} onClick={() => handleFilterClient(c)} className="w-full px-4 py-3 text-left text-xs hover:bg-orange-50 flex justify-between">
+                    <span className="font-bold text-stone-800">{c.full_name || "Client"}</span>
+                    <span className="text-[11px] text-stone-400">{c.email}</span>
                   </button>
-                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
-                    {filteredEdu.length}
-                  </div>
-                </div>
+                ))}
               </div>
-
-              {showEduCalendar && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <MiniEducationCalendar eduRequests={eduRequests} userDogs={userDogs} onDayClick={handleMiniCalClick} />
-                </div>
-              )}
-
-              <div className="mt-6 space-y-3">
-                {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => {
-                  const isTerminated = item.status === "terminé" || item.status === "annulé";
-                  return (
-                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">
-                            <strong className="text-stone-700">{item.session_type === 'bilan' ? 'Bilan' : 'Séance'}</strong> • {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Date à définir'} à {item.preferred_slot}
-                          </span>
-                          <span className="text-[10px] text-stone-400 block mt-0.5">
-                            📍 {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
-                          </span>
-                        </div>
-
-                        {!isTerminated && (
-                          <button
-                            onClick={() => setCancelModal({ table: "education_requests", id: item.id, title: `la séance de ${item.dog_name}` })}
-                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                          >
-                            Annuler
-                          </button>
-                        )}
-                      </div>
-
-                      {item.admin_notes && (
-                        <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
-                          <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
-                          {item.admin_notes}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-
-              {filteredEdu.length > 2 && (
-                <button onClick={() => toggleWidget('edu')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 2})`}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* WIDGET PENSION */}
-          {/* ========================================================================= */}
-          {filteredPension.length > 0 && (
-            <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
-              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Pension</span>
-                  <h3 className="text-xl font-black text-stone-900 mt-1.5">Séjours en Garde</h3>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setShowPenCalendar(!showPenCalendar)}
-                    title="Afficher/Masquer le calendrier de la pension"
-                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm cursor-pointer ${showPenCalendar ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500'}`}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                  </button>
-                  <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700 shrink-0 shadow-sm">
-                    {filteredPension.length}
-                  </div>
-                </div>
-              </div>
-
-              {showPenCalendar && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <MiniPensionCalendar onDayClick={handleMiniPenCalClick} />
-                </div>
-              )}
-
-              <div className="mt-6 space-y-3">
-                {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => {
-                  const isTerminated = item.status === "terminé" || item.status === "annulé";
-                  return (
-                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
-                        </div>
-
-                        {!isTerminated && (
-                          <button
-                            onClick={() => setCancelModal({ table: "pension_bookings", id: item.id, title: `le séjour de ${item.dog_name}` })}
-                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                          >
-                            Annuler
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {filteredPension.length > 2 && (
-                <button onClick={() => toggleWidget('pen')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 2})`}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* ... WIDGETS ADOPTION ET SELLERIE (IDENTIQUES) ... */}
-          {filteredAdoption.length > 0 && (
-            <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
-              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
-                  <h3 className="text-xl font-black text-stone-900 mt-1.5">Candidature Chiot</h3>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
-                  {filteredAdoption.length}
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => {
-                  const isTerminated = item.status === "annulé" || item.status === "refusé";
-                  return (
-                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.preferred_breed}</h4>
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              item.status === 'accepté' ? 'bg-emerald-100 text-emerald-800' : isTerminated ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.living_environment}</span>
-                        </div>
-
-                        {!isTerminated && (
-                          <button
-                            onClick={() => setCancelModal({ table: "adoption_requests", id: item.id, title: `votre candidature pour un ${item.preferred_breed}` })}
-                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                          >
-                            Annuler
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {filteredAdoption.length > 2 && (
-                <button onClick={() => toggleWidget('adp')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'adp' ? "Réduire" : `Voir tout (+${filteredAdoption.length - 2})`}
-                </button>
-              )}
-            </div>
-          )}
-
-          {filteredSellerie.length > 0 && (
-            <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
-              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
-                  <h3 className="text-xl font-black text-stone-900 mt-1.5">Commandes Atelier</h3>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center font-black text-xs text-amber-700">
-                  {filteredSellerie.length}
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => {
-                  const isTerminated = item.status === "annulé";
-                  return (
-                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.item_type}</h4>
-                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              item.status === 'expédié' ? 'bg-emerald-100 text-emerald-800' : isTerminated ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.color_finish} • {item.dog_size}</span>
-                        </div>
-
-                        {item.status === "en_attente" && (
-                          <button
-                            onClick={() => setCancelModal({ table: "sellerie_orders", id: item.id, title: `la commande de ${item.item_type}` })}
-                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                          >
-                            Annuler
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {filteredSellerie.length > 2 && (
-                <button onClick={() => toggleWidget('sel')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
-                  {expandedWidget === 'sel' ? "Réduire" : `Voir tout (+${filteredSellerie.length - 2})`}
-                </button>
-              )}
-            </div>
-          )}
-
-        </div>
-      )}
-
-      {/* ... MODALE ANNULATION ... */}
-      {cancelModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity"
-            onClick={() => !cancelling && setCancelModal(null)}
-          />
-          <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-8 shadow-2xl backdrop-blur-2xl text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 text-xl font-black">
-              ⚠️
-            </div>
-            <h3 className="text-xl font-black text-stone-900">
-              Confirmer l'annulation ?
-            </h3>
-            <p className="mt-2 text-xs text-stone-500 leading-relaxed">
-              Êtes-vous certain de vouloir annuler <strong>{cancelModal.title}</strong> ?
-            </p>
-
-            <div className="mt-6 flex flex-col gap-2">
-              <button
-                onClick={handleConfirmCancel}
-                disabled={cancelling}
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full shadow-md transition-all cursor-pointer disabled:opacity-50"
-              >
-                {cancelling ? "Annulation en cours..." : "Oui, annuler la demande"}
-              </button>
-              <button
-                onClick={() => setCancelModal(null)}
-                disabled={cancelling}
-                className="w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-full transition-all cursor-pointer"
-              >
-                Non, conserver
-              </button>
-            </div>
+            )}
+          </div>
+          <div className="w-full md:w-1/2">
+            <label className="block text-[10px] font-black uppercase text-stone-500 mb-1">Affiner par Chien :</label>
+            <select disabled={!selectedFilterClient} value={selectedFilterDogId} onChange={(e) => setSelectedFilterDogId(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold disabled:opacity-40 focus:outline-none focus:border-orange-500">
+              <option value="all">{selectedFilterClient ? "Tous les chiens" : "Sélectionnez un client"}</option>
+              {clientDogs.map((d) => (<option key={d.id} value={d.id}>{d.name}</option>))}
+            </select>
           </div>
         </div>
+      </div>
+
+      {/* 2. ONGLETS DE NAVIGATION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
+            <button onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Éducation ({filteredEdu.length})</button>
+            <button onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Pension ({filteredPension.length})</button>
+            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Élevage ({filteredAdoption.length})</button>
+            <button onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Sellerie ({filteredSellerie.length})</button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Période :</label>
+          <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black shadow-sm focus:outline-none focus:border-orange-500">
+            <option value="1m">1 Mois (Défaut)</option><option value="6m">6 Mois</option><option value="1y">1 Année</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 3. CONTENU : ÉDUCATION (NOUVEAU DESIGN COMPLET) */}
+      {tab === "education" && (
+        <div className="space-y-4">
+          {filteredEdu.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div>
+          ) : (
+            filteredEdu.map((item) => {
+              const isTerminated = item.status === "terminé" || item.status === "annulé";
+
+              return (
+                <div key={item.id} className={`p-6 rounded-[2rem] border transition-all flex flex-col lg:flex-row justify-between items-start lg:items-stretch gap-6 ${isTerminated ? 'border-stone-100 bg-stone-50/50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+
+                  {/* COLONNE GAUCHE : IDENTITÉ ET DÉTAILS */}
+                  <div className="flex-1 w-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider bg-orange-50 px-2 py-0.5 rounded-md">
+                          {item.client_name} • {item.client_phone}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'}`}>
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <h4 className="text-xl font-black text-stone-900 mt-1">
+                        {item.dog_name} <span className="text-xs text-stone-500 font-medium">({item.dog_breed}{item.dog_age ? `, ${item.dog_age}` : ''})</span>
+                      </h4>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">🏷️</span> 
+                          <strong className="text-stone-900 capitalize">{item.session_type === 'bilan' ? 'Bilan Initial' : 'Suivi / Séance'}</strong>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">📅</span> 
+                          <span className={item.scheduled_date ? "text-stone-900 font-bold" : "text-stone-400 italic"}>
+                            {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Non définie'} à {item.preferred_slot || '--:--'}
+                          </span>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">📍</span> 
+                          {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
+                          {item.price_estimate && <span className="ml-1 px-1.5 bg-stone-100 rounded text-[10px] text-stone-500">{item.price_estimate}€</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {item.admin_notes && (
+                      <div className="mt-4 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700">
+                        <strong className="uppercase text-[9px] text-orange-800 tracking-wider block mb-0.5">Votre message :</strong> 
+                        {item.admin_notes}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COLONNE CENTRALE : OBJECTIFS ET PROBLÈMES */}
+                  <div className="flex-1 w-full bg-stone-50 p-4 rounded-2xl border border-stone-100/80 flex flex-col">
+                    <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-1.5">Objectifs de la séance :</strong>
+                    <p className="text-xs text-stone-800 leading-relaxed flex-1">{item.objectives}</p>
+
+                    {item.issues && Array.isArray(item.issues) && item.issues.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-stone-200/60">
+                        <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-2">Comportements signalés :</strong>
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.issues.map((issue: string) => (
+                            <span key={issue} className="bg-white border border-stone-200 text-stone-600 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm">
+                              {issue}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COLONNE DROITE : ACTIONS ADMINISTRATEUR */}
+                  <div className="flex flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-32 justify-end lg:justify-start">
+                    {item.status === "en_attente" && (
+                      <>
+                        <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition">Valider</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Refuser</button>
+                      </>
+                    )}
+                    {item.status === "confirmé" && (
+                      <>
+                        <button onClick={() => openAction("education_requests", item.id, "terminé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-800 hover:bg-black text-white text-xs font-black shadow-sm transition">Terminer</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Annuler</button>
+                      </>
+                    )}
+                    {isTerminated && (
+                      <button onClick={() => openAction("education_requests", item.id, "en_attente", item.dog_name, item.client_name, item.admin_notes)} className="w-full py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-900 text-xs font-bold transition">
+                        Restaurer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODALE RÉSERVATION RAPIDE ÉDUCATION */}
-      {/* ========================================================================= */}
-      {isQuickBookOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsQuickBookOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsQuickBookOpen(false)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 bg-white shadow-sm p-1.5 rounded-full cursor-pointer z-50">✕</button>
-
-            {quickSubmitted ? (
-              <div className="text-center py-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Paiement validé !</h3>
-                <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
-                <button 
-                  onClick={() => {
-                    setIsQuickBookOpen(false);
-                    // Le rafraichissement est déjà géré par fetchUserServices() appelé dans handleFinalSubmit
-                  }} 
-                  className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
-                >
-                  Fermer
-                </button>
+      {/* 4. CONTENU : PENSION */}
+      {tab === "pension" && (
+        <div className="space-y-4">
+           {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredPension.map((item) => (
+            <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name} • {item.client_phone}</span></div>
+                <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
+                <p className="text-xs text-stone-500">Du {item.start_date} au {item.end_date}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
-            ) : showPayment ? (
-              <PaymentSimulation 
-                amount={quickForm.location === "domicile" ? 65 : 45} 
-                serviceName="Séance de Suivi"
-                onSuccess={handleFinalSubmit}
-                onCancel={() => setShowPayment(false)}
+              <div className="flex gap-2 shrink-0">
+                {item.status !== "confirmé" && <button onClick={() => openAction("pension_bookings", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
+                <button onClick={() => openAction("pension_bookings", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 5. CONTENU : ÉLEVAGE */}
+      {tab === "elevage" && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+
+          {!showLitterForm && (
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
+              <div>
+                <h2 className="text-xl font-black text-stone-900">Gestion des Portées</h2>
+                <p className="text-xs text-stone-500 mt-1">Gérez vos portées, vos chiots et les candidatures associées.</p>
+              </div>
+              <button onClick={() => { setEditingLitter(null); setShowLitterForm(true); }} className="px-5 py-2.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white rounded-full text-xs font-black shadow-md hover:scale-105 transition-all cursor-pointer">
+                + Nouvelle Portée
+              </button>
+            </div>
+          )}
+
+          {showLitterForm ? (
+            <div className="border border-stone-200 rounded-[2.5rem] p-4 bg-white/50">
+              <AdminLitterForm 
+                initialData={editingLitter} 
+                onSuccess={() => { setShowLitterForm(false); fetchAll(); }} 
+                onCancel={() => setShowLitterForm(false)} 
               />
-            ) : (
-              <form onSubmit={handleProceedToPayment} className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-black text-stone-900">Demander un suivi</h3>
-                  <p className="text-xs text-stone-500 mt-1">Réservez une nouvelle séance pour votre chien.</p>
-                </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
 
-                <div className="space-y-5 animate-in fade-in">
+              {littersList.map(litter => {
+                const activeLitterApps = filteredAdoption.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
+                const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
+                const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
+                const refusedApps = activeLitterApps.filter(a => ['annulé', 'refusé'].includes(a.status));
 
-                  {currentUser && (
-                    <div className="w-full min-w-0">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Chien concerné *</label>
-                      <select 
-                        required
-                        value={quickForm.dog_id} 
-                        onChange={(e) => {
-                          const dog = userDogs.find(d => d.id === e.target.value);
-                          setQuickForm({
-                            ...quickForm, 
-                            dog_id: e.target.value, 
-                            dogName: dog?.name || "", 
-                            dogBreed: dog?.breed || "", 
-                            dogAge: calculateDogAge(dog?.birth_date || "") 
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
-                      >
-                        <option value="">Sélectionnez un chien...</option>
-                        {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                    </div>
-                  )}
+                const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
+                const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
 
-                  {quickForm.dog_id && !dogBilanStatus.isValid ? (
-                    dogBilanStatus.isPending ? (
-                      <div className="p-6 rounded-2xl bg-orange-50 border border-orange-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
-                        <div className="text-3xl mb-3">⏳</div>
-                        <h4 className="text-sm font-black text-orange-900 mb-2">Bilan en cours</h4>
-                        <p className="text-xs text-orange-700 leading-relaxed">
-                          Vous pourrez planifier vos futures séances de suivi avec <strong>{quickForm.dogName}</strong> dès que nous aurons réalisé et validé ensemble le bilan comportemental initial.
-                        </p>
+                return (
+                  <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
+
+                    {/* EN-TÊTE DE LA PORTÉE */}
+                    <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full ${litter.is_active ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-stone-200 text-stone-500'}`}>
+                            {litter.is_active ? 'Visible sur site' : 'Archivée'}
+                          </span>
+                          <h3 className="text-xl font-black text-stone-900">{litter.title}</h3>
+                        </div>
+                        <p className="text-sm font-bold text-stone-600">{litter.father_name} x {litter.mother_name}</p>
                       </div>
-                    ) : (
-                      <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
-                        <div className="text-3xl mb-3">⚠️</div>
-                        <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial requis</h4>
-                        <p className="text-xs text-red-700 leading-relaxed mb-5">
-                          Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'a jamais été réalisé ou la dernière séance remonte à plus d'un an.
-                        </p>
-                        <a href="/education" className="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full transition-colors shadow-sm cursor-pointer">
-                          Aller réserver un bilan
-                        </a>
-                      </div>
-                    )
-                  ) : (
-                    <div className={`space-y-5 transition-all duration-300 ${!quickForm.dog_id ? "opacity-30 pointer-events-none grayscale" : "mt-2"}`}>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
-                              {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
-                        </button>
-
-                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
-                              {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
-                        </button>
-                      </div>
-
-                      <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                        <EducationCalendar 
-                          location={quickForm.location}
-                          selectedDate={quickForm.scheduledDate}
-                          selectedTime={quickForm.timeSlot}
-                          selectedDogId={quickForm.dog_id} 
-                          onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
-                        />
-                      </div>
-
-                      <div className="w-full min-w-0">
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Objectif de la séance *</label>
-                        <textarea 
-                          required 
-                          rows={2} 
-                          placeholder="Point spécifique à travailler aujourd'hui..."
-                          value={quickForm.objectives} 
-                          onChange={(e) => setQuickForm({ ...quickForm, objectives: e.target.value })} 
-                          className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
-                        />
-                      </div>
-
-                      <div className="pt-2 border-t border-stone-100">
-                        <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
-                          Payer {quickForm.location === "domicile" ? 65 : 45}€ et Valider
-                        </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => { setEditingLitter(litter); setShowLitterForm(true); }} className="px-4 py-2 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 shadow-sm rounded-xl text-xs font-bold transition cursor-pointer">Modifier</button>
+                        <button onClick={() => toggleLitterStatus(litter.id, litter.is_active)} className="px-4 py-2 bg-stone-100 text-stone-700 hover:bg-stone-200 rounded-xl text-xs font-bold transition cursor-pointer">{litter.is_active ? 'Archiver' : 'Publier'}</button>
+                        <button onClick={() => deleteLitter(litter.id)} className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold transition cursor-pointer">Supprimer</button>
                       </div>
                     </div>
-                  )}
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* ========================================================================= */}
-      {/* MODALE RÉSERVATION RAPIDE PENSION */}
-      {/* ========================================================================= */}
-      {isQuickPenBookOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsQuickPenBookOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsQuickPenBookOpen(false)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 bg-white shadow-sm p-1.5 rounded-full cursor-pointer z-50">✕</button>
+                    {/* CORPS DE LA PORTÉE */}
+                    <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
-            {quickPenSubmitted ? (
-              <div className="text-center py-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Demande de séjour envoyée !</h3>
-                <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des boxs et validons votre demande très vite.</p>
-                <button 
-                  onClick={() => {
-                    setIsQuickPenBookOpen(false);
-                    // Le rafraichissement est déjà géré par fetchUserServices()
-                  }} 
-                  className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
-                >
-                  Fermer
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleQuickPenSubmit} className="space-y-6">
-                <div>
-                  <h3 className="text-xl font-black text-stone-900">Réserver un séjour</h3>
-                  <p className="text-xs text-stone-500 mt-1">Bloquez vos dates en pension.</p>
-                </div>
+                      {/* COLONNE DE GAUCHE : LES CHIOTS */}
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
+                        <div className="space-y-3">
+                          {litter.puppies?.map((pup: any) => {
+                            const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
 
-                <div className="space-y-5 animate-in fade-in">
+                            return (
+                              <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-stone-200 shadow-sm flex items-center justify-center text-xl shrink-0">
+                                      {pup.image_url ? <img src={pup.image_url} alt={pup.name} className="w-full h-full object-cover" /> : (pup.gender === 'male' ? '🐕' : '🌸')}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-black text-stone-900">{pup.name}</p>
+                                      <p className="text-[10px] text-stone-400 font-black uppercase mt-0.5">{pup.image_tag || 'NOUVEAU-NÉ'}</p>
+                                    </div>
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider ${pup.status === 'disponible' ? 'bg-emerald-100 text-emerald-800' : pup.status === 'reserve' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
+                                    {pup.status === 'reserve' ? 'RÉSERVÉ' : pup.status === 'adopte' ? 'ADOPTÉ' : 'DISPONIBLE'}
+                                  </span>
+                                </div>
 
-                  {currentUser && (
-                    <div className="w-full min-w-0">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pensionnaire(s) *</label>
-                      <select 
-                        required
-                        value={quickPenForm.dog_id} 
-                        onChange={(e) => {
-                          const dog = userDogs.find(d => d.id === e.target.value);
-                          setQuickPenForm({
-                            ...quickPenForm, 
-                            dog_id: e.target.value, 
-                            dogName: dog?.name || "", 
-                            dogBreed: dog?.breed || "", 
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
-                      >
-                        <option value="">Sélectionnez un premier chien...</option>
-                        {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
+                                {acceptedApp ? (
+                                  <div className="mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2">
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
+                                      👤 Réservé par {acceptedApp.client_name}
+                                    </p>
+                                    <div className="flex items-center justify-between">
+                                      <a href={`tel:${acceptedApp.client_phone}`} className="text-[11px] font-bold text-stone-500 hover:text-stone-900">📞 {acceptedApp.client_phone}</a>
+                                      <button onClick={() => openAction("adoption_requests", acceptedApp.id, "annulé", acceptedApp.client_name, acceptedApp.client_name, acceptedApp.admin_notes)} className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer">
+                                        Annuler la résa.
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (pup.status === 'reserve' || pup.status === 'adopte') ? (
+                                  <div className="mt-3 pt-3 border-t border-stone-100 flex flex-col gap-1.5">
+                                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-wider">
+                                      📝 Réservation hors plateforme
+                                    </p>
+                                    <p className="text-[9px] font-bold text-stone-400 leading-tight">
+                                      Ce chiot a été réservé manuellement. Modifiez la portée pour changer son statut.
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                      <div className="mt-2">
-                        {!hasSecondDog ? (
-                          <button
-                            type="button"
-                            onClick={() => setHasSecondDog(true)}
-                            className="text-[11px] font-black text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1"
-                          >
-                            + Ajouter un deuxième chien (même box)
-                          </button>
+                      {/* COLONNE DE DROITE : LES CANDIDATURES REPLIABLES */}
+                      <div>
+                        <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures en cours ({activeLitterApps.length})</h4>
+                        {activeLitterApps.length === 0 ? (
+                          <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
-                          <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 relative mt-3 shadow-sm">
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                setHasSecondDog(false);
-                                setQuickPenForm(prev => ({ ...prev, dog2_id: "", dog2Name: "", dog2Breed: "" }));
-                              }}
-                              className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
-                            >
-                              ✕ Retirer
-                            </button>
-                            <p className="text-[10px] font-black uppercase text-emerald-700 mb-2">Deuxième pensionnaire</p>
-                            <select 
-                              required={hasSecondDog}
-                              value={quickPenForm.dog2_id} 
-                              onChange={(e) => {
-                                const dog = userDogs.find(d => d.id === e.target.value);
-                                setQuickPenForm({
-                                  ...quickPenForm, 
-                                  dog2_id: e.target.value, 
-                                  dog2Name: dog?.name || "", 
-                                  dog2Breed: dog?.breed || "", 
-                                });
-                              }}
-                              className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer shadow-sm"
-                            >
-                              <option value="">Sélectionnez le second chien...</option>
-                              {userDogs.filter(d => d.id !== quickPenForm.dog_id).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
+                          <div className="space-y-6">
+
+                            {/* NOUVELLES (Toujours ouvertes par défaut) */}
+                            {newApps.length > 0 && (
+                              <div>
+                                <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5 flex items-center justify-between">
+                                  <span>Nouvelles ({newApps.length})</span>
+                                </h5>
+                                <div className="space-y-3">
+                                  {newApps.map(item => renderAppCard(item, litter))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* LISTE D'ATTENTE (Minimisée par défaut) */}
+                            {waitlistApps.length > 0 && (
+                              <div>
+                                <button 
+                                  onClick={() => toggleSectionCollapse(litter.id, 'waitlist')}
+                                  className="w-full text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5 flex items-center justify-between hover:bg-amber-50/50 transition cursor-pointer"
+                                >
+                                  <span>Liste d'attente ({waitlistApps.length})</span>
+                                  <span className="text-stone-400 font-bold">{isWaitlistCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
+                                </button>
+                                {!isWaitlistCollapsed && (
+                                  <div className="space-y-3 animate-in fade-in duration-200">
+                                    {waitlistApps.map(item => renderAppCard(item, litter))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* ARCHIVÉES / REFUSÉES (Minimisée par défaut) */}
+                            {refusedApps.length > 0 && (
+                              <div>
+                                <button 
+                                  onClick={() => toggleSectionCollapse(litter.id, 'refused')}
+                                  className="w-full text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5 flex items-center justify-between hover:bg-stone-50 transition cursor-pointer"
+                                >
+                                  <span>Archivées / Refusées ({refusedApps.length})</span>
+                                  <span className="text-stone-400 font-bold">{isRefusedCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
+                                </button>
+                                {!isRefusedCollapsed && (
+                                  <div className="space-y-3 animate-in fade-in duration-200">
+                                    {refusedApps.map(item => renderAppCard(item, litter))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-
-                  <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                    <PensionCalendar 
-                      startDate={quickPenForm.startDate}
-                      endDate={quickPenForm.endDate}
-                      onChange={(start, end) => setQuickPenForm({ ...quickPenForm, startDate: start, endDate: end })}
-                    />
                   </div>
+                );
+              })}
 
-                  <div className="w-full min-w-0">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Besoins spécifiques</label>
-                    <textarea 
-                      rows={2} 
-                      placeholder="Précisez le type de croquettes, traitements..."
-                      value={quickPenForm.specialNeeds} 
-                      onChange={(e) => setQuickPenForm({ ...quickPenForm, specialNeeds: e.target.value })} 
-                      className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-emerald-500 shadow-sm" 
-                    />
-                  </div>
-
-                  <div className="pt-2 border-t border-stone-100">
-                    <button type="submit" disabled={quickPenSubmitting || !quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate || (hasSecondDog && !quickPenForm.dog2_id)} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
-                      {quickPenSubmitting ? "Envoi en cours..." : "Réserver ce séjour"}
-                    </button>
+              {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
+                <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
+                  <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures spontanées (Non assignées)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredAdoption.filter(a => !a.litter_id).map(item => renderAppCard(item, null))}
                   </div>
                 </div>
-              </form>
-            )}
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. CONTENU : SELLERIE */}
+      {tab === "sellerie" && (
+        <div className="space-y-4">
+          {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune commande trouvée.</div> : filteredSellerie.map((item) => (
+             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name} • {item.client_phone}</span></div>
+                <h4 className="text-base font-black mt-1">{item.item_type}</h4>
+                <p className="text-xs text-stone-500">{item.color_finish} • {item.dog_size}</p>
+                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {item.status !== "expédié" && <button onClick={() => openAction("sellerie_orders", item.id, "expédié", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Expédier</button>}
+                {item.status !== "en_atelier" && <button onClick={() => openAction("sellerie_orders", item.id, "en_atelier", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-black">En atelier</button>}
+                <button onClick={() => openAction("sellerie_orders", item.id, "annulé", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Annuler</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 7. MODALE ADMINISTRATIVE D'ACTION */}
+      {actionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => !updating && setActionModal(null)} />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-8 shadow-2xl backdrop-blur-2xl">
+            <button onClick={() => setActionModal(null)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 cursor-pointer">✕</button>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">Action administrative</span>
+              <h3 className="text-xl font-black text-stone-900 mt-1">Passer en statut : <span className="capitalize text-orange-600">"{actionModal.newStatus}"</span></h3>
+              <p className="text-xs text-stone-500 mt-1">Pour {actionModal.title} ({actionModal.clientName})</p>
+            </div>
+            <div className="mt-6">
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Message explicatif pour le client (affiché sur son espace)</label>
+              <textarea rows={3} value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Ex: Rendez-vous validé..." className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setActionModal(null)} disabled={updating} className="px-5 py-2.5 rounded-full text-xs font-bold text-stone-600 hover:bg-stone-100 transition-all cursor-pointer">Annuler</button>
+              <button onClick={handleConfirmAction} disabled={updating} className="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50">{updating ? "Mise à jour..." : "Confirmer et enregistrer"}</button>
+            </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
