@@ -124,6 +124,12 @@ export default function ClientDashboardHub() {
   const filteredAdoption = useMemo(() => filterByPeriod(adoptionRequests), [adoptionRequests, period]);
   const filteredSellerie = useMemo(() => filterByPeriod(sellerieOrders), [sellerieOrders, period]);
 
+  // --- NOUVEAU : Calculs des badges (Pastilles) sans les terminés/annulés ---
+  const eduBadgeCount = filteredEdu.filter(item => ['en_attente', 'confirmé'].includes(item.status)).length;
+  const pensionBadgeCount = filteredPension.filter(item => ['en_attente', 'confirmé'].includes(item.status)).length;
+  const adoptionBadgeCount = filteredAdoption.filter(item => ['en_attente', 'liste_attente', 'accepté'].includes(item.status)).length;
+  const sellerieBadgeCount = filteredSellerie.filter(item => ['en_attente', 'en_atelier'].includes(item.status)).length;
+
   const handleConfirmCancel = async () => {
     if (!cancelModal) return;
     setCancelling(true);
@@ -340,9 +346,12 @@ export default function ClientDashboardHub() {
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
-                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
-                    {filteredEdu.length}
-                  </div>
+                  {/* Utilisation de la nouvelle pastille */}
+                  {eduBadgeCount > 0 && (
+                    <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
+                      {eduBadgeCount}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -428,9 +437,12 @@ export default function ClientDashboardHub() {
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
-                  <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700 shrink-0 shadow-sm">
-                    {filteredPension.length}
-                  </div>
+                  {/* Utilisation de la nouvelle pastille */}
+                  {pensionBadgeCount > 0 && (
+                    <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700 shrink-0 shadow-sm">
+                      {pensionBadgeCount}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -480,7 +492,9 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... WIDGETS ADOPTION ET SELLERIE ... */}
+          {/* ========================================================================= */}
+          {/* WIDGET ADOPTION */}
+          {/* ========================================================================= */}
           {filteredAdoption.length > 0 && (
             <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -488,9 +502,12 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Candidature Chiot</h3>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
-                  {filteredAdoption.length}
-                </div>
+                {/* Utilisation de la nouvelle pastille */}
+                {adoptionBadgeCount > 0 && (
+                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
+                    {adoptionBadgeCount}
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 space-y-3">
@@ -533,6 +550,9 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* WIDGET SELLERIE */}
+          {/* ========================================================================= */}
           {filteredSellerie.length > 0 && (
             <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -540,9 +560,12 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Commandes Atelier</h3>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center font-black text-xs text-amber-700">
-                  {filteredSellerie.length}
-                </div>
+                {/* Utilisation de la nouvelle pastille */}
+                {sellerieBadgeCount > 0 && (
+                  <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center font-black text-xs text-amber-700">
+                    {sellerieBadgeCount}
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 space-y-3">
