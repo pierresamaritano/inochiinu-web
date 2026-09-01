@@ -189,23 +189,23 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // NOUVEAU VERROU METIER : Validation si le chien sélectionné est autorisé au suivi
-  const canBookSuivi = useMemo(() => {
+  // NOUVEAU VERROU MÉTIER
+  const isBilanValid = useMemo(() => {
     if (!quickForm.dog_id) return false;
     const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
     
-    // 1 an d'expiration
+    // Le chien a-t-il eu un bilan validé (terminé) ?
+    const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
+    
+    // Ce bilan date-t-il de moins d'1 an ? (On regarde la dernière séance)
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
-    const isFileActive = dogReqs.some(r => {
+    const hasRecentSession = dogReqs.some(r => {
       if (!r.scheduled_date) return true;
       return new Date(r.scheduled_date) >= oneYearAgo;
     });
 
-    const hasCompletedBilanEver = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
-    
-    return hasCompletedBilanEver && isFileActive;
+    return hasCompletedBilan && hasRecentSession;
   }, [quickForm.dog_id, eduRequests]);
 
   if (loading) {
@@ -329,7 +329,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... (RESTE DES WIDGETS IDENTIQUES) ... */}
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
@@ -580,12 +579,12 @@ export default function ClientDashboardHub() {
                   )}
 
                   {/* VÉRIFICATION DU BILAN TERMINÉ POUR CE CHIEN */}
-                  {quickForm.dog_id && !canBookSuivi ? (
-                    <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4">
+                  {quickForm.dog_id && !isBilanValid ? (
+                    <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
                       <div className="text-3xl mb-3">⚠️</div>
-                      <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial requis</h4>
+                      <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial expiré ou manquant</h4>
                       <p className="text-xs text-red-700 leading-relaxed mb-5">
-                        Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'a pas encore été réalisé, validé comme terminé, ou date de plus d'un an.
+                        Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'est pas terminé, n'a jamais été réalisé, ou la dernière séance remonte à plus d'un an.
                       </p>
                       <a href="/education" className="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full transition-colors shadow-sm cursor-pointer">
                         Aller réserver un bilan

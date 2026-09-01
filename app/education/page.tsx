@@ -241,29 +241,30 @@ export default function EducationPage() {
   };
 
   // =========================================================================
-  // LOGIQUE MÉTIER AVANCÉE : Bilan & Suivi (1 an d'expiration)
+  // NOUVEAU VERROU MÉTIER (Bilan Terminé + 1 an d'expiration)
   // =========================================================================
   
-  // 1. Filtrer les requêtes non-annulées du chien sélectionné
+  // Requêtes du chien sélectionné
   const dogReqs = userEduRequests.filter(r => r.dog_id === formData.dog_id && r.status !== 'annulé');
   
-  // 2. A-t-il un jour fait un bilan validé ?
-  const hasCompletedBilanEver = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
+  // 1. A-t-il un Bilan "terminé" ?
+  const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
   
-  // 3. A-t-il un bilan en cours de traitement (empêche d'en demander un 2e)
-  const hasPendingOrConfirmedBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
+  // 2. A-t-il un Bilan "en attente" ou "confirmé" ? (Pour bloquer les bilans à l'infini)
+  const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
   
-  // 4. Le dossier est-il actif ? (La dernière séance remonte-t-elle à moins d'1 an ?)
+  // 3. Est-ce que sa dernière séance remonte à moins d'un an ?
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const isFileActive = dogReqs.some(r => {
-    if (!r.scheduled_date) return true; // Sécurité si date non définie
-    return new Date(r.scheduled_date) >= oneYearAgo;
-  });
+  const hasRecentSession = dogReqs.some(r => r.scheduled_date && new Date(r.scheduled_date) >= oneYearAgo);
 
-  // Déductions finales :
-  const canBookSuivi = formData.dog_id ? (hasCompletedBilanEver && isFileActive) : false;
-  const canBookBilan = formData.dog_id ? (!canBookSuivi && !hasPendingOrConfirmedBilan) : false;
+  // Un bilan est VALIDE s'il est terminé ET récent (- d'1 an)
+  const isBilanValid = hasCompletedBilan && hasRecentSession;
+
+  // On bloque l'accès au Suivi si le bilan n'est pas valide
+  const canBookSuivi = !!formData.dog_id && isBilanValid;
+  // On bloque l'accès au Bilan s'il en a déjà un valide, ou s'il en a un en attente
+  const canBookBilan = !!formData.dog_id && !isBilanValid && !hasPendingBilan;
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -540,7 +541,7 @@ export default function EducationPage() {
                             </div>
                           </div>
                           <span className={`text-[10px] mt-1 block ${!canBookBilan ? "font-bold text-red-500" : "text-stone-500"}`}>
-                            {!canBookBilan ? (hasPendingOrConfirmedBilan ? "Demande en cours" : "Bilan déjà valide") : "1er rdv obligatoire"}
+                            {!canBookBilan ? (hasPendingBilan ? "Demande en cours" : "Bilan déjà valide") : "1er rdv obligatoire"}
                           </span>
                         </button>
 
@@ -557,7 +558,7 @@ export default function EducationPage() {
                             </div>
                           </div>
                           <span className={`text-[10px] mt-1 block font-bold ${!canBookSuivi ? "text-red-500" : "text-stone-500 font-normal"}`}>
-                            {!canBookSuivi ? "Bilan initial terminé requis" : "Client existant"}
+                            {!canBookSuivi ? "Bilan terminé et valide (- de 1 an) requis" : "Client existant"}
                           </span>
                         </button>
                       </div>
@@ -623,7 +624,7 @@ export default function EducationPage() {
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
                         selectedTime={formData.preferredSlot}
-                        selectedDogId={formData.dog_id} // Le calendrier utilise le chien sélectionné !
+                        selectedDogId={formData.dog_id} 
                         onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, preferredSlot: time })}
                       />
                     </div>
@@ -675,7 +676,7 @@ export default function EducationPage() {
                     </div>
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
-                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
+                      <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
                       <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
                         {submitting ? "Envoi en cours..." : "Valider la demande"}
                       </button>
