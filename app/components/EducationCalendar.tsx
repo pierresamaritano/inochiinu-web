@@ -7,12 +7,12 @@ interface EducationCalendarProps {
   location: "terrain" | "domicile";
   selectedDate: string;
   selectedTime: string;
-  selectedDogId: string; 
+  selectedDogId: string; // INDISPENSABLE : Le chien en cours de réservation
   onChange: (date: string, time: string) => void;
 }
 
 export default function EducationCalendar({ location, selectedDate, selectedTime, selectedDogId, onChange }: EducationCalendarProps) {
-  // Pour s'assurer que le calendrier affiche bien le mois de la date sélectionnée (s'il y en a une)
+  // Le calendrier s'ouvre sur le mois de la date pré-cliquée
   const initialDate = selectedDate ? new Date(selectedDate) : new Date();
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [reservations, setReservations] = useState<any[]>([]);
@@ -56,7 +56,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     const myRes = reservations.find(r => 
       r.scheduled_date === dateStr && 
       r.user_id === currentUser && 
-      r.dog_id === selectedDogId
+      r.dog_id === selectedDogId // <-- Ne bloque que si CE chien a déjà une séance
     );
     return myRes ? myRes.status : null;
   };
@@ -130,12 +130,12 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     if (!hasMyPending && !hasMyConfirmed && !hasMyTerminated) return null;
 
     return (
-      <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
-        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances de ce chien</p>
+      <div className="mt-4 p-4 rounded-2xl bg-white border border-stone-200 text-xs text-stone-600 space-y-2 shadow-sm">
+        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances du chien sélectionné</p>
         {hasMyPending && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
-            <p><strong>En attente :</strong> Séance en cours de validation.</p>
+            <p><strong>En attente :</strong> Demande en cours de traitement.</p>
           </div>
         )}
         {hasMyConfirmed && (

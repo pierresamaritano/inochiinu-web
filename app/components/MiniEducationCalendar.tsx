@@ -4,11 +4,15 @@ import { useState } from "react";
 
 interface MiniEducationCalendarProps {
   eduRequests: any[];
-  onDayClick: (dateStr: string) => void;
+  userDogs?: any[]; // NOUVEAU : Récupère les chiens du client
+  onDayClick: (dateStr: string, dogId?: string) => void;
 }
 
-export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniEducationCalendarProps) {
+export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDayClick }: MiniEducationCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
+  
+  // NOUVEAU : État pour le filtre du chien
+  const [selectedDogId, setSelectedDogId] = useState<string>("all");
 
   const year = miniCalDate.getFullYear();
   const month = miniCalDate.getMonth();
@@ -17,13 +21,39 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
   const getDayStatus = (dateStr: string) => {
-    // Le statut "terminé" est bien pris en compte
-    const req = eduRequests.find(r => r.scheduled_date === dateStr && r.status !== 'annulé');
+    const req = eduRequests.find(r => 
+      r.scheduled_date === dateStr && 
+      r.status !== 'annulé' &&
+      // NOUVEAU : On filtre la couleur selon le chien sélectionné !
+      (selectedDogId === "all" || r.dog_id === selectedDogId)
+    );
     return req ? req.status : null; 
   };
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
+      
+      {/* NOUVEAU : Filtre par chien si le client en a plusieurs */}
+      {userDogs.length > 1 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+          <button 
+            onClick={() => setSelectedDogId("all")} 
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${selectedDogId === "all" ? "bg-stone-800 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:border-stone-400"}`}
+          >
+            Tous
+          </button>
+          {userDogs.map(d => (
+            <button 
+              key={d.id} 
+              onClick={() => setSelectedDogId(d.id)} 
+              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${selectedDogId === d.id ? "bg-orange-600 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:border-orange-300"}`}
+            >
+              {d.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">←</button>
         <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
@@ -63,7 +93,7 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
               key={day}
               type="button"
               disabled={isPast || !!status}
-              onClick={() => onDayClick(dateStr)}
+              onClick={() => onDayClick(dateStr, selectedDogId === "all" ? undefined : selectedDogId)}
               className={`h-8 w-full rounded-lg flex items-center justify-center text-xs transition-all ${bgClass}`}
               title={!isPast && !status ? "Cliquez pour réserver à cette date" : ""}
             >

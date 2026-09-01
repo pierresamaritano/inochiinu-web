@@ -26,14 +26,17 @@ export default function ClientDashboardHub() {
   const [period, setPeriod] = useState<PeriodOption>("1m");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [clientPhone, setClientPhone] = useState("");
+  
+  // NOUVEAU : Stockage des chiens pour les passer au MiniCalendrier
+  const [userDogs, setUserDogs] = useState<any[]>([]);
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // --- NOUVEAU : État pour afficher/masquer le Mini-Calendrier ---
+  // --- ÉTATS POUR LE MINI-CALENDRIER ---
   const [showEduCalendar, setShowEduCalendar] = useState(false);
 
-  // --- ÉTATS POUR LA RÉSERVATION RAPIDE (Un seul écran) ---
+  // --- ÉTATS POUR LA RÉSERVATION RAPIDE ---
   const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
   const [quickSubmitting, setQuickSubmitting] = useState(false);
   const [quickSubmitted, setQuickSubmitted] = useState(false);
@@ -62,17 +65,20 @@ export default function ClientDashboardHub() {
     const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
     if (profile && profile.phone) setClientPhone(profile.phone);
 
-    const [edu, pen, adp, sel] = await Promise.all([
+    // NOUVEAU : Récupération simultanée des chiens
+    const [edu, pen, adp, sel, dogsData] = await Promise.all([
       supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("pension_bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("adoption_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("dogs").select("id, name, breed, birth_date").eq("user_id", user.id),
     ]);
 
     setEduRequests(edu.data || []);
     setPensionRequests(pen.data || []);
     setAdoptionRequests(adp.data || []);
     setSellerieOrders(sel.data || []);
+    setUserDogs(dogsData.data || []);
     setLoading(false);
   };
 
@@ -127,9 +133,14 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // Déclenché au clic sur un jour du Mini-Calendrier
-  const handleMiniCalClick = (dateStr: string) => {
-    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
+  // Clic depuis le Mini-Calendrier
+  const handleMiniCalClick = (dateStr: string, dogId?: string) => {
+    setQuickForm(prev => ({ 
+      ...prev, 
+      scheduledDate: dateStr, 
+      timeSlot: "",
+      dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
+    }));
     setQuickSubmitted(false);
     setIsQuickBookOpen(true);
   };
@@ -160,10 +171,10 @@ export default function ClientDashboardHub() {
           dog_breed: quickForm.dogBreed,
           dog_age: quickForm.dogAge,
           objectives: quickForm.objectives,
-          issues: [], // Pas de problèmes spécifiques demandés en suivi
+          issues: [], // Pas de problèmes spécifiques pour un suivi
           scheduled_date: quickForm.scheduledDate,
           preferred_slot: quickForm.timeSlot,
-          session_type: "suivi", // Toujours un suivi depuis l'espace client
+          session_type: "suivi", 
           location_preference: quickForm.location,
           price_estimate: quickForm.location === "domicile" ? 65 : 45, 
           status: "en_attente",
@@ -171,7 +182,7 @@ export default function ClientDashboardHub() {
       ]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Met à jour le mini-calendrier en arrière-plan
+      fetchUserServices(); // Rafraîchit les données du dashboard
     } catch (err) {
       console.error(err);
     } finally {
@@ -226,7 +237,7 @@ export default function ClientDashboardHub() {
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
                 
-                {/* BOUTON CALENDRIER QUI AFFICHE/MASQUE LE MINI-CALENDRIER */}
+                {/* BOUTON D'AFFICHAGE DU MINI-CALENDRIER */}
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setShowEduCalendar(!showEduCalendar)}
@@ -241,10 +252,10 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
-              {/* AFFICHAGE CONDITIONNEL DU MINI CALENDRIER */}
+              {/* AFFICHAGE DU MINI CALENDRIER */}
               {showEduCalendar && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
+                  <MiniEducationCalendar eduRequests={eduRequests} userDogs={userDogs} onDayClick={handleMiniCalClick} />
                 </div>
               )}
 
@@ -300,7 +311,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... (RESTE DES WIDGETS : PENSION, ELEVAGE, SELLERIE IDENTIQUES À LA VERSION PRÉCÉDENTE) ... */}
+          {/* ... (WIDGETS PENSION, ELEVAGE, SELLERIE IDENTIQUES) ... */}
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
@@ -525,7 +536,7 @@ export default function ClientDashboardHub() {
 
                 <div className="space-y-5 animate-in fade-in">
                   
-                  {/* SÉLECTION DU CHIEN ET DU LIEU AU MÊME NIVEAU */}
+                  {/* SÉLECTION DU CHIEN AU MÊME NIVEAU */}
                   {currentUser && (
                     <ClientDogSelector
                       isAdmin={false}
@@ -564,7 +575,7 @@ export default function ClientDashboardHub() {
                     </button>
                   </div>
 
-                  {/* LE GRAND CALENDRIER INTELLIGENT (S'il est vide au chargement, il s'ouvre sur le mois en cours) */}
+                  {/* LE GRAND CALENDRIER (S'adapte au chien sélectionné) */}
                   <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
                     <EducationCalendar 
                       location={quickForm.location}
@@ -576,14 +587,14 @@ export default function ClientDashboardHub() {
                   </div>
 
                   <div className="w-full min-w-0">
-                    <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Objectif de la séance *</label>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Objectif de la séance *</label>
                     <textarea 
                       required 
                       rows={2} 
                       placeholder="Point spécifique à travailler aujourd'hui..."
                       value={quickForm.objectives} 
                       onChange={(e) => setQuickForm({ ...quickForm, objectives: e.target.value })} 
-                      className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
                     />
                   </div>
 
