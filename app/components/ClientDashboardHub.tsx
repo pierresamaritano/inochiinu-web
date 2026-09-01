@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import DogProfileManager from "./DogProfileManager";
 import ClientDogSelector from "./ClientDogSelector";
 import EducationCalendar from "./EducationCalendar";
+import MiniEducationCalendar from "./MiniEducationCalendar";
 
 interface CancelTarget {
   table: string;
@@ -124,6 +125,13 @@ export default function ClientDashboardHub() {
     }
   };
 
+  const handleMiniCalClick = (dateStr: string) => {
+    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
+    setQuickSubmitted(false);
+    setQuickBookStep(1); // Étape 1 : Le Chien (Pour lier le calendrier !)
+    setIsQuickBookOpen(true);
+  };
+
   const calculateDogAge = (birthDateString?: string | null) => {
     if (!birthDateString) return "";
     const dateObj = new Date(birthDateString);
@@ -216,65 +224,55 @@ export default function ClientDashboardHub() {
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
                 
-                {/* BOUTONS D'ACTION HAUT DE WIDGET */}
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      setQuickForm(prev => ({ ...prev, scheduledDate: "", timeSlot: "" }));
-                      setQuickSubmitted(false);
-                      setQuickBookStep(1);
-                      setIsQuickBookOpen(true);
-                    }}
-                    title="Réserver une nouvelle séance"
-                    className="flex items-center justify-center h-10 w-10 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-200 text-lg transition-colors shadow-sm cursor-pointer"
-                  >
-                    📅
-                  </button>
-                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
-                    {filteredEdu.length}
-                  </div>
+                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
+                  {filteredEdu.length}
                 </div>
               </div>
 
+              <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
+
               <div className="mt-6 space-y-3">
-                {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {item.status}
+                {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => {
+                  const isTerminated = item.status === "terminé" || item.status === "annulé";
+                  return (
+                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">
+                            <strong className="text-stone-700">{item.session_type === 'bilan' ? 'Bilan' : 'Séance'}</strong> • {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Date à définir'} à {item.preferred_slot}
+                          </span>
+                          <span className="text-[10px] text-stone-400 block mt-0.5">
+                            📍 {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">
-                          <strong className="text-stone-700">{item.session_type === 'bilan' ? 'Bilan' : 'Séance'}</strong> • {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Date à définir'} à {item.preferred_slot}
-                        </span>
-                        <span className="text-[10px] text-stone-400 block mt-0.5">
-                          📍 {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
-                        </span>
+
+                        {!isTerminated && (
+                          <button
+                            onClick={() => setCancelModal({ table: "education_requests", id: item.id, title: `la séance de ${item.dog_name}` })}
+                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
+                          >
+                            Annuler
+                          </button>
+                        )}
                       </div>
 
-                      {item.status !== "annulé" && item.status !== "terminé" && (
-                        <button
-                          onClick={() => setCancelModal({ table: "education_requests", id: item.id, title: `la séance de ${item.dog_name}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                        >
-                          Annuler
-                        </button>
+                      {item.admin_notes && (
+                        <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
+                          <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
+                          {item.admin_notes}
+                        </div>
                       )}
                     </div>
-
-                    {item.admin_notes && (
-                      <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
-                        <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
-                        {item.admin_notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {filteredEdu.length > 2 && (
@@ -299,39 +297,42 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {item.status}
-                          </span>
+                {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => {
+                  const isTerminated = item.status === "terminé" || item.status === "annulé";
+                  return (
+                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
                         </div>
-                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
+
+                        {!isTerminated && (
+                          <button
+                            onClick={() => setCancelModal({ table: "pension_bookings", id: item.id, title: `le séjour de ${item.dog_name}` })}
+                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
+                          >
+                            Annuler
+                          </button>
+                        )}
                       </div>
 
-                      {item.status !== "annulé" && item.status !== "terminé" && (
-                        <button
-                          onClick={() => setCancelModal({ table: "pension_bookings", id: item.id, title: `le séjour de ${item.dog_name}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                        >
-                          Annuler
-                        </button>
+                      {item.admin_notes && (
+                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/60 text-xs text-emerald-950 font-medium">
+                          <span className="font-bold text-emerald-700 block text-[10px] uppercase">Message Inochi Inu :</span>
+                          {item.admin_notes}
+                        </div>
                       )}
                     </div>
-
-                    {item.admin_notes && (
-                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/60 text-xs text-emerald-950 font-medium">
-                        <span className="font-bold text-emerald-700 block text-[10px] uppercase">Message Inochi Inu :</span>
-                        {item.admin_notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {filteredPension.length > 2 && (
@@ -356,39 +357,42 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.preferred_breed}</h4>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            item.status === 'accepté' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
-                          }`}>
-                            {item.status}
-                          </span>
+                {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => {
+                  const isTerminated = item.status === "annulé" || item.status === "refusé";
+                  return (
+                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.preferred_breed}</h4>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              item.status === 'accepté' ? 'bg-emerald-100 text-emerald-800' : isTerminated ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.living_environment}</span>
                         </div>
-                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.living_environment}</span>
+
+                        {!isTerminated && (
+                          <button
+                            onClick={() => setCancelModal({ table: "adoption_requests", id: item.id, title: `votre candidature pour un ${item.preferred_breed}` })}
+                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
+                          >
+                            Annuler
+                          </button>
+                        )}
                       </div>
 
-                      {item.status !== "annulé" && (
-                        <button
-                          onClick={() => setCancelModal({ table: "adoption_requests", id: item.id, title: `votre candidature pour un ${item.preferred_breed}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                        >
-                          Annuler
-                        </button>
+                      {item.admin_notes && (
+                        <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
+                          <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
+                          {item.admin_notes}
+                        </div>
                       )}
                     </div>
-
-                    {item.admin_notes && (
-                      <div className="p-3 rounded-xl bg-orange-50 border border-orange-200/60 text-xs text-orange-950 font-medium">
-                        <span className="font-bold text-orange-700 block text-[10px] uppercase">Message Inochi Inu :</span>
-                        {item.admin_notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {filteredAdoption.length > 2 && (
@@ -413,39 +417,42 @@ export default function ClientDashboardHub() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.item_type}</h4>
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
-                            item.status === 'expédié' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {item.status}
-                          </span>
+                {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => {
+                  const isTerminated = item.status === "annulé";
+                  return (
+                    <div key={item.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${isTerminated ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.item_type}</h4>
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              item.status === 'expédié' ? 'bg-emerald-100 text-emerald-800' : isTerminated ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.color_finish} • {item.dog_size}</span>
                         </div>
-                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.color_finish} • {item.dog_size}</span>
+
+                        {item.status === "en_attente" && (
+                          <button
+                            onClick={() => setCancelModal({ table: "sellerie_orders", id: item.id, title: `la commande de ${item.item_type}` })}
+                            className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
+                          >
+                            Annuler
+                          </button>
+                        )}
                       </div>
 
-                      {item.status === "en_attente" && (
-                        <button
-                          onClick={() => setCancelModal({ table: "sellerie_orders", id: item.id, title: `la commande de ${item.item_type}` })}
-                          className="text-xs font-bold text-stone-400 hover:text-red-600 px-3 py-1 rounded-full hover:bg-red-50 transition-all cursor-pointer shrink-0"
-                        >
-                          Annuler
-                        </button>
+                      {item.admin_notes && (
+                        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/60 text-xs text-amber-950 font-medium">
+                          <span className="font-bold text-amber-700 block text-[10px] uppercase">Message Inochi Inu :</span>
+                          {item.admin_notes}
+                        </div>
                       )}
                     </div>
-
-                    {item.admin_notes && (
-                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200/60 text-xs text-amber-950 font-medium">
-                        <span className="font-bold text-amber-700 block text-[10px] uppercase">Message Inochi Inu :</span>
-                        {item.admin_notes}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {filteredSellerie.length > 2 && (
@@ -518,57 +525,13 @@ export default function ClientDashboardHub() {
                   <div>
                     <span className="text-[10px] font-black uppercase text-orange-600">Étape {quickBookStep} sur 2</span>
                     <h3 className="text-lg font-black text-stone-900">
-                      {quickBookStep === 1 ? "Lieu & Horaire" : "Chien & Objectif"}
+                      {quickBookStep === 1 ? "Chien & Objectif" : "Lieu & Horaire"}
                     </h3>
                   </div>
                 </div>
 
+                {/* ÉTAPE 1 : CHIEN & OBJECTIFS */}
                 {quickBookStep === 1 && (
-                  <div className="space-y-6 animate-in fade-in">
-                    <div className="space-y-3">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
-                              {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
-                        </button>
-
-                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
-                              {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                      {/* On utilise le vrai composant de calendrier d'éducation */}
-                      <EducationCalendar 
-                        location={quickForm.location}
-                        selectedDate={quickForm.scheduledDate}
-                        selectedTime={quickForm.timeSlot}
-                        onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
-                      />
-                    </div>
-
-                    <div className="pt-4 flex justify-end border-t border-stone-100">
-                      <button type="button" disabled={!quickForm.timeSlot} onClick={() => setQuickBookStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 disabled:opacity-50">
-                        Suivant ➔
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {quickBookStep === 2 && (
                   <div className="space-y-5 animate-in fade-in">
                     {currentUser && (
                       <ClientDogSelector
@@ -598,9 +561,56 @@ export default function ClientDashboardHub() {
                       />
                     </div>
 
+                    <div className="space-y-3">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
+                        </button>
+
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end border-t border-stone-100">
+                      <button type="button" disabled={!quickForm.dog_id || !quickForm.objectives} onClick={() => setQuickBookStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 disabled:opacity-50">
+                        Suivant ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ÉTAPE 2 : CALENDRIER ET HORAIRE */}
+                {quickBookStep === 2 && (
+                  <div className="space-y-6 animate-in fade-in">
+
+                    <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      <EducationCalendar 
+                        location={quickForm.location}
+                        selectedDate={quickForm.scheduledDate}
+                        selectedTime={quickForm.timeSlot}
+                        selectedDogId={quickForm.dog_id} // Le calendrier utilise le chien sélectionné !
+                        onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
+                      />
+                    </div>
+
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setQuickBookStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.objectives} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
+                      <button type="submit" disabled={quickSubmitting || !quickForm.timeSlot} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
                         {quickSubmitting ? "Envoi..." : "Valider la séance"}
                       </button>
                     </div>

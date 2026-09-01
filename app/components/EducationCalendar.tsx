@@ -7,10 +7,11 @@ interface EducationCalendarProps {
   location: "terrain" | "domicile";
   selectedDate: string;
   selectedTime: string;
+  selectedDogId: string; // NOUVEAU : Identifiant du chien en cours de réservation
   onChange: (date: string, time: string) => void;
 }
 
-export default function EducationCalendar({ location, selectedDate, selectedTime, onChange }: EducationCalendarProps) {
+export default function EducationCalendar({ location, selectedDate, selectedTime, selectedDogId, onChange }: EducationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -41,8 +42,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
       const { data } = await supabase
         .from("education_requests")
-        .select("user_id, scheduled_date, preferred_slot, location_preference, status")
-        // NOUVEAU : On récupère aussi les séances terminées
+        .select("user_id, dog_id, scheduled_date, preferred_slot, location_preference, status")
         .in("status", ["en_attente", "confirmé", "terminé"]);
       
       setReservations(data || []);
@@ -51,12 +51,17 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   }, [month, year, supabase]);
 
   const getMyStatus = (dateStr: string) => {
-    const myRes = reservations.find(r => r.scheduled_date === dateStr && r.user_id === currentUser);
+    // NOUVEAU : On vérifie uniquement les réservations du CHIEN sélectionné !
+    // Si j'ai réservé pour Dog A, je peux tout à fait réserver la même journée pour Dog B.
+    const myRes = reservations.find(r => 
+      r.scheduled_date === dateStr && 
+      r.user_id === currentUser && 
+      r.dog_id === selectedDogId
+    );
     return myRes ? myRes.status : null;
   };
 
   const getAvailableSlotsForDay = (dateStr: string) => {
-    // Les séances "terminées" bloquent aussi le créneau pour les autres
     const dayRes = reservations.filter((r) => r.scheduled_date === dateStr);
     
     let hasMorningDomicile = false;
@@ -105,6 +110,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     
     if (clickedDate < today) return; 
 
+    // Bloque uniquement si CE chien a déjà une séance
     const myPersonalStatus = getMyStatus(clickedDate);
     if (myPersonalStatus) return;
 
@@ -117,15 +123,15 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   const currentDaySlots = selectedDate ? getAvailableSlotsForDay(selectedDate).slots : [];
 
   const getLegendText = () => {
-    const hasMyPending = reservations.some(r => r.user_id === currentUser && r.status === "en_attente");
-    const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.status === "confirmé");
-    const hasMyTerminated = reservations.some(r => r.user_id === currentUser && r.status === "terminé");
+    const hasMyPending = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "en_attente");
+    const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "confirmé");
+    const hasMyTerminated = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "terminé");
 
     if (!hasMyPending && !hasMyConfirmed && !hasMyTerminated) return null;
 
     return (
       <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
-        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Vos séances</p>
+        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances de ce chien</p>
         {hasMyPending && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
@@ -135,10 +141,9 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
         {hasMyConfirmed && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-0.5 shadow-sm ring-1 ring-emerald-200"></span>
-            <p><strong>Validée :</strong> Votre séance est confirmée.</p>
+            <p><strong>Validée :</strong> La séance est confirmée.</p>
           </div>
         )}
-        {/* NOUVEAU : Légende pour les séances terminées */}
         {hasMyTerminated && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-stone-600 shrink-0 mt-0.5 shadow-sm ring-1 ring-stone-300"></span>
@@ -222,7 +227,6 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
       {getLegendText()}
 
-      {/* SÉLECTION DES HORAIRES */}
       {selectedDate && (
         <div className="mt-6 animate-in slide-in-from-top-2">
           <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-wider text-center border-t border-stone-100 pt-4">

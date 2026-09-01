@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 
 interface MiniEducationCalendarProps {
   eduRequests: any[];
@@ -9,6 +10,13 @@ interface MiniEducationCalendarProps {
 
 export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniEducationCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
+  const [dogs, setDogs] = useState<any[]>([]);
+  const [selectedDogId, setSelectedDogId] = useState<string>("all");
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const year = miniCalDate.getFullYear();
   const month = miniCalDate.getMonth();
@@ -16,14 +24,44 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   const startDay = new Date(year, month, 1).getDay() === 0 ? 6 : new Date(year, month, 1).getDay() - 1;
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
+  useEffect(() => {
+    const fetchDogs = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from("dogs").select("id, name").eq("user_id", user.id);
+        setDogs(data || []);
+      }
+    };
+    fetchDogs();
+  }, [supabase]);
+
   const getDayStatus = (dateStr: string) => {
-    // NOUVEAU : On inclut désormais le statut "terminé"
-    const req = eduRequests.find(r => r.scheduled_date === dateStr && r.status !== 'annulé');
+    const req = eduRequests.find(r => 
+      r.scheduled_date === dateStr && 
+      r.status !== 'annulé' &&
+      // NOUVEAU : On filtre par chien si un chien spécifique est sélectionné
+      (selectedDogId === "all" || r.dog_id === selectedDogId)
+    );
     return req ? req.status : null; 
   };
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
+      
+      {/* NOUVEAU : Filtre par chien affiché uniquement s'il y a plus d'1 chien */}
+      {dogs.length > 1 && (
+        <div className="mb-4">
+          <select 
+            value={selectedDogId} 
+            onChange={(e) => setSelectedDogId(e.target.value)} 
+            className="w-full bg-white border border-stone-200 text-stone-600 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl focus:outline-none focus:border-orange-400 cursor-pointer shadow-sm"
+          >
+            <option value="all">Tous mes chiens</option>
+            {dogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">←</button>
         <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
@@ -53,7 +91,6 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
           } else if (status === "en_attente") {
             bgClass = "bg-amber-400 border-amber-400 text-white shadow-md font-bold cursor-not-allowed";
           } else if (status === "terminé") {
-            // NOUVEAU : Visuel pour les séances terminées
             bgClass = "bg-stone-600 border-stone-600 text-white shadow-md font-bold cursor-not-allowed";
           } else if (isPast) {
             bgClass = "bg-transparent border border-transparent text-stone-300 cursor-not-allowed";

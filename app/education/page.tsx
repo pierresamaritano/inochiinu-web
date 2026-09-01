@@ -42,7 +42,7 @@ export default function EducationPage() {
     objectives: string;
     issues: string[];
     scheduledDate: string;
-    timeSlot: string;
+    preferredSlot: string;
     clientPhone: string;
     sessionType: "bilan" | "suivi";
     location: "terrain" | "domicile";
@@ -54,7 +54,7 @@ export default function EducationPage() {
     objectives: "",
     issues: [],
     scheduledDate: "",
-    timeSlot: "",
+    preferredSlot: "",
     clientPhone: "",
     sessionType: "bilan",
     location: "terrain"
@@ -190,7 +190,7 @@ export default function EducationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!formData.dog_id || !formData.scheduledDate || !formData.timeSlot) {
+    if (!formData.dog_id || !formData.scheduledDate || !formData.preferredSlot) {
       alert("Veuillez remplir toutes les informations nécessaires pour la réservation.");
       return;
     }
@@ -210,7 +210,7 @@ export default function EducationPage() {
           objectives: formData.objectives,
           issues: formData.issues,
           scheduled_date: formData.scheduledDate,
-          preferred_slot: formData.timeSlot,
+          preferred_slot: formData.preferredSlot,
           session_type: formData.sessionType,
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
@@ -447,7 +447,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Nature de la demande</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "bilan" ? "text-orange-900" : "text-stone-800"}`}>Bilan Initial</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "bilan" ? "border-orange-500" : "border-stone-300"}`}>
@@ -457,7 +457,7 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">1er rdv obligatoire</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "suivi" ? "text-orange-900" : "text-stone-800"}`}>Suivi / Séance</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "suivi" ? "border-orange-500" : "border-stone-300"}`}>
@@ -472,7 +472,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -482,7 +482,7 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -515,11 +515,14 @@ export default function EducationPage() {
                             dog_id: dog.id,
                             dogName: dog.name,
                             dogBreed: dog.breed,
+                            // L'âge est toujours calculé silencieusement
                             dogAge: calculateDogAge(dog.birth_date || ""),
                           })
                         }
                       />
                     )}
+
+                    {/* CHAMP AGE MASQUÉ COMME DEMANDÉ */}
 
                     <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
@@ -589,8 +592,9 @@ export default function EducationPage() {
                       <EducationCalendar 
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
-                        selectedTime={formData.timeSlot}
-                        onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, timeSlot: time })}
+                        selectedTime={formData.preferredSlot}
+                        selectedDogId={formData.dog_id} // Le calendrier utilise le chien sélectionné !
+                        onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, preferredSlot: time })}
                       />
                     </div>
 
@@ -608,7 +612,7 @@ export default function EducationPage() {
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.timeSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
+                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
                         {submitting ? "Envoi en cours..." : "Valider la demande"}
                       </button>
                     </div>
