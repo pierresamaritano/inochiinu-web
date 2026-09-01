@@ -11,10 +11,10 @@ import ContactSection from "../components/ContactSection";
 
 // CATALOGUE DE LA BOUTIQUE
 const PRODUCTS = [
-  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: 25, type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
-  { id: "lais-multi", name: "Laisse Multipositions (2m)", price: 35, type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
-  { id: "harn-para", name: "Collier Paracorde Tressé", price: 30, type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
-  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: 45, type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
+  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
+  { id: "lais-multi", name: "Laisse Multipositions (2m)", price: "35€", type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
+  { id: "harn-para", name: "Collier Paracorde Tressé", price: "30€", type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
+  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: "45€", type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
 ];
 
 export default function SelleriePage() {
@@ -32,7 +32,7 @@ export default function SelleriePage() {
     dogName: "",
     dogBreed: "",
     color: "",
-    hardware: "Laiton Doré", // Option ajoutée pour l'aperçu
+    hardware: "Laiton Doré",
     neckSize: "",
     clientPhone: "",
   });
@@ -50,7 +50,6 @@ export default function SelleriePage() {
     fetchUser();
   }, [supabase]);
 
-  // Slides Images pour le carrousel de la sellerie
   const sellerieCarouselSlides: CarouselSlide[] = [
     {
       src: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1080&auto=format&fit=crop",
@@ -108,7 +107,7 @@ export default function SelleriePage() {
     try {
       const { error } = await supabase.from("sellerie_orders").insert([{
         user_id: user.id,
-        dog_id: formData.dog_id || null, // Optionnel si on commande une laisse
+        dog_id: formData.dog_id || null, 
         client_name: user.user_metadata?.full_name || "Client",
         client_email: user.email,
         client_phone: formData.clientPhone,
@@ -126,20 +125,17 @@ export default function SelleriePage() {
     }
   };
 
-  // --- Dictionnaire de couleurs pour le configurateur visuel ---
+  // --- Dictionnaire Couleurs HTML vs SVG Hex ---
   const colorMap: Record<string, string> = {
-    "Noir": "bg-stone-900",
-    "Fauve": "bg-amber-600",
-    "Kaki": "bg-emerald-800",
-    "Bordeaux": "bg-rose-900",
-    "Beige": "bg-stone-200",
-    "Vert Forêt": "bg-emerald-900",
-    "Orange Fluo": "bg-orange-500",
-    "Jaune Fluo": "bg-yellow-400",
-    "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
+    "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  const hardwareColor = formData.hardware === "Laiton Doré" ? "bg-amber-400 border-amber-500" : "bg-stone-800 border-stone-900";
+  // Variables Hexadécimales pour le dessin SVG
+  const hardwareHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524"; 
+  const ropeHexMap: Record<string, string> = {
+    "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Personnalisé (Préciser en note)": "#a8a29e"
+  };
+  const ropeHex = ropeHexMap[formData.color] || "#1c1917";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
@@ -175,7 +171,7 @@ export default function SelleriePage() {
                 </div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-black text-stone-900 text-lg leading-tight">{product.name}</h3>
-                  <span className="font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-sm">{product.price}€</span>
+                  <span className="font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-sm">{product.price}</span>
                 </div>
                 <p className="text-xs text-stone-500 mt-2 leading-relaxed">{product.desc}</p>
               </div>
@@ -224,72 +220,79 @@ export default function SelleriePage() {
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL (CONFIGURATEUR) */}
-                <div className="w-full md:w-1/2 bg-stone-50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
+                {/* COLONNE GAUCHE : APERÇU VISUEL (NOUVEAU DESIGN VECTORIEL) */}
+                <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
                   <div className="p-6 shrink-0 z-10">
                     <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
                     <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
                   </div>
 
-                  <div className="flex-1 relative flex items-center justify-center p-8 min-h-[250px]">
+                  <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px]">
                     
-                    {/* --- DESSIN SVG DYNAMIQUE : LAISSE MULTIPOSITIONS --- */}
+                    {/* --- SVG : LAISSE MULTIPOSITIONS --- */}
                     {selectedProduct.type === "Laisse" && (
-                      <div className="w-full h-full max-h-[400px] flex items-center justify-center relative">
-                         {/* Corde Principale */}
-                         <div className={`absolute top-1/2 -translate-y-1/2 w-4/5 h-3 ${colorMap[formData.color] || 'bg-stone-800'} rounded-full shadow-inner transition-colors duration-500`} />
-                         
-                         {/* Mousqueton Gauche (Chien) */}
-                         <div className={`absolute left-[10%] top-1/2 -translate-y-1/2 w-6 h-10 ${hardwareColor} rounded-l-full rounded-r-sm border-2 shadow-md transition-colors duration-500 flex items-center justify-end pr-1`}>
-                            <div className="w-1.5 h-6 bg-black/20 rounded-full" />
-                         </div>
-
-                         {/* Anneau 1 (Attache rapide) */}
-                         <div className={`absolute left-[30%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
-
-                         {/* Anneau 2 (Moitié) */}
-                         <div className={`absolute left-[60%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
-
-                         {/* Anneau 3 (Poignée) */}
-                         <div className={`absolute right-[20%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
-
-                         {/* Mousqueton Droit (Maitre) */}
-                         <div className={`absolute right-[5%] top-1/2 -translate-y-1/2 w-6 h-10 ${hardwareColor} rounded-r-full rounded-l-sm border-2 shadow-md transition-colors duration-500 flex items-center justify-start pl-1`}>
-                            <div className="w-1.5 h-6 bg-black/20 rounded-full" />
-                         </div>
-
-                         {/* Étiquette d'explication */}
-                         <div className="absolute bottom-4 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                           {formData.color} • {formData.hardware}
-                         </div>
+                      <div className="w-full max-w-sm flex items-center justify-center">
+                        <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500">
+                          {/* Corde ondulée */}
+                          <path 
+                            d="M 50,75 Q 125,140 200,75 T 350,75" 
+                            stroke={ropeHex} 
+                            strokeWidth="12" 
+                            fill="none" 
+                            strokeLinecap="round" 
+                            className="transition-colors duration-300"
+                          />
+                          {/* Anneaux de réglage */}
+                          <circle cx="125" cy="107" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          <circle cx="200" cy="75" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          <circle cx="275" cy="42" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          
+                          {/* Mousqueton Gauche */}
+                          <g transform="translate(15, 65)">
+                            <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
+                            <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
+                          </g>
+                          
+                          {/* Mousqueton Droit */}
+                          <g transform="translate(345, 65)">
+                            <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
+                            <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
+                          </g>
+                        </svg>
                       </div>
                     )}
 
-                    {/* --- DESSIN SVG DYNAMIQUE : COLLIER --- */}
+                    {/* --- SVG : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div className="w-full h-full flex flex-col items-center justify-center relative">
-                        <div className={`w-64 h-64 rounded-full border-[24px] ${colorMap[formData.color] || 'bg-stone-800'} shadow-xl relative transition-all duration-500`}>
-                          <div className={`absolute -top-[12px] left-1/2 -translate-x-1/2 w-16 h-[48px] ${hardwareColor} border-2 rounded-lg shadow-md transition-colors duration-500 flex items-center justify-center`}>
-                             <div className="w-2 h-10 bg-black/20 rounded-full" />
-                          </div>
-                          <div className={`absolute top-[20px] left-[15px] w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
-                        </div>
-                        <div className="absolute bottom-4 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-4">
-                           {formData.color} • {formData.hardware}
-                         </div>
+                      <div className="w-full max-w-[240px] flex items-center justify-center">
+                        <svg viewBox="0 0 200 200" className="w-full h-auto drop-shadow-2xl">
+                          {/* Anneau D */}
+                          <path d="M 100,15 C 130,15 130,55 100,55" stroke={hardwareHex} strokeWidth="8" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
+                          {/* Collier Biothane (Ellipse) */}
+                          <ellipse cx="100" cy="110" rx="75" ry="55" stroke={ropeHex} strokeWidth="26" fill="none" className="transition-colors duration-300" />
+                          {/* Texture Couture (Pointillés décoratifs) */}
+                          <ellipse cx="100" cy="110" rx="64" ry="44" stroke="#fff" strokeWidth="1.5" strokeDasharray="5 5" fill="none" opacity="0.3" />
+                          <ellipse cx="100" cy="110" rx="86" ry="66" stroke="#fff" strokeWidth="1.5" strokeDasharray="5 5" fill="none" opacity="0.3" />
+                          {/* Boucle */}
+                          <rect x="80" y="45" width="40" height="25" rx="3" fill={hardwareHex} className="transition-colors duration-300" />
+                          <rect x="85" y="45" width="10" height="25" rx="2" fill={ropeHex} className="transition-colors duration-300" />
+                          <rect x="88" y="45" width="4" height="18" rx="1" fill={hardwareHex} className="transition-colors duration-300" />
+                        </svg>
                       </div>
                     )}
 
-                    {/* --- AUTRES PRODUITS (Fallback) --- */}
+                    {/* --- AUTRES PRODUITS (Longe, etc.) --- */}
                     {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && (
-                      <div className="text-center">
-                        <div className={`w-32 h-32 mx-auto rounded-3xl ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-500 flex items-center justify-center text-4xl`}>
+                      <div className="text-center w-full max-w-sm">
+                        <div className={`w-32 h-32 mx-auto rounded-[2rem] ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-300 flex items-center justify-center text-4xl`}>
                           📦
                         </div>
-                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-4">{formData.color}</p>
                       </div>
                     )}
 
+                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200">
+                      {formData.color} • {formData.hardware}
+                    </div>
                   </div>
                 </div>
 
@@ -298,7 +301,7 @@ export default function SelleriePage() {
                   <div className="p-6 sm:p-8 flex-1">
                     <form id="order-form" onSubmit={handleOrder} className="space-y-8">
                       
-                      {/* Choix des couleurs (Pastilles cliquables) */}
+                      {/* Choix des couleurs */}
                       <div>
                         <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
                         <div className="flex flex-wrap gap-3">
@@ -342,7 +345,6 @@ export default function SelleriePage() {
                       <div className="border-t border-stone-200 pt-6 space-y-5">
                         <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">3. Mensurations & Contact</label>
                         
-                        {/* Optionnel si ce n'est pas un collier */}
                         {selectedProduct.type === "Collier" ? (
                            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
                             <ClientDogSelector
@@ -378,7 +380,7 @@ export default function SelleriePage() {
                   <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
-                      <span className="text-2xl font-black text-white">{selectedProduct.price}€</span>
+                      <span className="text-2xl font-black text-white">{selectedProduct.price}</span>
                     </div>
                     <button 
                       form="order-form"
