@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDashboardHub from "../components/ClientDashboardHub";
-import AdminManagerView from "../admin/AdminManagerView";
+import AdminManagerView from "../components/AdminManagerView";
 
 const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
 
