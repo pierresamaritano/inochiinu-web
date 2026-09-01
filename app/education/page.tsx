@@ -242,7 +242,7 @@ export default function EducationPage() {
     }
   };
 
-  // FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan TERMINÉ ?
+  // NOUVELLE FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan TERMINÉ ?
   const selectedDogHasBilan = userEduRequests.some(r => r.dog_id === formData.dog_id && r.session_type === 'bilan' && r.status === 'terminé');
 
   return (
@@ -499,7 +499,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Nature de la demande</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "bilan" ? "text-orange-900" : "text-stone-800"}`}>Bilan Initial</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "bilan" ? "border-orange-500" : "border-stone-300"}`}>

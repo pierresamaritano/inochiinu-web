@@ -533,7 +533,7 @@ export default function ClientDashboardHub() {
                 </div>
 
                 <div className="space-y-5 animate-in fade-in">
-                  
+
                   {/* SÉLECTION DU CHIEN AU MÊME NIVEAU */}
                   {currentUser && (
                     <div className="w-full min-w-0">
