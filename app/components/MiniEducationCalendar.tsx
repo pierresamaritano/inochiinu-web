@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { useState } from "react";
 
 interface MiniEducationCalendarProps {
   eduRequests: any[];
@@ -10,26 +9,6 @@ interface MiniEducationCalendarProps {
 
 export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniEducationCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
-  
-  // NOUVEAU : Gestion des chiens pour le filtrage
-  const [dogs, setDogs] = useState<any[]>([]);
-  const [selectedDogId, setSelectedDogId] = useState<string>("all");
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  useEffect(() => {
-    const fetchDogs = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase.from("dogs").select("id, name").eq("user_id", user.id);
-        setDogs(data || []);
-      }
-    };
-    fetchDogs();
-  }, [supabase]);
 
   const year = miniCalDate.getFullYear();
   const month = miniCalDate.getMonth();
@@ -38,32 +17,13 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
   const getDayStatus = (dateStr: string) => {
-    const req = eduRequests.find(r => 
-      r.scheduled_date === dateStr && 
-      r.status !== 'annulé' &&
-      // Filtre intelligent : on n'affiche le statut que si on regarde "tous les chiens" ou le chien spécifique
-      (selectedDogId === "all" || r.dog_id === selectedDogId)
-    );
+    // Le statut "terminé" est bien pris en compte
+    const req = eduRequests.find(r => r.scheduled_date === dateStr && r.status !== 'annulé');
     return req ? req.status : null; 
   };
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
-      
-      {/* SÉLECTEUR DE CHIEN (Uniquement si > 1 chien) */}
-      {dogs.length > 1 && (
-        <div className="mb-4">
-          <select 
-            value={selectedDogId} 
-            onChange={(e) => setSelectedDogId(e.target.value)} 
-            className="w-full bg-white border border-stone-200 text-stone-600 text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-xl focus:outline-none focus:border-orange-400 cursor-pointer shadow-sm"
-          >
-            <option value="all">Tous mes chiens</option>
-            {dogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-      )}
-
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">←</button>
         <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
