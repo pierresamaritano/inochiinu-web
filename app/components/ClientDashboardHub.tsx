@@ -5,7 +5,6 @@ import { createBrowserClient } from "@supabase/ssr";
 import DogProfileManager from "./DogProfileManager";
 import ClientDogSelector from "./ClientDogSelector";
 import EducationCalendar from "./EducationCalendar";
-import MiniEducationCalendar from "./MiniEducationCalendar"; // IMPORT DU MINI CALENDRIER
 
 interface CancelTarget {
   table: string;
@@ -30,7 +29,7 @@ export default function ClientDashboardHub() {
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // --- ÉTATS POUR LA RÉSERVATION RAPIDE DEPUIS L'ESPACE MEMBRE ---
+  // --- ÉTATS POUR LA RÉSERVATION RAPIDE ---
   const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
   const [quickBookStep, setQuickBookStep] = useState(1);
   const [quickSubmitting, setQuickSubmitting] = useState(false);
@@ -125,16 +124,6 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // =========================================================================
-  // LOGIQUE DU CLIC SUR LE MINI CALENDRIER
-  // =========================================================================
-  const handleMiniCalClick = (dateStr: string) => {
-    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
-    setQuickSubmitted(false);
-    setQuickBookStep(1); // Étape 1 : Choix du lieu + Heure
-    setIsQuickBookOpen(true);
-  };
-
   const calculateDogAge = (birthDateString?: string | null) => {
     if (!birthDateString) return "";
     const dateObj = new Date(birthDateString);
@@ -161,18 +150,18 @@ export default function ClientDashboardHub() {
           dog_breed: quickForm.dogBreed,
           dog_age: quickForm.dogAge,
           objectives: quickForm.objectives,
-          issues: [], // Pas besoin des checkboxes pour un suivi
+          issues: [], 
           scheduled_date: quickForm.scheduledDate,
           preferred_slot: quickForm.timeSlot,
-          session_type: "suivi", // Forcé à "suivi" car on est déjà client
+          session_type: "suivi", 
           location_preference: quickForm.location,
-          price_estimate: quickForm.location === "domicile" ? 65 : 45,
+          price_estimate: quickForm.location === "domicile" ? 65 : 45, 
           status: "en_attente",
         },
       ]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Met à jour le mini-calendrier
+      fetchUserServices(); 
     } catch (err) {
       console.error(err);
     } finally {
@@ -217,7 +206,7 @@ export default function ClientDashboardHub() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
           
           {/* ========================================================================= */}
-          {/* WIDGET ÉDUCATION (AVEC MINI-CALENDRIER INTÉGRÉ) */}
+          {/* WIDGET ÉDUCATION */}
           {/* ========================================================================= */}
           {filteredEdu.length > 0 && (
             <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
@@ -226,14 +215,26 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                {/* Le bouton "Réserver" a été retiré, seul le compteur reste */}
-                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
-                  {filteredEdu.length}
+                
+                {/* BOUTONS D'ACTION HAUT DE WIDGET */}
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      setQuickForm(prev => ({ ...prev, scheduledDate: "", timeSlot: "" }));
+                      setQuickSubmitted(false);
+                      setQuickBookStep(1);
+                      setIsQuickBookOpen(true);
+                    }}
+                    title="Réserver une nouvelle séance"
+                    className="flex items-center justify-center h-10 w-10 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-200 text-lg transition-colors shadow-sm cursor-pointer"
+                  >
+                    📅
+                  </button>
+                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
+                    {filteredEdu.length}
+                  </div>
                 </div>
               </div>
-
-              {/* MINI-CALENDRIER INTERACTIF */}
-              <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
 
               <div className="mt-6 space-y-3">
                 {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
@@ -550,6 +551,7 @@ export default function ClientDashboardHub() {
                     </div>
 
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      {/* On utilise le vrai composant de calendrier d'éducation */}
                       <EducationCalendar 
                         location={quickForm.location}
                         selectedDate={quickForm.scheduledDate}
