@@ -189,15 +189,15 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // NOUVEAU VERROU MÉTIER
-  const isBilanValid = useMemo(() => {
-    if (!quickForm.dog_id) return false;
+  // NOUVEAU VERROU MÉTIER : Gestion des différents états du bilan
+  const dogBilanStatus = useMemo(() => {
+    if (!quickForm.dog_id) return { isValid: false, isPending: false, needsNew: false };
     const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
     
-    // Le chien a-t-il eu un bilan validé (terminé) ?
     const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
+    const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
     
-    // Ce bilan date-t-il de moins d'1 an ? (On regarde la dernière séance)
+    // Ce bilan date-t-il de moins d'1 an ?
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const hasRecentSession = dogReqs.some(r => {
@@ -205,7 +205,15 @@ export default function ClientDashboardHub() {
       return new Date(r.scheduled_date) >= oneYearAgo;
     });
 
-    return hasCompletedBilan && hasRecentSession;
+    if (hasCompletedBilan && hasRecentSession) {
+      return { isValid: true, isPending: false, needsNew: false };
+    }
+    // S'il n'a pas de bilan valide, mais qu'il a déjà fait une demande de bilan en cours de traitement
+    if (hasPendingBilan) {
+      return { isValid: false, isPending: true, needsNew: false };
+    }
+    // Sinon, il lui faut un nouveau bilan
+    return { isValid: false, isPending: false, needsNew: true };
   }, [quickForm.dog_id, eduRequests]);
 
   if (loading) {
@@ -552,7 +560,7 @@ export default function ClientDashboardHub() {
                 </div>
 
                 <div className="space-y-5 animate-in fade-in">
-
+                  
                   {/* SÉLECTION DU CHIEN AU MÊME NIVEAU */}
                   {currentUser && (
                     <div className="w-full min-w-0">
@@ -578,18 +586,28 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
-                  {/* VÉRIFICATION DU BILAN TERMINÉ POUR CE CHIEN */}
-                  {quickForm.dog_id && !isBilanValid ? (
-                    <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
-                      <div className="text-3xl mb-3">⚠️</div>
-                      <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial expiré ou manquant</h4>
-                      <p className="text-xs text-red-700 leading-relaxed mb-5">
-                        Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'est pas terminé, n'a jamais été réalisé, ou la dernière séance remonte à plus d'un an.
-                      </p>
-                      <a href="/education" className="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full transition-colors shadow-sm cursor-pointer">
-                        Aller réserver un bilan
-                      </a>
-                    </div>
+                  {/* VÉRIFICATION DU BILAN : 2 ÉTATS (En Attente VS Inexistant/Expiré) */}
+                  {quickForm.dog_id && !dogBilanStatus.isValid ? (
+                    dogBilanStatus.isPending ? (
+                      <div className="p-6 rounded-2xl bg-orange-50 border border-orange-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
+                        <div className="text-3xl mb-3">⏳</div>
+                        <h4 className="text-sm font-black text-orange-900 mb-2">Bilan en cours</h4>
+                        <p className="text-xs text-orange-700 leading-relaxed">
+                          Vous pourrez planifier vos futures séances de suivi avec <strong>{quickForm.dogName}</strong> dès que nous aurons réalisé et validé ensemble le bilan comportemental initial.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
+                        <div className="text-3xl mb-3">⚠️</div>
+                        <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial requis</h4>
+                        <p className="text-xs text-red-700 leading-relaxed mb-5">
+                          Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'a jamais été réalisé ou la dernière séance remonte à plus d'un an.
+                        </p>
+                        <a href="/education" className="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full transition-colors shadow-sm cursor-pointer">
+                          Aller réserver un bilan
+                        </a>
+                      </div>
+                    )
                   ) : (
                     <div className={`space-y-5 transition-all duration-300 ${!quickForm.dog_id ? "opacity-30 pointer-events-none grayscale" : "mt-2"}`}>
                       <div className="grid grid-cols-2 gap-3">
