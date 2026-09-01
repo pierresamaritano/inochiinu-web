@@ -189,6 +189,12 @@ export default function ClientDashboardHub() {
     }
   };
 
+  // NOUVEAU VERROU : Vérifie si le chien sélectionné possède un bilan au statut "terminé"
+  const selectedDogHasCompletedBilan = useMemo(() => {
+    if (!quickForm.dog_id) return false;
+    return eduRequests.some(r => r.dog_id === quickForm.dog_id && r.session_type === 'bilan' && r.status === 'terminé');
+  }, [quickForm.dog_id, eduRequests]);
+
   if (loading) {
     return <div className="mt-12 text-center text-xs font-bold text-stone-400">Chargement de votre tableau de bord...</div>;
   }
@@ -559,56 +565,72 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
-                          {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                        </div>
+                  {/* VÉRIFICATION DU BILAN TERMINÉ POUR CE CHIEN */}
+                  {quickForm.dog_id && !selectedDogHasCompletedBilan ? (
+                    <div className="p-6 rounded-2xl bg-red-50 border border-red-100 text-center animate-in zoom-in-95 duration-200 mt-4">
+                      <div className="text-3xl mb-3">⚠️</div>
+                      <h4 className="text-sm font-black text-red-900 mb-2">Bilan initial requis</h4>
+                      <p className="text-xs text-red-700 leading-relaxed mb-5">
+                        Vous ne pouvez pas réserver de séance de suivi car le <strong>Bilan Initial</strong> de {quickForm.dogName} n'a pas encore été réalisé ou validé comme terminé.
+                      </p>
+                      <a href="/education" className="inline-flex items-center justify-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-full transition-colors shadow-sm cursor-pointer">
+                        Aller réserver un bilan
+                      </a>
+                    </div>
+                  ) : (
+                    <div className={`space-y-5 transition-all duration-300 ${!quickForm.dog_id ? "opacity-30 pointer-events-none grayscale" : "mt-2"}`}>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
+                        </button>
+
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
+                        </button>
                       </div>
-                      <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
-                    </button>
 
-                    <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
-                          {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
-                        </div>
+                      {/* LE GRAND CALENDRIER (S'adapte au chien sélectionné !) */}
+                      <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                        <EducationCalendar 
+                          location={quickForm.location}
+                          selectedDate={quickForm.scheduledDate}
+                          selectedTime={quickForm.timeSlot}
+                          selectedDogId={quickForm.dog_id} 
+                          onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
+                        />
                       </div>
-                      <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
-                    </button>
-                  </div>
 
-                  {/* LE GRAND CALENDRIER (S'adapte au chien sélectionné !) */}
-                  <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                    <EducationCalendar 
-                      location={quickForm.location}
-                      selectedDate={quickForm.scheduledDate}
-                      selectedTime={quickForm.timeSlot}
-                      selectedDogId={quickForm.dog_id} 
-                      onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
-                    />
-                  </div>
+                      <div className="w-full min-w-0">
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Objectif de la séance *</label>
+                        <textarea 
+                          required 
+                          rows={2} 
+                          placeholder="Point spécifique à travailler aujourd'hui..."
+                          value={quickForm.objectives} 
+                          onChange={(e) => setQuickForm({ ...quickForm, objectives: e.target.value })} 
+                          className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
+                        />
+                      </div>
 
-                  <div className="w-full min-w-0">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Objectif de la séance *</label>
-                    <textarea 
-                      required 
-                      rows={2} 
-                      placeholder="Point spécifique à travailler aujourd'hui..."
-                      value={quickForm.objectives} 
-                      onChange={(e) => setQuickForm({ ...quickForm, objectives: e.target.value })} 
-                      className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
-                    />
-                  </div>
-
-                  <div className="pt-2 border-t border-stone-100">
-                    <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
-                      {quickSubmitting ? "Envoi en cours..." : "Valider la séance"}
-                    </button>
-                  </div>
+                      <div className="pt-2 border-t border-stone-100">
+                        <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
+                          {quickSubmitting ? "Envoi en cours..." : "Valider la séance"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </form>
             )}
