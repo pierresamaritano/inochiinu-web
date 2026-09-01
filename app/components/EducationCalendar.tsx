@@ -13,6 +13,7 @@ interface EducationCalendarProps {
 export default function EducationCalendar({ location, selectedDate, selectedTime, onChange }: EducationCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,25 +34,33 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
   // =========================================================================
-  // RÉCUPÉRATION SUPABASE
+  // RÉCUPÉRATION SUPABASE (Global + Utilisateur)
   // =========================================================================
   useEffect(() => {
-    const fetchReservations = async () => {
+    const fetchData = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id || null;
+      setCurrentUser(userId);
+
       const { data } = await supabase
         .from("education_requests")
-        .select("scheduled_date, preferred_slot, location_preference")
+        .select("user_id, scheduled_date, preferred_slot, location_preference, status")
         .in("status", ["en_attente", "confirmé"]);
       
       setReservations(data || []);
     };
-    fetchReservations();
+    fetchData();
   }, [month, year, supabase]);
 
   // =========================================================================
-  // LOGIQUE INTELLIGENTE DES CRÉNEAUX (TERRAIN VS DOMICILE)
+  // LOGIQUE DES CRÉNEAUX ET STATUTS
   // =========================================================================
+  const getMyStatus = (dateStr: string) => {
+    const myRes = reservations.find(r => r.scheduled_date === dateStr && r.user_id === currentUser);
+    return myRes ? myRes.status : null;
+  };
+
   const getAvailableSlotsForDay = (dateStr: string) => {
-    // 1. Isoler les réservations de ce jour précis
     const dayRes = reservations.filter((r) => r.scheduled_date === dateStr);
     
     let hasMorningDomicile = false;
@@ -59,7 +68,6 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     let terrainMorningSlotsTaken: string[] = [];
     let terrainAfternoonSlotsTaken: string[] = [];
 
-    // 2. Analyser l'occupation existante
     dayRes.forEach((r) => {
       if (r.location_preference === "domicile") {
         if (r.preferred_slot === "Matinée") hasMorningDomicile = true;
@@ -73,13 +81,10 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
     let availableSlots: string[] = [];
 
-    // 3. Générer les créneaux proposés selon le CHOIX DU CLIENT (Terrain ou Domicile)
     if (location === "domicile") {
-      // Pour un déplacement, la demi-journée doit être TOTALEMENT libre
       if (!hasMorningDomicile && terrainMorningSlotsTaken.length === 0) availableSlots.push("Matinée");
       if (!hasAfternoonDomicile && terrainAfternoonSlotsTaken.length === 0) availableSlots.push("Après-midi");
     } else {
-      // Pour le terrain, on propose à l'heure, sauf si un déplacement est déjà prévu sur cette demi-journée
       if (!hasMorningDomicile) {
         ["09:00", "10:00", "11:00"].forEach(h => {
           if (!terrainMorningSlotsTaken.includes(h)) availableSlots.push(h);
@@ -102,15 +107,43 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
     
-    if (clickedDate <= today) return; // On empêche de réserver le jour même ou dans le passé
+    if (clickedDate < today) return; 
+
+    const myPersonalStatus = getMyStatus(clickedDate);
+    if (myPersonalStatus) return; // On ne peut pas réserver si on a déjà une séance ce jour-là
 
     const { isFull } = getAvailableSlotsForDay(clickedDate);
     if (isFull) return;
 
-    onChange(clickedDate, ""); // On reset l'heure quand on change de jour
+    onChange(clickedDate, ""); 
   };
 
   const currentDaySlots = selectedDate ? getAvailableSlotsForDay(selectedDate).slots : [];
+
+  const getLegendText = () => {
+    const hasMyPending = reservations.some(r => r.user_id === currentUser && r.status === "en_attente");
+    const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.status === "confirmé");
+
+    if (!hasMyPending && !hasMyConfirmed) return null;
+
+    return (
+      <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
+        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Vos séances</p>
+        {hasMyPending && (
+          <div className="flex items-start gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
+            <p><strong>En attente :</strong> Séance en cours de validation.</p>
+          </div>
+        )}
+        {hasMyConfirmed && (
+          <div className="flex items-start gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-0.5 shadow-sm ring-1 ring-emerald-200"></span>
+            <p><strong>Validée :</strong> Votre séance est confirmée.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-full">
@@ -130,25 +163,37 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: startDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-10 rounded-xl bg-transparent" />
+          <div key={`empty-${i}`} className="h-12 rounded-xl bg-transparent" />
         ))}
 
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
-          const isPastOrToday = currentISODate <= today;
           
+          const isPast = currentISODate < today;
+          const myPersonalStatus = getMyStatus(currentISODate);
           const { isFull } = getAvailableSlotsForDay(currentISODate);
+          
           const isSelected = selectedDate === currentISODate;
-          const isDisabled = isPastOrToday || isFull;
+          const isMyDay = !!myPersonalStatus;
+          const isDisabled = isPast || isMyDay || isFull;
 
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
           let textClass = "text-stone-700 font-medium";
+          let badgeColor = "";
+
+          if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
+          if (myPersonalStatus === "confirmé") badgeColor = "bg-emerald-500 shadow-sm ring-1 ring-emerald-200";
 
           if (isDisabled) {
-            bgClass = "bg-stone-50 border border-stone-100 opacity-50 cursor-not-allowed";
-            textClass = "text-stone-400 line-through";
+            if (isMyDay) {
+              bgClass = "bg-stone-50 border border-stone-200 opacity-60 cursor-not-allowed";
+              textClass = "text-stone-500 font-bold";
+            } else {
+              bgClass = "bg-stone-50 border border-stone-100 opacity-50 cursor-not-allowed";
+              textClass = "text-stone-400 line-through";
+            }
           } else if (isSelected) {
             bgClass = "bg-orange-600 border border-orange-600 shadow-md";
             textClass = "text-white font-black";
@@ -160,16 +205,19 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
               type="button"
               disabled={isDisabled}
               onClick={() => handleDayClick(day)}
-              className={`relative h-10 w-full rounded-xl flex items-center justify-center transition-all ${!isDisabled && "cursor-pointer"} ${bgClass}`}
+              className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${!isDisabled && "cursor-pointer"} ${bgClass}`}
             >
               <span className={`text-xs ${textClass}`}>{day}</span>
-              {isSelected && <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-white"></span>}
+              {badgeColor && <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${badgeColor}`}></span>}
+              {isSelected && !badgeColor && <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white"></span>}
             </button>
           );
         })}
       </div>
 
-      {/* SÉLECTION DES HORAIRES (S'affiche uniquement si un jour est sélectionné) */}
+      {getLegendText()}
+
+      {/* SÉLECTION DES HORAIRES */}
       {selectedDate && (
         <div className="mt-6 animate-in slide-in-from-top-2">
           <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-wider text-center border-t border-stone-100 pt-4">
