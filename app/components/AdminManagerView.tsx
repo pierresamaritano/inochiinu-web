@@ -373,7 +373,7 @@ export default function AdminManagerView() {
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
             <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-              <option value="">Sélectionner un chiot (obligatoire)...</option>
+              <option value="">Sélectionner un chiot...</option>
               {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
                 <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
               ))}
@@ -395,10 +395,7 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) {
-                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
-                  return;
-                }
+                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -408,13 +405,11 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
-
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
-
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -808,7 +803,7 @@ export default function AdminManagerView() {
             <button onClick={() => setShowAdminCalendar(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full cursor-pointer z-50">✕</button>
 
             {/* PARTIE GAUCHE : LE CALENDRIER */}
-            <div className="w-full md:w-2/3 bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-stone-200 shadow-sm flex-shrink-0">
+            <div className="w-full lg:w-[65%] bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-stone-200 shadow-sm flex-shrink-0">
               <div className="flex items-center justify-between mb-4 sm:mb-6 border-b border-stone-100 pb-3 sm:pb-4">
                 <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() - 1, 1))} className="px-2 sm:px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg sm:rounded-xl font-black text-stone-600 cursor-pointer">←</button>
                 <h3 className="text-sm sm:text-lg font-black uppercase tracking-wider text-stone-900">
@@ -830,7 +825,6 @@ export default function AdminManagerView() {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
-                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
                   const hasReservations = eduCount > 0 || penCount > 0;
@@ -838,7 +832,6 @@ export default function AdminManagerView() {
                   const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
                   const isClosed = !!closure;
 
-                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
@@ -849,7 +842,7 @@ export default function AdminManagerView() {
                   if (isClosed) {
                     cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 cursor-pointer hover:border-red-400";
                   } else if (hasReservations) {
-                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; // On empêche la fermeture si réservations
+                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
                   } else if (isSelectedStart || isSelectedEnd) {
                     cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10 cursor-pointer";
                     textClass = "text-white font-black";
@@ -865,15 +858,14 @@ export default function AdminManagerView() {
                       key={day} 
                       disabled={hasReservations && !isClosed && !isSelectedStart && !isSelectedEnd && !isBetween}
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
-                      className={`relative h-12 sm:h-16 w-full rounded-lg sm:rounded-xl flex flex-col items-center justify-start pt-1 sm:pt-2 transition-all ${cellClass}`}
+                      className={`relative h-12 sm:h-16 w-full rounded-lg sm:rounded-xl flex flex-col items-center justify-center transition-all ${cellClass}`}
                       title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
                     >
                       <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
                       
-                      {/* Affichage des pastilles en bas de la case */}
                       <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
-                        {eduCount > 0 && <span className="flex items-center justify-center w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
-                        {penCount > 0 && <span className="flex items-center justify-center w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
+                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
+                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
                       </div>
                     </button>
                   );
@@ -886,7 +878,7 @@ export default function AdminManagerView() {
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
+            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
