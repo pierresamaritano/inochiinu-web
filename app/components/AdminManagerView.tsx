@@ -30,6 +30,14 @@ interface ClientProfile {
   phone?: string;
 }
 
+// --- NOUVEAU : Type pour les blocages par service ---
+interface ServiceClosure {
+  id: string;
+  start: string;
+  end: string;
+  services: string[]; // ex: ["pension", "sellerie"]
+}
+
 export default function AdminManagerView() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,7 +54,6 @@ export default function AdminManagerView() {
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
 
-  // État pour gérer les rubriques repliées par portée (par défaut, seules les "Nouvelles" sont ouvertes)
   const [collapsedSections, setCollapsedSections] = useState<{ [litterId: string]: { waitlist: boolean; refused: boolean } }>({});
 
   const [period, setPeriod] = useState<PeriodOption>("1m");
@@ -60,15 +67,24 @@ export default function AdminManagerView() {
   const [noteText, setNoteText] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  // --- NOUVEAU : États pour l'arrêt d'urgence ET les fermetures occasionnelles ---
+  // --- ÉTATS : Arrêt d'urgence et Blocages ciblés ---
   const [isEmergencyStop, setIsEmergencyStop] = useState(false);
   const [togglingEmergency, setTogglingEmergency] = useState(false);
-  const [closureStart, setClosureStart] = useState("");
-  const [closureEnd, setClosureEnd] = useState("");
+  
+  const [closures, setClosures] = useState<ServiceClosure[]>([]);
+  const [newClosureStart, setNewClosureStart] = useState("");
+  const [newClosureEnd, setNewClosureEnd] = useState("");
+  const [newClosureServices, setNewClosureServices] = useState<string[]>([]);
   const [savingClosure, setSavingClosure] = useState(false);
 
+  const availableServices = [
+    { id: "education", label: "Éducation" },
+    { id: "pension", label: "Pension" },
+    { id: "elevage", label: "Élevage" },
+    { id: "sellerie", label: "Sellerie" }
+  ];
+
   const fetchAll = async () => {
-    // Récupération de l'état de l'arrêt d'urgence et des fermetures
     try {
       const { data: settings } = await supabase.from("site_settings").select("key, value");
       if (settings) {
@@ -76,14 +92,17 @@ export default function AdminManagerView() {
         if (emergency && emergency.value === "true") setIsEmergencyStop(true);
         else setIsEmergencyStop(false);
 
-        const start = settings.find(s => s.key === "closure_start");
-        if (start) setClosureStart(start.value || "");
-
-        const end = settings.find(s => s.key === "closure_end");
-        if (end) setClosureEnd(end.value || "");
+        const closuresData = settings.find(s => s.key === "service_closures");
+        if (closuresData && closuresData.value) {
+          try {
+            setClosures(JSON.parse(closuresData.value));
+          } catch (e) {
+            console.error("Erreur de parsing des blocages");
+          }
+        }
       }
     } catch (e) {
-      // Ignorer si la table n'existe pas encore
+      // Ignorer si la table n'existe pas
     }
 
     const [edu, pen, adp, sel, lit] = await Promise.all([
@@ -166,7 +185,6 @@ export default function AdminManagerView() {
           }
         }
       }
-
       await fetchAll();
       setActionModal(null);
     } catch (err: any) {
@@ -185,22 +203,45 @@ export default function AdminManagerView() {
         if (error) throw error;
         setIsEmergencyStop(!isEmergencyStop);
       } catch (err: any) {
-        alert(`Erreur lors de la modification de l'état : ${err.message}`);
+        alert(`Erreur : ${err.message}`);
       } finally {
         setTogglingEmergency(false);
       }
     }
   };
 
-  // --- NOUVEAU : Sauvegarde des dates de fermetures ---
+  // --- NOUVEAU : Logique des blocages par service ---
+  const handleToggleService = (serviceId: string) => {
+    setNewClosureServices(prev => 
+      prev.includes(serviceId) ? prev.filter(s => s !== serviceId) : [...prev, serviceId]
+    );
+  };
+
   const saveClosureDates = async () => {
+    if (!newClosureStart || !newClosureEnd || newClosureServices.length === 0) {
+      alert("Veuillez sélectionner des dates et au moins un service.");
+      return;
+    }
     setSavingClosure(true);
     try {
+      const newClosure: ServiceClosure = {
+        id: Date.now().toString(),
+        start: newClosureStart,
+        end: newClosureEnd,
+        services: newClosureServices
+      };
+      
+      const updatedClosures = [...closures, newClosure];
+      
       await supabase.from("site_settings").upsert([
-        { key: "closure_start", value: closureStart },
-        { key: "closure_end", value: closureEnd }
+        { key: "service_closures", value: JSON.stringify(updatedClosures) }
       ], { onConflict: "key" });
-      alert("Dates de fermetures enregistrées avec succès ! Elles bloquent désormais les calendriers.");
+      
+      setClosures(updatedClosures);
+      setNewClosureStart("");
+      setNewClosureEnd("");
+      setNewClosureServices([]);
+      
     } catch (err: any) {
       alert(`Erreur : ${err.message}`);
     } finally {
@@ -208,15 +249,15 @@ export default function AdminManagerView() {
     }
   };
 
-  const clearClosureDates = async () => {
-    setClosureStart("");
-    setClosureEnd("");
+  const removeClosure = async (idToRemove: string) => {
+    if(!confirm("Supprimer ce blocage ?")) return;
     setSavingClosure(true);
     try {
+      const updatedClosures = closures.filter(c => c.id !== idToRemove);
       await supabase.from("site_settings").upsert([
-        { key: "closure_start", value: "" },
-        { key: "closure_end", value: "" }
+        { key: "service_closures", value: JSON.stringify(updatedClosures) }
       ], { onConflict: "key" });
+      setClosures(updatedClosures);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -283,12 +324,11 @@ export default function AdminManagerView() {
           {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
         </div>
 
-        {/* Assigner un chiot (UNIQUEMENT LES CHIOTS DISPONIBLES) */}
         {litter && !isRefused && (
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
             <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-              <option value="">Sélectionner un chiot (obligatoire)...</option>
+              <option value="">Sélectionner un chiot...</option>
               {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
                 <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
               ))}
@@ -310,10 +350,7 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) {
-                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
-                  return;
-                }
+                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -323,13 +360,11 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
-
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
-
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -346,45 +381,82 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. NOUVEAU BLOC: PARAMÈTRES DU SITE (Urgence & Vacances) */}
-      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-end bg-white p-5 rounded-[2rem] border border-stone-200/90 shadow-xs">
+      {/* BLOC PARAMÈTRES : ARRÊT URGENCE & BLOCAGES PAR CALENDRIER */}
+      <div className="flex flex-col lg:flex-row gap-6 bg-white p-5 rounded-[2rem] border border-stone-200/90 shadow-xs">
         
-        {/* BOUTON ARRÊT URGENCE */}
-        <div className="w-full xl:w-auto">
-            <label className="block text-[10px] font-black uppercase tracking-wider text-stone-500 mb-2">Arrêt d'urgence</label>
+        {/* ARRÊT URGENCE */}
+        <div className="w-full lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-stone-100 pb-4 lg:pb-0 lg:pr-6">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-stone-500 mb-2">Arrêt d'urgence global</label>
+            <p className="text-[10px] text-stone-400 mb-3">Bloque l'intégralité du site et des réservations d'un seul clic.</p>
             <button 
               onClick={toggleEmergencyStop}
               disabled={togglingEmergency}
-              className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all shadow-sm ${isEmergencyStop ? 'bg-stone-800 text-white hover:bg-stone-900 cursor-pointer' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer'}`}
+              className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all shadow-sm ${isEmergencyStop ? 'bg-stone-800 text-white hover:bg-stone-900 cursor-pointer' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer'}`}
             >
-              {isEmergencyStop ? (
-                <><span>🟢</span> Suspendu (Réactiver)</>
-              ) : (
-                <><span>🔴</span> Suspendre le site</>
-              )}
+              {isEmergencyStop ? <><span>🟢</span> Suspendu (Réactiver)</> : <><span>🔴</span> Suspendre tout le site</>}
             </button>
         </div>
 
-        {/* FERMETURES EXCEPTIONNELLES */}
-        <div className="w-full xl:w-auto border-t xl:border-t-0 xl:border-l border-stone-100 pt-4 xl:pt-0 xl:pl-5 flex flex-col sm:flex-row items-start sm:items-end gap-3">
-          <div className="w-full sm:w-auto">
-            <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Fermeture (Début)</label>
-            <input type="date" value={closureStart} onChange={e => setClosureStart(e.target.value)} className="w-full sm:w-auto px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
-          </div>
-          <div className="w-full sm:w-auto">
-            <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Fermeture (Fin)</label>
-            <input type="date" value={closureEnd} onChange={e => setClosureEnd(e.target.value)} className="w-full sm:w-auto px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            {(closureStart || closureEnd) && (
-              <button onClick={clearClosureDates} title="Effacer les dates" className="h-[34px] px-3 bg-stone-100 text-stone-500 hover:text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 transition cursor-pointer">✕</button>
-            )}
-            <button onClick={saveClosureDates} disabled={savingClosure || (!closureStart && !closureEnd)} className="w-full sm:w-auto h-[34px] px-5 bg-stone-900 text-white rounded-xl text-[11px] font-black uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer">
-              {savingClosure ? "..." : "Valider"}
-            </button>
-          </div>
-        </div>
+        {/* CALENDRIER DE BLOCAGE PAR SERVICE */}
+        <div className="w-full lg:w-2/3 flex flex-col gap-4">
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-wider text-stone-500 mb-2">Calendrier des blocages spécifiques</label>
+            
+            {/* Formulaire d'ajout */}
+            <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Du</label>
+                  <input type="date" value={newClosureStart} onChange={e => setNewClosureStart(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Au</label>
+                  <input type="date" value={newClosureEnd} onChange={e => setNewClosureEnd(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1.5">Services à bloquer :</label>
+                <div className="flex flex-wrap gap-2">
+                  {availableServices.map(service => (
+                    <label key={service.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${newClosureServices.includes(service.id) ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
+                      <input type="checkbox" className="hidden" checked={newClosureServices.includes(service.id)} onChange={() => handleToggleService(service.id)} />
+                      {service.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
+              <div className="flex justify-end">
+                <button onClick={saveClosureDates} disabled={savingClosure || !newClosureStart || !newClosureEnd || newClosureServices.length === 0} className="px-5 py-2 bg-stone-900 text-white rounded-lg text-[11px] font-black uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer">
+                  {savingClosure ? "..." : "+ Ajouter le blocage"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Liste des blocages actifs */}
+          {closures.length > 0 && (
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold uppercase text-stone-400">Blocages en cours :</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {closures.map(closure => (
+                  <div key={closure.id} className="flex justify-between items-center p-3 bg-white border border-stone-200 rounded-lg shadow-sm">
+                    <div>
+                      <p className="text-[11px] font-black text-stone-800">
+                        {new Date(closure.start).toLocaleDateString('fr-FR')} - {new Date(closure.end).toLocaleDateString('fr-FR')}
+                      </p>
+                      <p className="text-[9px] font-bold text-stone-500 mt-0.5">
+                        {closure.services.map(s => availableServices.find(as => as.id === s)?.label).join(', ')}
+                      </p>
+                    </div>
+                    <button onClick={() => removeClosure(closure.id)} className="h-8 w-8 flex justify-center items-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 cursor-pointer transition">✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 1. BARRE DE FILTRAGE */}
@@ -421,21 +493,21 @@ export default function AdminManagerView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
-            <button onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Éducation ({filteredEdu.length})</button>
-            <button onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Pension ({filteredPension.length})</button>
-            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Élevage ({filteredAdoption.length})</button>
-            <button onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>Sellerie ({filteredSellerie.length})</button>
+            <button onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Éducation ({filteredEdu.length})</button>
+            <button onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Pension ({filteredPension.length})</button>
+            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Élevage ({filteredAdoption.length})</button>
+            <button onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Sellerie ({filteredSellerie.length})</button>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Période :</label>
-          <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black shadow-sm focus:outline-none focus:border-orange-500">
+          <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer">
             <option value="1m">1 Mois (Défaut)</option><option value="6m">6 Mois</option><option value="1y">1 Année</option>
           </select>
         </div>
       </div>
 
-      {/* 3. CONTENU : ÉDUCATION (NOUVEAU DESIGN COMPLET) */}
+      {/* 3. CONTENU : ÉDUCATION */}
       {tab === "education" && (
         <div className="space-y-4">
           {filteredEdu.length === 0 ? (
@@ -443,11 +515,8 @@ export default function AdminManagerView() {
           ) : (
             filteredEdu.map((item) => {
               const isTerminated = item.status === "terminé" || item.status === "annulé";
-
               return (
                 <div key={item.id} className={`p-6 rounded-[2rem] border transition-all flex flex-col lg:flex-row justify-between items-start lg:items-stretch gap-6 ${isTerminated ? 'border-stone-100 bg-stone-50/50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-
-                  {/* COLONNE GAUCHE : IDENTITÉ ET DÉTAILS */}
                   <div className="flex-1 w-full flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-3">
@@ -458,11 +527,9 @@ export default function AdminManagerView() {
                           {item.status}
                         </span>
                       </div>
-
                       <h4 className="text-xl font-black text-stone-900 mt-1">
                         {item.dog_name} <span className="text-xs text-stone-500 font-medium">({item.dog_breed}{item.dog_age ? `, ${item.dog_age}` : ''})</span>
                       </h4>
-
                       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
                         <p className="flex items-center gap-1.5">
                           <span className="text-stone-400">🏷️</span> 
@@ -481,7 +548,6 @@ export default function AdminManagerView() {
                         </p>
                       </div>
                     </div>
-
                     {item.admin_notes && (
                       <div className="mt-4 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700">
                         <strong className="uppercase text-[9px] text-orange-800 tracking-wider block mb-0.5">Votre message :</strong> 
@@ -489,12 +555,9 @@ export default function AdminManagerView() {
                       </div>
                     )}
                   </div>
-
-                  {/* COLONNE CENTRALE : OBJECTIFS ET PROBLÈMES */}
                   <div className="flex-1 w-full bg-stone-50 p-4 rounded-2xl border border-stone-100/80 flex flex-col">
                     <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-1.5">Objectifs de la séance :</strong>
                     <p className="text-xs text-stone-800 leading-relaxed flex-1">{item.objectives}</p>
-
                     {item.issues && Array.isArray(item.issues) && item.issues.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-stone-200/60">
                         <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-2">Comportements signalés :</strong>
@@ -508,23 +571,21 @@ export default function AdminManagerView() {
                       </div>
                     )}
                   </div>
-
-                  {/* COLONNE DROITE : ACTIONS ADMINISTRATEUR */}
                   <div className="flex flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-32 justify-end lg:justify-start">
                     {item.status === "en_attente" && (
                       <>
-                        <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition">Valider</button>
-                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Refuser</button>
+                        <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition cursor-pointer">Valider</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition cursor-pointer">Refuser</button>
                       </>
                     )}
                     {item.status === "confirmé" && (
                       <>
-                        <button onClick={() => openAction("education_requests", item.id, "terminé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-800 hover:bg-black text-white text-xs font-black shadow-sm transition">Terminer</button>
-                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Annuler</button>
+                        <button onClick={() => openAction("education_requests", item.id, "terminé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-800 hover:bg-black text-white text-xs font-black shadow-sm transition cursor-pointer">Terminer</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition cursor-pointer">Annuler</button>
                       </>
                     )}
                     {isTerminated && (
-                      <button onClick={() => openAction("education_requests", item.id, "en_attente", item.dog_name, item.client_name, item.admin_notes)} className="w-full py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-900 text-xs font-bold transition">
+                      <button onClick={() => openAction("education_requests", item.id, "en_attente", item.dog_name, item.client_name, item.admin_notes)} className="w-full py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-900 text-xs font-bold transition cursor-pointer">
                         Restaurer
                       </button>
                     )}
@@ -548,8 +609,8 @@ export default function AdminManagerView() {
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {item.status !== "confirmé" && <button onClick={() => openAction("pension_bookings", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
-                <button onClick={() => openAction("pension_bookings", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
+                {item.status !== "confirmé" && <button onClick={() => openAction("pension_bookings", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black cursor-pointer hover:bg-emerald-600">Valider</button>}
+                <button onClick={() => openAction("pension_bookings", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold cursor-pointer hover:bg-stone-200">Refuser</button>
               </div>
             </div>
           ))}
@@ -559,7 +620,6 @@ export default function AdminManagerView() {
       {/* 5. CONTENU : ÉLEVAGE */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
-
           {!showLitterForm && (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
               <div>
@@ -574,11 +634,7 @@ export default function AdminManagerView() {
 
           {showLitterForm ? (
             <div className="border border-stone-200 rounded-[2.5rem] p-4 bg-white/50">
-              <AdminLitterForm 
-                initialData={editingLitter} 
-                onSuccess={() => { setShowLitterForm(false); fetchAll(); }} 
-                onCancel={() => setShowLitterForm(false)} 
-              />
+              <AdminLitterForm initialData={editingLitter} onSuccess={() => { setShowLitterForm(false); fetchAll(); }} onCancel={() => setShowLitterForm(false)} />
             </div>
           ) : (
             <div className="space-y-8">
@@ -595,8 +651,6 @@ export default function AdminManagerView() {
 
                 return (
                   <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
-
-                    {/* EN-TÊTE DE LA PORTÉE */}
                     <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div>
                         <div className="flex items-center gap-3 mb-1.5">
@@ -614,16 +668,12 @@ export default function AdminManagerView() {
                       </div>
                     </div>
 
-                    {/* CORPS DE LA PORTÉE */}
                     <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-
-                      {/* COLONNE DE GAUCHE : LES CHIOTS */}
                       <div>
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
                             const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
-
                             return (
                               <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
                                 <div className="flex items-center justify-between">
@@ -640,27 +690,18 @@ export default function AdminManagerView() {
                                     {pup.status === 'reserve' ? 'RÉSERVÉ' : pup.status === 'adopte' ? 'ADOPTÉ' : 'DISPONIBLE'}
                                   </span>
                                 </div>
-
                                 {acceptedApp ? (
                                   <div className="mt-3 pt-3 border-t border-stone-200 flex flex-col gap-2">
-                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
-                                      👤 Réservé par {acceptedApp.client_name}
-                                    </p>
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">👤 Réservé par {acceptedApp.client_name}</p>
                                     <div className="flex items-center justify-between">
                                       <a href={`tel:${acceptedApp.client_phone}`} className="text-[11px] font-bold text-stone-500 hover:text-stone-900">📞 {acceptedApp.client_phone}</a>
-                                      <button onClick={() => openAction("adoption_requests", acceptedApp.id, "annulé", acceptedApp.client_name, acceptedApp.client_name, acceptedApp.admin_notes)} className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer">
-                                        Annuler la résa.
-                                      </button>
+                                      <button onClick={() => openAction("adoption_requests", acceptedApp.id, "annulé", acceptedApp.client_name, acceptedApp.client_name, acceptedApp.admin_notes)} className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer">Annuler la résa.</button>
                                     </div>
                                   </div>
                                 ) : (pup.status === 'reserve' || pup.status === 'adopte') ? (
                                   <div className="mt-3 pt-3 border-t border-stone-100 flex flex-col gap-1.5">
-                                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-wider">
-                                      📝 Réservation hors plateforme
-                                    </p>
-                                    <p className="text-[9px] font-bold text-stone-400 leading-tight">
-                                      Ce chiot a été réservé manuellement. Modifiez la portée pour changer son statut.
-                                    </p>
+                                    <p className="text-[10px] font-black text-stone-500 uppercase tracking-wider">📝 Réservation hors plateforme</p>
+                                    <p className="text-[9px] font-bold text-stone-400 leading-tight">Ce chiot a été réservé manuellement. Modifiez la portée pour changer son statut.</p>
                                   </div>
                                 ) : null}
                               </div>
@@ -668,63 +709,38 @@ export default function AdminManagerView() {
                           })}
                         </div>
                       </div>
-
-                      {/* COLONNE DE DROITE : LES CANDIDATURES REPLIABLES */}
                       <div>
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Candidatures en cours ({activeLitterApps.length})</h4>
                         {activeLitterApps.length === 0 ? (
                           <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
                           <div className="space-y-6">
-
-                            {/* NOUVELLES (Toujours ouvertes par défaut) */}
                             {newApps.length > 0 && (
                               <div>
                                 <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5 flex items-center justify-between">
                                   <span>Nouvelles ({newApps.length})</span>
                                 </h5>
-                                <div className="space-y-3">
-                                  {newApps.map(item => renderAppCard(item, litter))}
-                                </div>
+                                <div className="space-y-3">{newApps.map(item => renderAppCard(item, litter))}</div>
                               </div>
                             )}
-
-                            {/* LISTE D'ATTENTE (Minimisée par défaut) */}
                             {waitlistApps.length > 0 && (
                               <div>
-                                <button 
-                                  onClick={() => toggleSectionCollapse(litter.id, 'waitlist')}
-                                  className="w-full text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5 flex items-center justify-between hover:bg-amber-50/50 transition cursor-pointer"
-                                >
+                                <button onClick={() => toggleSectionCollapse(litter.id, 'waitlist')} className="w-full text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5 flex items-center justify-between hover:bg-amber-50/50 transition cursor-pointer">
                                   <span>Liste d'attente ({waitlistApps.length})</span>
                                   <span className="text-stone-400 font-bold">{isWaitlistCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
                                 </button>
-                                {!isWaitlistCollapsed && (
-                                  <div className="space-y-3 animate-in fade-in duration-200">
-                                    {waitlistApps.map(item => renderAppCard(item, litter))}
-                                  </div>
-                                )}
+                                {!isWaitlistCollapsed && <div className="space-y-3 animate-in fade-in duration-200">{waitlistApps.map(item => renderAppCard(item, litter))}</div>}
                               </div>
                             )}
-
-                            {/* ARCHIVÉES / REFUSÉES (Minimisée par défaut) */}
                             {refusedApps.length > 0 && (
                               <div>
-                                <button 
-                                  onClick={() => toggleSectionCollapse(litter.id, 'refused')}
-                                  className="w-full text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5 flex items-center justify-between hover:bg-stone-50 transition cursor-pointer"
-                                >
+                                <button onClick={() => toggleSectionCollapse(litter.id, 'refused')} className="w-full text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5 flex items-center justify-between hover:bg-stone-50 transition cursor-pointer">
                                   <span>Archivées / Refusées ({refusedApps.length})</span>
                                   <span className="text-stone-400 font-bold">{isRefusedCollapsed ? "▼ Déplier" : "▲ Replier"}</span>
                                 </button>
-                                {!isRefusedCollapsed && (
-                                  <div className="space-y-3 animate-in fade-in duration-200">
-                                    {refusedApps.map(item => renderAppCard(item, litter))}
-                                  </div>
-                                )}
+                                {!isRefusedCollapsed && <div className="space-y-3 animate-in fade-in duration-200">{refusedApps.map(item => renderAppCard(item, litter))}</div>}
                               </div>
                             )}
-
                           </div>
                         )}
                       </div>
@@ -732,7 +748,6 @@ export default function AdminManagerView() {
                   </div>
                 );
               })}
-
               {filteredAdoption.filter(a => !a.litter_id).length > 0 && (
                 <div className="mt-12 p-8 rounded-[2.5rem] bg-orange-50/50 border border-orange-100">
                   <h3 className="text-lg font-black text-stone-900 mb-6">Candidatures spontanées (Non assignées)</h3>
@@ -758,9 +773,9 @@ export default function AdminManagerView() {
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {item.status !== "expédié" && <button onClick={() => openAction("sellerie_orders", item.id, "expédié", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Expédier</button>}
-                {item.status !== "en_atelier" && <button onClick={() => openAction("sellerie_orders", item.id, "en_atelier", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-black">En atelier</button>}
-                <button onClick={() => openAction("sellerie_orders", item.id, "annulé", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Annuler</button>
+                {item.status !== "expédié" && <button onClick={() => openAction("sellerie_orders", item.id, "expédié", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black cursor-pointer hover:bg-emerald-600">Expédier</button>}
+                {item.status !== "en_atelier" && <button onClick={() => openAction("sellerie_orders", item.id, "en_atelier", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs font-black cursor-pointer hover:bg-amber-600">En atelier</button>}
+                <button onClick={() => openAction("sellerie_orders", item.id, "annulé", item.item_type, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold cursor-pointer hover:bg-stone-200">Annuler</button>
               </div>
             </div>
           ))}
