@@ -3,6 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import DogProfileManager from "./DogProfileManager";
+import ClientDogSelector from "./ClientDogSelector";
+import EducationCalendar from "./EducationCalendar";
+import MiniEducationCalendar from "./MiniEducationCalendar"; // NOUVEL IMPORT
 
 interface CancelTarget {
   table: string;
@@ -21,9 +24,28 @@ export default function ClientDashboardHub() {
   const [loading, setLoading] = useState(true);
 
   const [period, setPeriod] = useState<PeriodOption>("1m");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [clientPhone, setClientPhone] = useState("");
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
+
+  // --- ÉTATS POUR LA RÉSERVATION RAPIDE ---
+  const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
+  const [quickBookStep, setQuickBookStep] = useState(1);
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+  const [quickSubmitted, setQuickSubmitted] = useState(false);
+
+  const [quickForm, setQuickForm] = useState({
+    dog_id: "",
+    dogName: "",
+    dogBreed: "",
+    dogAge: "",
+    objectives: "",
+    location: "terrain" as "terrain" | "domicile",
+    scheduledDate: "",
+    timeSlot: "",
+  });
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +55,10 @@ export default function ClientDashboardHub() {
   const fetchUserServices = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setCurrentUser(user);
+
+    const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
+    if (profile && profile.phone) setClientPhone(profile.phone);
 
     const [edu, pen, adp, sel] = await Promise.all([
       supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -73,13 +99,8 @@ export default function ClientDashboardHub() {
   const handleConfirmCancel = async () => {
     if (!cancelModal) return;
     setCancelling(true);
-
     try {
-      const { error } = await supabase
-        .from(cancelModal.table)
-        .update({ status: "annulé" })
-        .eq("id", cancelModal.id);
-
+      const { error } = await supabase.from(cancelModal.table).update({ status: "annulé" }).eq("id", cancelModal.id);
       if (error) throw error;
       await fetchUserServices();
       setCancelModal(null);
@@ -93,7 +114,6 @@ export default function ClientDashboardHub() {
   const toggleWidget = (widgetId: string) => {
     const isExpanding = expandedWidget !== widgetId;
     setExpandedWidget(isExpanding ? widgetId : null);
-
     if (isExpanding) {
       setTimeout(() => {
         const element = document.getElementById(`widget-${widgetId}`);
@@ -102,6 +122,59 @@ export default function ClientDashboardHub() {
           window.scrollTo({ top: y, behavior: "smooth" });
         }
       }, 150);
+    }
+  };
+
+  // Déclenché par le MiniEducationCalendar
+  const handleMiniCalClick = (dateStr: string) => {
+    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
+    setQuickSubmitted(false);
+    setQuickBookStep(1);
+    setIsQuickBookOpen(true);
+  };
+
+  const calculateDogAge = (birthDateString?: string | null) => {
+    if (!birthDateString) return "";
+    const dateObj = new Date(birthDateString);
+    if (isNaN(dateObj.getTime())) return "";
+    const diffDays = Math.ceil(Math.abs(new Date().getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 30) return `${diffDays} jours`;
+    else if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`;
+    else return `${Math.floor(diffDays / 365)} ans`;
+  };
+
+  const handleQuickSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setQuickSubmitting(true);
+    try {
+      const { error } = await supabase.from("education_requests").insert([
+        {
+          user_id: currentUser.id,
+          dog_id: quickForm.dog_id,
+          client_name: currentUser.user_metadata?.full_name || "Client",
+          client_email: currentUser.email,
+          client_phone: clientPhone,
+          dog_name: quickForm.dogName,
+          dog_breed: quickForm.dogBreed,
+          dog_age: quickForm.dogAge,
+          objectives: quickForm.objectives,
+          issues: [], // Pas de problèmes spécifiques demandés en suivi
+          scheduled_date: quickForm.scheduledDate,
+          preferred_slot: quickForm.timeSlot,
+          session_type: "suivi", // Toujours un suivi via l'espace membre
+          location_preference: quickForm.location,
+          price_estimate: quickForm.location === "domicile" ? 65 : 45, // Tarif de suivi
+          status: "en_attente",
+        },
+      ]);
+      if (error) throw error;
+      setQuickSubmitted(true);
+      fetchUserServices(); // Met à jour le mini-calendrier en arrière-plan
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setQuickSubmitting(false);
     }
   };
 
@@ -133,21 +206,17 @@ export default function ClientDashboardHub() {
 
       {!hasAnyService ? (
         <div className="mt-12 p-10 sm:p-16 rounded-[2.5rem] bg-white/40 border border-stone-200 border-dashed text-center flex flex-col items-center justify-center max-w-3xl mx-auto shadow-sm">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-6 shadow-inner">
-            犬
-          </div>
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600 mb-6 shadow-inner">犬</div>
           <h2 className="text-2xl font-black text-stone-900 tracking-tight">Votre historique de réservations est vide</h2>
-          <p className="text-stone-500 mt-3 text-sm leading-relaxed max-w-lg">
-            Vos demandes de pension, d'éducation ou commandes de sellerie apparaîtront ici.
-          </p>
-          <a href="/education" className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 transition-all">
-            Découvrir nos services
-          </a>
+          <p className="text-stone-500 mt-3 text-sm leading-relaxed max-w-lg">Vos demandes de pension, d'éducation ou commandes de sellerie apparaîtront ici.</p>
+          <a href="/education" className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs rounded-full hover:bg-stone-800 transition-all">Découvrir nos services</a>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
           
-          {/* 1. WIDGET ÉDUCATION */}
+          {/* ========================================================================= */}
+          {/* WIDGET ÉDUCATION (AVEC MINI-CALENDRIER EXTRAIT) */}
+          {/* ========================================================================= */}
           {filteredEdu.length > 0 && (
             <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -155,7 +224,6 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                {/* NOUVEAU : Bouton Réserver à côté du compteur */}
                 <div className="flex items-center gap-2">
                   <a href="/education" className="flex items-center h-8 px-4 rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700 text-[10px] font-black uppercase transition-colors shadow-sm">
                     📅 Réserver
@@ -165,6 +233,9 @@ export default function ClientDashboardHub() {
                   </div>
                 </div>
               </div>
+
+              {/* UTILISATION DU NOUVEAU COMPOSANT MINI-CALENDRIER */}
+              <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
 
               <div className="mt-4 space-y-3">
                 {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
@@ -179,7 +250,6 @@ export default function ClientDashboardHub() {
                             {item.status}
                           </span>
                         </div>
-                        {/* NOUVEAU : Affichage de la nature, date et lieu de la séance */}
                         <span className="text-[11px] text-stone-500 font-medium block mt-1.5">
                           <strong className="text-stone-700">{item.session_type === 'bilan' ? 'Bilan' : 'Séance'}</strong> • {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Date à définir'} à {item.preferred_slot}
                         </span>
@@ -426,6 +496,123 @@ export default function ClientDashboardHub() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODALE RÉSERVATION RAPIDE ÉDUCATION */}
+      {/* ========================================================================= */}
+      {isQuickBookOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsQuickBookOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
+            <button onClick={() => setIsQuickBookOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer z-50">✕</button>
+
+            {quickSubmitted ? (
+              <div className="text-center py-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
+                <h3 className="text-xl font-black text-stone-900">Séance demandée !</h3>
+                <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
+                <button onClick={() => setIsQuickBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Fermer</button>
+              </div>
+            ) : (
+              <form onSubmit={handleQuickSubmit} className="space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {quickBookStep} sur 2</span>
+                    <h3 className="text-lg font-black text-stone-900">
+                      {quickBookStep === 1 ? "Lieu & Horaire" : "Chien & Objectif"}
+                    </h3>
+                  </div>
+                </div>
+
+                {quickBookStep === 1 && (
+                  <div className="space-y-6 animate-in fade-in">
+                    <div className="space-y-3">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "terrain", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "terrain" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard (45€)</span>
+                        </button>
+
+                        <button type="button" onClick={() => setQuickForm({ ...quickForm, location: "domicile", timeSlot: "" })} className={`p-4 rounded-2xl border text-left transition-all ${quickForm.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-sm ${quickForm.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${quickForm.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
+                              {quickForm.location === "domicile" && <div className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-stone-500 mt-1 block">+ Frais déplacement (65€)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      {/* On réutilise EducationCalendar, mais on force selectedDate pour qu'il n'affiche que les horaires du jour cliqué */}
+                      <EducationCalendar 
+                        location={quickForm.location}
+                        selectedDate={quickForm.scheduledDate}
+                        selectedTime={quickForm.timeSlot}
+                        onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
+                      />
+                    </div>
+
+                    <div className="pt-4 flex justify-end border-t border-stone-100">
+                      <button type="button" disabled={!quickForm.timeSlot} onClick={() => setQuickBookStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 disabled:opacity-50">
+                        Suivant ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {quickBookStep === 2 && (
+                  <div className="space-y-5 animate-in fade-in">
+                    {currentUser && (
+                      <ClientDogSelector
+                        isAdmin={false}
+                        currentUserId={currentUser.id}
+                        onDogSelected={(dog) =>
+                          setQuickForm({
+                            ...quickForm,
+                            dog_id: dog.id,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                            dogAge: calculateDogAge(dog.birth_date || ""),
+                          })
+                        }
+                      />
+                    )}
+
+                    <div className="w-full min-w-0">
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Objectif de la séance *</label>
+                      <textarea 
+                        required 
+                        rows={3} 
+                        placeholder="Point spécifique à travailler aujourd'hui..."
+                        value={quickForm.objectives} 
+                        onChange={(e) => setQuickForm({ ...quickForm, objectives: e.target.value })} 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
+                    </div>
+
+                    <div className="pt-4 flex justify-between items-center border-t border-stone-100">
+                      <button type="button" onClick={() => setQuickBookStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
+                      <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.objectives} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
+                        {quickSubmitting ? "Envoi..." : "Valider la séance"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
