@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
+import ClientDogSelector from "../components/ClientDogSelector";
+
+// IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
 
@@ -18,9 +21,6 @@ interface DogProfile {
   id: string; name: string; badgeName: string; role: "Étalon" | "Lice"; affixe: string; fullName: string; color: string; height: string; weight: string; birthDate: string; images: CarouselSlide[]; titles: string; description: string; father: DogParent; mother: DogParent;
 }
 
-// =========================================================================
-// PAGE PRINCIPALE
-// =========================================================================
 export default function ElevagePage() {
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -28,6 +28,9 @@ export default function ElevagePage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // --- NOUVEAU : État de l'arrêt d'urgence global ---
+  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
@@ -67,8 +70,15 @@ export default function ElevagePage() {
       const currentUser = userData.session?.user || null;
       setUser(currentUser);
 
+      // Vérification de l'arrêt d'urgence global
+      try {
+        const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+        if (setting && setting.value === "true") setIsEmergencyStopActive(true);
+      } catch (e) {
+        // Ignorer
+      }
+
       if (currentUser) {
-        // Recherche si une candidature est en cours
         const { data: existingRequests } = await supabase
           .from("adoption_requests")
           .select("id, status")
@@ -82,7 +92,6 @@ export default function ElevagePage() {
           setHasExistingCandidature(false);
         }
 
-        // NOUVEAU : Récupération du numéro de téléphone
         const { data: profile } = await supabase
           .from("profiles")
           .select("phone")
@@ -94,7 +103,6 @@ export default function ElevagePage() {
         }
       }
 
-      // 1. On cherche d'abord les portées actives
       const { data: littersData } = await supabase
         .from("litters")
         .select("*, puppies(*)")
@@ -105,7 +113,6 @@ export default function ElevagePage() {
         setActiveLitters(littersData);
         setIsShowingPastLitter(false);
       } else {
-        // 2. S'il n'y en a pas, on cherche la dernière portée passée
         const { data: pastLitterData } = await supabase
           .from("litters")
           .select("*, puppies(*)")
@@ -115,7 +122,7 @@ export default function ElevagePage() {
           
         if (pastLitterData && pastLitterData.length > 0) {
           setActiveLitters(pastLitterData);
-          setIsShowingPastLitter(true); // On active le mode "Archive"
+          setIsShowingPastLitter(true);
         }
       }
     };
@@ -147,7 +154,6 @@ export default function ElevagePage() {
   const prevSlide = () => { handleUserInteraction(); setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length); };
   const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
-  // DÉTECTION DES VIDÉOS POUR LES PORTÉES
   const getLitterSlides = (litter: any): CarouselSlide[] => {
     if (!litter) return [];
     const slidesList: CarouselSlide[] = [];
@@ -245,7 +251,6 @@ export default function ElevagePage() {
         return; 
       }
 
-      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
       if (formData.clientPhone) {
         await supabase
           .from("profiles")
@@ -539,39 +544,38 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC OBJECT-CONTAIN) */}
+      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC Z-INDEX 9999) */}
       {isImmersionMode && activeLitters.length > 0 && (
-        <div className="fixed inset-0 z-[200] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
-          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[250] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
+        <div className="fixed inset-0 z-[9999] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
+          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[10000] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           
-          <div className="absolute top-8 left-8 z-[250]">
+          <div className="absolute top-8 left-8 z-[10000]">
             <span className="text-white/50 text-[10px] font-black uppercase tracking-widest">Mode Immersion</span>
           </div>
 
           <div className="relative w-full h-[85vh] flex items-center justify-center px-4 sm:px-16">
             {litterSlides.length > 1 && (
-              <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-4 sm:left-8 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+              <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-4 sm:left-8 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
                 ←
               </button>
             )}
             
             <div className="relative w-full h-full flex flex-col items-center justify-center">
               {litterSlides[modalSlideIndex].type === "video" ? (
-                <video src={litterSlides[modalSlideIndex].src} autoPlay loop muted playsInline className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl" />
+                <video src={litterSlides[modalSlideIndex].src} autoPlay loop muted playsInline className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[10000]" />
               ) : (
-                <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl" />
+                <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[10000]" />
               )}
               
-              <div className="absolute bottom-8 inset-x-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="absolute bottom-8 inset-x-0 flex flex-col items-center justify-center pointer-events-none z-[10000]">
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl text-center border border-white/10 max-w-md">
                   <span className="text-orange-400 text-[10px] font-black uppercase tracking-wider block mb-1">{litterSlides[modalSlideIndex].tag}</span>
                   <p className="text-white text-sm font-medium">{litterSlides[modalSlideIndex].caption}</p>
@@ -580,7 +584,7 @@ export default function ElevagePage() {
             </div>
 
             {litterSlides.length > 1 && (
-              <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-4 sm:right-8 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+              <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-4 sm:right-8 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
                 →
               </button>
             )}
@@ -588,9 +592,9 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* POP-UP : PORTÉE ET CHIOTS */}
+      {/* POP-UP : PORTÉE ET CHIOTS (z-index 9999) */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowLitterModal(false)} />
           <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
             
@@ -719,20 +723,22 @@ export default function ElevagePage() {
               </div>
             </div>
 
-            {/* On affiche le bouton uniquement si ce n'est PAS une ancienne portée */}
+            {/* LE BOUTON DE CANDIDATURE AVEC LE VERROU D'URGENCE (Si ce n'est PAS une ancienne portée) */}
             {!isShowingPastLitter && (
               <div className="p-8 sm:p-12 pt-0 shrink-0">
                 <div className="border-t border-stone-100 pt-8 flex justify-center">
                   <button 
                     onClick={handleCandidater} 
-                    disabled={isCandidatureDisabled}
+                    disabled={isCandidatureDisabled || isEmergencyStopActive}
                     className={`px-10 py-4 font-black text-xs sm:text-sm uppercase tracking-wider rounded-full transition-all flex items-center gap-3 ${
-                      isCandidatureDisabled 
+                      (isCandidatureDisabled || isEmergencyStopActive)
                         ? "bg-stone-200 text-stone-400 cursor-not-allowed" 
                         : "bg-gradient-to-tr from-stone-900 to-stone-800 text-white shadow-lg hover:scale-105 cursor-pointer"
                     }`}
                   >
-                    {hasExistingCandidature 
+                    {isEmergencyStopActive 
+                      ? "Réservations suspendues" 
+                      : hasExistingCandidature 
                       ? "Vous avez déjà une demande en cours" 
                       : !hasAvailablePuppies
                         ? "Plus de chiots disponibles"
@@ -749,7 +755,7 @@ export default function ElevagePage() {
       )}
 
       {showInfoModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
@@ -775,7 +781,7 @@ export default function ElevagePage() {
       )}
 
       {isAuthOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
@@ -792,7 +798,7 @@ export default function ElevagePage() {
       )}
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
