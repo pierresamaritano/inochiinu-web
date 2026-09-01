@@ -48,7 +48,7 @@ export default function ClientDashboardHub() {
     scheduledDate: "", timeSlot: "",
   });
 
-  // --- NOUVEAUX ÉTATS PENSION ---
+  // --- ÉTATS PENSION ---
   const [showPenCalendar, setShowPenCalendar] = useState(false);
   const [isQuickPenBookOpen, setIsQuickPenBookOpen] = useState(false);
   const [quickPenSubmitting, setQuickPenSubmitting] = useState(false);
@@ -184,7 +184,7 @@ export default function ClientDashboardHub() {
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données pour mettre à jour la liste et le calendrier
+      fetchUserServices(); // Rafraîchit les données pour mettre à jour la liste et le calendrier (silencieusement)
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation.");
@@ -193,11 +193,14 @@ export default function ClientDashboardHub() {
     }
   };
 
+  // NOUVEAU VERROU MÉTIER : 2 états d'erreur possibles (En attente VS Inexistant/Expiré)
   const dogBilanStatus = useMemo(() => {
     if (!quickForm.dog_id) return { isValid: false, isPending: false, needsNew: false };
     const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
+    
     const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
     const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
+    
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const hasRecentSession = dogReqs.some(r => {
@@ -207,6 +210,7 @@ export default function ClientDashboardHub() {
 
     if (hasCompletedBilan && hasRecentSession) return { isValid: true, isPending: false, needsNew: false };
     if (hasPendingBilan) return { isValid: false, isPending: true, needsNew: false };
+    
     return { isValid: false, isPending: false, needsNew: true };
   }, [quickForm.dog_id, eduRequests]);
 
@@ -214,8 +218,13 @@ export default function ClientDashboardHub() {
   // ---------------------------------------------------------------------------
   // GESTIONNAIRES PENSION
   // ---------------------------------------------------------------------------
-  const handleMiniPenCalClick = (dateStr: string) => {
-    setQuickPenForm(prev => ({ ...prev, startDate: dateStr, endDate: "", dog_id: userDogs.length === 1 ? userDogs[0].id : prev.dog_id }));
+  const handleMiniPenCalClick = (dateStr: string, dogId?: string) => {
+    setQuickPenForm(prev => ({ 
+      ...prev, 
+      startDate: dateStr, 
+      endDate: "", 
+      dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
+    }));
     setQuickPenSubmitted(false);
     setIsQuickPenBookOpen(true);
   };
@@ -247,7 +256,7 @@ export default function ClientDashboardHub() {
 
       if (error) throw error;
       setQuickPenSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données pour mettre à jour le calendrier pension
+      fetchUserServices(); // Rafraîchit les données de la pension silencieusement !
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation de la pension.");
@@ -255,7 +264,6 @@ export default function ClientDashboardHub() {
       setQuickPenSubmitting(false);
     }
   };
-
 
   if (loading) {
     return <div className="mt-12 text-center text-xs font-bold text-stone-400">Chargement de votre tableau de bord...</div>;
@@ -318,6 +326,7 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
+              {/* AFFICHAGE DU MINI CALENDRIER */}
               {showEduCalendar && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <MiniEducationCalendar eduRequests={eduRequests} userDogs={userDogs} onDayClick={handleMiniCalClick} />
@@ -401,9 +410,10 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
+              {/* AFFICHAGE DU MINI CALENDRIER PENSION */}
               {showPenCalendar && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <MiniPensionCalendar onDayClick={handleMiniPenCalClick} />
+                  <MiniPensionCalendar userDogs={userDogs} onDayClick={handleMiniPenCalClick} />
                 </div>
               )}
 
@@ -555,7 +565,6 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
-      {/* ... MODALE ANNULATION ... */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -608,10 +617,7 @@ export default function ClientDashboardHub() {
                 <h3 className="text-xl font-black text-stone-900">Paiement validé !</h3>
                 <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
                 <button 
-                  onClick={() => {
-                    setIsQuickBookOpen(false);
-                    // Le rafraichissement est déjà géré par fetchUserServices() appelé dans handleFinalSubmit
-                  }} 
+                  onClick={() => setIsQuickBookOpen(false)} 
                   className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
                 >
                   Fermer
@@ -657,6 +663,7 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
+                  {/* VÉRIFICATION DU BILAN INTÉGRÉE (EN ATTENTE VS EXPIRÉ/INEXISTANT) */}
                   {quickForm.dog_id && !dogBilanStatus.isValid ? (
                     dogBilanStatus.isPending ? (
                       <div className="p-6 rounded-2xl bg-orange-50 border border-orange-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
@@ -753,10 +760,7 @@ export default function ClientDashboardHub() {
                 <h3 className="text-xl font-black text-stone-900">Demande de séjour envoyée !</h3>
                 <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des boxs et validons votre demande très vite.</p>
                 <button 
-                  onClick={() => {
-                    setIsQuickPenBookOpen(false);
-                    // Le rafraichissement est déjà géré par fetchUserServices()
-                  }} 
+                  onClick={() => setIsQuickPenBookOpen(false)} 
                   className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
                 >
                   Fermer

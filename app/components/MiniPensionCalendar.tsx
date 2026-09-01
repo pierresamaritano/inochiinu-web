@@ -4,13 +4,17 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
 interface MiniPensionCalendarProps {
-  onDayClick: (dateStr: string) => void;
+  userDogs?: any[]; // NOUVEAU : Import des chiens du client
+  onDayClick: (dateStr: string, dogId?: string) => void;
 }
 
-export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarProps) {
+export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniPensionCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+
+  // NOUVEAU : État pour le filtre du chien
+  const [selectedDogId, setSelectedDogId] = useState<string>("all");
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +35,8 @@ export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarP
 
       const { data } = await supabase
         .from("pension_bookings")
-        .select("user_id, start_date, end_date, status")
+        // On récupère le dog_id pour pouvoir filtrer
+        .select("user_id, dog_id, start_date, end_date, status")
         .neq("status", "annulé"); 
 
       setReservations(data || []);
@@ -47,7 +52,13 @@ export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarP
     reservations.forEach((res) => {
       if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
         if (res.status === "confirmé") boxesOccupes++;
-        if (res.user_id === currentUser) myPersonalStatus = res.status; 
+        
+        // Si c'est mon séjour ET qu'il correspond au filtre chien (ou "Tous")
+        if (res.user_id === currentUser) {
+          if (selectedDogId === "all" || res.dog_id === selectedDogId) {
+            myPersonalStatus = res.status; 
+          }
+        }
       }
     });
 
@@ -61,12 +72,34 @@ export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarP
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
+      
+      {/* NOUVEAU : FILTRE PAR CHIEN (S'affiche uniquement si > 1 chien) */}
+      {userDogs.length > 1 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
+          <button 
+            onClick={() => setSelectedDogId("all")} 
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${selectedDogId === "all" ? "bg-stone-800 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:border-stone-400"}`}
+          >
+            Tous
+          </button>
+          {userDogs.map(d => (
+            <button 
+              key={d.id} 
+              onClick={() => setSelectedDogId(d.id)} 
+              className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${selectedDogId === d.id ? "bg-emerald-600 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:border-emerald-300"}`}
+            >
+              {d.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">←</button>
         <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
         <button onClick={() => setMiniCalDate(new Date(year, month + 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">→</button>
       </div>
-      
+
       <div className="grid grid-cols-7 gap-1.5 mb-2">
         {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
           <div key={i} className="text-center text-[10px] font-black text-stone-400">{d}</div>
@@ -75,17 +108,19 @@ export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarP
 
       <div className="grid grid-cols-7 gap-1.5">
         {Array.from({ length: startDay }).map((_, i) => <div key={`empty-${i}`} />)}
-        
+
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
-          
+
           const { status, myPersonalStatus } = getAvailability(day);
-          const isPast = dateStr < today;
+          
+          // Bloquer les dates passées
+          const isPast = dateStr <= today; 
           const isComplet = status === "complet";
           const isMyDay = !!myPersonalStatus;
-          
+
           const isDisabled = isPast || isComplet || isMyDay;
 
           let bgClass = "bg-white border border-stone-200 hover:border-emerald-400 text-stone-700 cursor-pointer shadow-sm";
@@ -116,7 +151,8 @@ export default function MiniPensionCalendar({ onDayClick }: MiniPensionCalendarP
               key={day}
               type="button"
               disabled={isDisabled}
-              onClick={() => onDayClick(dateStr)}
+              // On transmet l'ID du chien filtré !
+              onClick={() => onDayClick(dateStr, selectedDogId === "all" ? undefined : selectedDogId)}
               className={`relative h-8 w-full rounded-lg flex flex-col items-center justify-center text-xs transition-all ${bgClass}`}
               title={isDisabled ? "Indisponible" : "Cliquez pour réserver"}
             >
