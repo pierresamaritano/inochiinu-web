@@ -22,17 +22,22 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   };
 
   return (
-    <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-100">
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer">←</button>
-        <span className="text-[10px] font-black uppercase tracking-wider text-stone-800">{monthNames[month]} {year}</span>
-        <button onClick={() => setMiniCalDate(new Date(year, month + 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer">→</button>
+    <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setMiniCalDate(new Date(year, month - 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">←</button>
+        <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
+        <button onClick={() => setMiniCalDate(new Date(year, month + 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">→</button>
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      
+      <div className="grid grid-cols-7 gap-1.5 mb-2">
         {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
-          <div key={i} className="text-center text-[9px] font-black text-stone-400">{d}</div>
+          <div key={i} className="text-center text-[10px] font-black text-stone-400">{d}</div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
         {Array.from({ length: startDay }).map((_, i) => <div key={`empty-${i}`} />)}
+        
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
@@ -40,10 +45,17 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
           const status = getDayStatus(dateStr);
           const isPast = dateStr < today;
           
-          let bgClass = "bg-white border border-stone-200 hover:border-orange-400 text-stone-700 cursor-pointer";
-          if (status === "confirmé") bgClass = "bg-emerald-500 text-white shadow-sm font-bold cursor-not-allowed";
-          else if (status === "en_attente") bgClass = "bg-amber-400 text-white shadow-sm font-bold cursor-not-allowed";
-          else if (isPast) bgClass = "bg-transparent text-stone-300 cursor-not-allowed";
+          let bgClass = "bg-white border border-stone-200 hover:border-orange-400 text-stone-700 cursor-pointer shadow-sm";
+          
+          // Couleurs pour les jours réservés (Vert = Confirmé, Jaune = Attente)
+          if (status === "confirmé") {
+            bgClass = "bg-emerald-500 border-emerald-500 text-white shadow-md font-bold cursor-not-allowed";
+          } else if (status === "en_attente") {
+            bgClass = "bg-amber-400 border-amber-400 text-white shadow-md font-bold cursor-not-allowed";
+          } else if (isPast) {
+            // Jours passés grisés
+            bgClass = "bg-transparent border border-transparent text-stone-300 cursor-not-allowed";
+          }
 
           return (
             <button
@@ -51,7 +63,7 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
               type="button"
               disabled={isPast || !!status}
               onClick={() => onDayClick(dateStr)}
-              className={`h-7 w-full rounded-md flex items-center justify-center text-[10px] transition-all ${bgClass}`}
+              className={`h-8 w-full rounded-lg flex items-center justify-center text-xs transition-all ${bgClass}`}
               title={!isPast && !status ? "Cliquez pour réserver à cette date" : ""}
             >
               {day}
@@ -59,9 +71,10 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
           );
         })}
       </div>
-      <div className="mt-3 flex justify-center gap-3 text-[9px] font-bold text-stone-500">
-        <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Validé</span>
-        <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-400"></div> En attente</span>
+      
+      <div className="mt-5 pt-3 border-t border-stone-200/60 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+        <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></div> Validé</span>
+        <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm"></div> En attente</span>
       </div>
     </div>
   );

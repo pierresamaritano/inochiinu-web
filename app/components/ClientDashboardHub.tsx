@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import DogProfileManager from "./DogProfileManager";
 import ClientDogSelector from "./ClientDogSelector";
 import EducationCalendar from "./EducationCalendar";
-import MiniEducationCalendar from "./MiniEducationCalendar"; // NOUVEL IMPORT
+import MiniEducationCalendar from "./MiniEducationCalendar"; // IMPORT DU MINI CALENDRIER
 
 interface CancelTarget {
   table: string;
@@ -30,7 +30,7 @@ export default function ClientDashboardHub() {
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // --- ÉTATS POUR LA RÉSERVATION RAPIDE ---
+  // --- ÉTATS POUR LA RÉSERVATION RAPIDE DEPUIS L'ESPACE MEMBRE ---
   const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
   const [quickBookStep, setQuickBookStep] = useState(1);
   const [quickSubmitting, setQuickSubmitting] = useState(false);
@@ -125,11 +125,13 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // Déclenché par le MiniEducationCalendar
+  // =========================================================================
+  // LOGIQUE DU CLIC SUR LE MINI CALENDRIER
+  // =========================================================================
   const handleMiniCalClick = (dateStr: string) => {
     setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
     setQuickSubmitted(false);
-    setQuickBookStep(1);
+    setQuickBookStep(1); // Étape 1 : Choix du lieu + Heure
     setIsQuickBookOpen(true);
   };
 
@@ -159,18 +161,18 @@ export default function ClientDashboardHub() {
           dog_breed: quickForm.dogBreed,
           dog_age: quickForm.dogAge,
           objectives: quickForm.objectives,
-          issues: [], // Pas de problèmes spécifiques demandés en suivi
+          issues: [], // Pas besoin des checkboxes pour un suivi
           scheduled_date: quickForm.scheduledDate,
           preferred_slot: quickForm.timeSlot,
-          session_type: "suivi", // Toujours un suivi via l'espace membre
+          session_type: "suivi", // Forcé à "suivi" car on est déjà client
           location_preference: quickForm.location,
-          price_estimate: quickForm.location === "domicile" ? 65 : 45, // Tarif de suivi
+          price_estimate: quickForm.location === "domicile" ? 65 : 45,
           status: "en_attente",
         },
       ]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Met à jour le mini-calendrier en arrière-plan
+      fetchUserServices(); // Met à jour le mini-calendrier
     } catch (err) {
       console.error(err);
     } finally {
@@ -215,7 +217,7 @@ export default function ClientDashboardHub() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
           
           {/* ========================================================================= */}
-          {/* WIDGET ÉDUCATION (AVEC MINI-CALENDRIER EXTRAIT) */}
+          {/* WIDGET ÉDUCATION (AVEC MINI-CALENDRIER INTÉGRÉ) */}
           {/* ========================================================================= */}
           {filteredEdu.length > 0 && (
             <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
@@ -224,26 +226,22 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                  <a href="/education" className="flex items-center h-8 px-4 rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700 text-[10px] font-black uppercase transition-colors shadow-sm">
-                    📅 Réserver
-                  </a>
-                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0">
-                    {filteredEdu.length}
-                  </div>
+                {/* Le bouton "Réserver" a été retiré, seul le compteur reste */}
+                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
+                  {filteredEdu.length}
                 </div>
               </div>
 
-              {/* UTILISATION DU NOUVEAU COMPOSANT MINI-CALENDRIER */}
+              {/* MINI-CALENDRIER INTERACTIF */}
               <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-6 space-y-3">
                 {(expandedWidget === 'edu' ? filteredEdu : filteredEdu.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
+                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.dog_name} ({item.dog_breed})</h4>
+                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                             item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                           }`}>
@@ -279,7 +277,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredEdu.length > 2 && (
-                <button onClick={() => toggleWidget('edu')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('edu')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'edu' ? "Réduire" : `Voir tout (+${filteredEdu.length - 2})`}
                 </button>
               )}
@@ -301,18 +299,18 @@ export default function ClientDashboardHub() {
 
               <div className="mt-4 space-y-3">
                 {(expandedWidget === 'pen' ? filteredPension : filteredPension.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
+                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.dog_name}</h4>
+                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.dog_name}</h4>
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                             item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                           }`}>
                             {item.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-400 font-medium block mt-0.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
+                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
                       </div>
 
                       {item.status !== "annulé" && item.status !== "terminé" && (
@@ -336,7 +334,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredPension.length > 2 && (
-                <button onClick={() => toggleWidget('pen')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('pen')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'pen' ? "Réduire" : `Voir tout (+${filteredPension.length - 2})`}
                 </button>
               )}
@@ -358,18 +356,18 @@ export default function ClientDashboardHub() {
 
               <div className="mt-4 space-y-3">
                 {(expandedWidget === 'adp' ? filteredAdoption : filteredAdoption.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
+                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.preferred_breed}</h4>
+                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.preferred_breed}</h4>
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                             item.status === 'accepté' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
                           }`}>
                             {item.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-400 block mt-0.5">{item.living_environment}</span>
+                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.living_environment}</span>
                       </div>
 
                       {item.status !== "annulé" && (
@@ -393,7 +391,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredAdoption.length > 2 && (
-                <button onClick={() => toggleWidget('adp')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('adp')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'adp' ? "Réduire" : `Voir tout (+${filteredAdoption.length - 2})`}
                 </button>
               )}
@@ -415,18 +413,18 @@ export default function ClientDashboardHub() {
 
               <div className="mt-4 space-y-3">
                 {(expandedWidget === 'sel' ? filteredSellerie : filteredSellerie.slice(0, 2)).map((item) => (
-                  <div key={item.id} className="p-4 rounded-2xl bg-stone-50/70 border border-stone-100 flex flex-col justify-between gap-3">
+                  <div key={item.id} className="p-4 rounded-2xl bg-white border border-stone-100 flex flex-col justify-between gap-3 shadow-sm">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-bold text-stone-900">{item.item_type}</h4>
+                          <h4 className="text-xs sm:text-sm font-black text-stone-900">{item.item_type}</h4>
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${
                             item.status === 'expédié' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
                           }`}>
                             {item.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-400 block mt-0.5">{item.color_finish} • {item.dog_size}</span>
+                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">{item.color_finish} • {item.dog_size}</span>
                       </div>
 
                       {item.status === "en_attente" && (
@@ -450,7 +448,7 @@ export default function ClientDashboardHub() {
               </div>
 
               {filteredSellerie.length > 2 && (
-                <button onClick={() => toggleWidget('sel')} className="mt-3 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
+                <button onClick={() => toggleWidget('sel')} className="mt-4 text-xs font-bold text-stone-500 hover:text-stone-900 block mx-auto cursor-pointer">
                   {expandedWidget === 'sel' ? "Réduire" : `Voir tout (+${filteredSellerie.length - 2})`}
                 </button>
               )}
@@ -504,14 +502,14 @@ export default function ClientDashboardHub() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsQuickBookOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsQuickBookOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer z-50">✕</button>
+            <button onClick={() => setIsQuickBookOpen(false)} className="absolute top-6 right-6 text-stone-600 hover:text-stone-900 bg-white shadow-sm p-1.5 rounded-full cursor-pointer z-50">✕</button>
 
             {quickSubmitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Séance demandée !</h3>
                 <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
-                <button onClick={() => setIsQuickBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Fermer</button>
+                <button onClick={() => setIsQuickBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md">Fermer</button>
               </div>
             ) : (
               <form onSubmit={handleQuickSubmit} className="space-y-6">
@@ -552,7 +550,6 @@ export default function ClientDashboardHub() {
                     </div>
 
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                      {/* On réutilise EducationCalendar, mais on force selectedDate pour qu'il n'affiche que les horaires du jour cliqué */}
                       <EducationCalendar 
                         location={quickForm.location}
                         selectedDate={quickForm.scheduledDate}
