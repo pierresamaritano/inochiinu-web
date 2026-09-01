@@ -149,11 +149,9 @@ export default function AdminManagerView() {
     setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
   };
 
-  // --- NOUVEAU : Fonction pour appliquer le filtre depuis une carte cliquée ---
   const handleFilterFromCard = async (item: any) => {
     if (!item.user_id) return;
     
-    // 1. On crée le profil client virtuel depuis l'item
     const client: ClientProfile = {
       id: item.user_id,
       full_name: item.client_name,
@@ -161,26 +159,20 @@ export default function AdminManagerView() {
       phone: item.client_phone || ""
     };
     
-    // 2. On applique le filtre client
     setSelectedFilterClient(client);
     setClientSearchQuery(`${client.full_name || client.email}`);
     setSearchResults([]);
     
-    // 3. On récupère ses chiens pour le menu déroulant
     const { data } = await supabase.from("dogs").select("*").eq("user_id", client.id);
     setClientDogs(data || []);
     
-    // 4. On sélectionne le chien spécifique si présent
     if (item.dog_id) {
       setSelectedFilterDogId(item.dog_id);
     } else {
       setSelectedFilterDogId("all");
     }
 
-    // 5. On bascule sur l'historique complet pour voir toutes les séances de ce chien
     setStatusFilter("tous");
-    
-    // 6. On remonte en haut de la page doucement
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -401,10 +393,10 @@ export default function AdminManagerView() {
         <div className="flex items-center justify-between">
           <button 
             onClick={() => handleFilterFromCard(item)}
-            title="Voir tout l'historique de ce client"
-            className="text-[10px] font-black uppercase text-orange-600 tracking-wider hover:bg-orange-50 px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+            title="Voir tout l'historique de ce client et ce chien"
+            className="text-[10px] font-black uppercase text-orange-600 tracking-wider bg-orange-50 px-2 py-0.5 rounded-md hover:bg-orange-100 transition-colors flex items-center gap-1 cursor-pointer"
           >
-            {item.client_name} <span className="text-[12px]">🔍</span>
+            {item.client_name} • {item.client_phone} <span className="text-[12px]">🔍</span>
           </button>
           <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
             {item.status}
@@ -412,6 +404,13 @@ export default function AdminManagerView() {
         </div>
 
         <div className="text-xs text-stone-600 space-y-1">
+          <h4 
+            onClick={() => handleFilterFromCard(item)}
+            className="text-base font-black text-stone-900 mt-1 mb-2 cursor-pointer hover:text-orange-600 transition-colors inline-block"
+            title="Filtrer pour ce chien"
+          >
+            Candidature
+          </h4>
           <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
           <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
           <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
@@ -475,7 +474,7 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
+      {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
@@ -945,7 +944,7 @@ export default function AdminManagerView() {
               <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {/* VIDES */}
                 {Array.from({ length: new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() === 0 ? 6 : new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() - 1 }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-12 rounded-xl bg-transparent" />
+                  <div key={`empty-${i}`} className="h-12 sm:h-14 rounded-lg sm:rounded-xl bg-transparent" />
                 ))}
                 
                 {/* JOURS */}
@@ -988,27 +987,27 @@ export default function AdminManagerView() {
                       key={day} 
                       disabled={hasReservations && !isClosed && !isSelectedStart && !isSelectedEnd && !isBetween}
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
-                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${cellClass}`}
+                      className={`relative h-12 sm:h-14 w-full rounded-lg sm:rounded-xl flex flex-col items-center justify-start pt-1.5 sm:pt-2 transition-all cursor-pointer ${cellClass}`}
                       title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
                     >
-                      <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
+                      <span className={`text-[10px] sm:text-xs leading-none ${textClass}`}>{day}</span>
                       
-                      <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
-                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
-                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
+                      <div className="absolute bottom-1 sm:bottom-1.5 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
+                        {eduCount > 0 && <span className="flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[7px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
+                        {penCount > 0 && <span className="flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[7px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
                       </div>
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-6 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
-                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Éducation</span>
-                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Pension</span>
+              <div className="mt-4 sm:mt-6 flex justify-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                 <span className="flex items-center gap-1 sm:gap-1.5"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500"></div> Éducation</span>
+                 <span className="flex items-center gap-1 sm:gap-1.5"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500"></div> Pension</span>
               </div>
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
+            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
