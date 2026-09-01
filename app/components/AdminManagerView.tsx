@@ -15,7 +15,6 @@ interface ActionTarget {
 
 type PeriodOption = "1m" | "6m" | "1y";
 
-// Nouveau type pour les filtres de statut
 type StatusGroup = "en_attente" | "valide" | "termine" | "annule" | "tous";
 
 interface Dog {
@@ -53,8 +52,6 @@ export default function AdminManagerView() {
   const [littersList, setLittersList] = useState<any[]>([]); 
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
-  
-  // --- NOUVEAU : État du filtre par statut (par défaut sur en_attente) ---
   const [statusFilter, setStatusFilter] = useState<StatusGroup>("en_attente");
   
   const [editingLitter, setEditingLitter] = useState<any>(null);
@@ -152,7 +149,41 @@ export default function AdminManagerView() {
     setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
   };
 
-  // --- NOUVELLE FONCTION DE FILTRAGE (INCLUANT LES STATUTS) ---
+  // --- NOUVEAU : Fonction pour appliquer le filtre depuis une carte cliquée ---
+  const handleFilterFromCard = async (item: any) => {
+    if (!item.user_id) return;
+    
+    // 1. On crée le profil client virtuel depuis l'item
+    const client: ClientProfile = {
+      id: item.user_id,
+      full_name: item.client_name,
+      email: item.client_email || "",
+      phone: item.client_phone || ""
+    };
+    
+    // 2. On applique le filtre client
+    setSelectedFilterClient(client);
+    setClientSearchQuery(`${client.full_name || client.email}`);
+    setSearchResults([]);
+    
+    // 3. On récupère ses chiens pour le menu déroulant
+    const { data } = await supabase.from("dogs").select("*").eq("user_id", client.id);
+    setClientDogs(data || []);
+    
+    // 4. On sélectionne le chien spécifique si présent
+    if (item.dog_id) {
+      setSelectedFilterDogId(item.dog_id);
+    } else {
+      setSelectedFilterDogId("all");
+    }
+
+    // 5. On bascule sur l'historique complet pour voir toutes les séances de ce chien
+    setStatusFilter("tous");
+    
+    // 6. On remonte en haut de la page doucement
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
@@ -165,7 +196,6 @@ export default function AdminManagerView() {
       if (selectedFilterClient && item.user_id !== selectedFilterClient.id) return false;
       if (selectedFilterDogId !== "all" && item.dog_id !== selectedFilterDogId) return false;
 
-      // Filtre par statut
       if (statusFilter !== "tous") {
         if (statusFilter === "en_attente" && !['en_attente', 'liste_attente'].includes(item.status)) return false;
         if (statusFilter === "valide" && !['confirmé', 'accepté', 'en_atelier'].includes(item.status)) return false;
@@ -369,7 +399,13 @@ export default function AdminManagerView() {
     return (
       <div key={item.id} className={`p-4 rounded-2xl border ${isRefused ? 'border-stone-100 bg-stone-50 opacity-80' : 'border-stone-200 bg-white shadow-sm'} space-y-3`}>
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider">{item.client_name}</span>
+          <button 
+            onClick={() => handleFilterFromCard(item)}
+            title="Voir tout l'historique de ce client"
+            className="text-[10px] font-black uppercase text-orange-600 tracking-wider hover:bg-orange-50 px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            {item.client_name} <span className="text-[12px]">🔍</span>
+          </button>
           <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === "accepté" ? "bg-emerald-100 text-emerald-800" : item.status === "liste_attente" ? "bg-amber-100 text-amber-800" : isRefused ? "bg-red-100 text-red-800" : "bg-stone-100 text-stone-800"}`}>
             {item.status}
           </span>
@@ -439,7 +475,7 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
+      {/* 0. CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
@@ -496,7 +532,6 @@ export default function AdminManagerView() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="w-full md:w-auto">
-            {/* Grille 2 colonnes sur mobile pour éviter le scroll, ligne flex sur tablette/desktop */}
             <div className="grid grid-cols-2 md:flex md:flex-row items-center gap-1.5 p-1.5 rounded-[1.5rem] md:rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner w-full md:w-auto">
               <button onClick={() => setTab("education")} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
                 Éducation <span className="opacity-60 font-bold ml-1">({filteredEdu.length})</span>
@@ -521,7 +556,6 @@ export default function AdminManagerView() {
           </div>
         </div>
 
-        {/* NOUVEAU : Boutons de filtre par STATUT */}
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <button 
             onClick={() => setStatusFilter("en_attente")} 
@@ -569,14 +603,22 @@ export default function AdminManagerView() {
                   <div className="flex-1 w-full flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider bg-orange-50 px-2 py-0.5 rounded-md">
-                          {item.client_name} • {item.client_phone}
-                        </span>
+                        <button 
+                          onClick={() => handleFilterFromCard(item)}
+                          title="Voir tout l'historique de ce client et ce chien"
+                          className="text-[10px] font-black uppercase text-orange-600 tracking-wider bg-orange-50 px-2 py-0.5 rounded-md hover:bg-orange-100 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          {item.client_name} • {item.client_phone} <span className="text-[12px]">🔍</span>
+                        </button>
                         <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'}`}>
                           {item.status}
                         </span>
                       </div>
-                      <h4 className="text-xl font-black text-stone-900 mt-1">
+                      <h4 
+                        onClick={() => handleFilterFromCard(item)}
+                        className="text-xl font-black text-stone-900 mt-1 cursor-pointer hover:text-orange-600 transition-colors inline-block"
+                        title="Filtrer pour ce chien"
+                      >
                         {item.dog_name} <span className="text-xs text-stone-500 font-medium">({item.dog_breed}{item.dog_age ? `, ${item.dog_age}` : ''})</span>
                       </h4>
                       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
@@ -652,8 +694,21 @@ export default function AdminManagerView() {
            {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune demande trouvée avec ces filtres.</div> : filteredPension.map((item) => (
             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name} • {item.client_phone}</span></div>
-                <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
+                <div className="flex gap-2 mb-1">
+                  <button 
+                    onClick={() => handleFilterFromCard(item)}
+                    title="Voir l'historique complet"
+                    className="text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-50 px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    {item.client_name} • {item.client_phone} <span className="text-[12px]">🔍</span>
+                  </button>
+                </div>
+                <h4 
+                  onClick={() => handleFilterFromCard(item)}
+                  className="text-base font-black mt-1 cursor-pointer hover:text-emerald-600 transition-colors inline-block"
+                >
+                  {item.dog_name}
+                </h4>
                 <p className="text-xs text-stone-500">Du {item.start_date} au {item.end_date}</p>
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
@@ -690,7 +745,6 @@ export default function AdminManagerView() {
               {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune portée créée pour le moment.</div>}
 
               {littersList.map(litter => {
-                // IMPORTANT: on filtre les candidatures avec `adoptionList` pure pour ne pas perdre les "accepté" lors du filtrage "en attente"
                 const activeLitterApps = adoptionList.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
                 const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
@@ -699,7 +753,6 @@ export default function AdminManagerView() {
                 const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
                 const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
 
-                // Application du filtre de statut UNIQUEMENT pour déterminer ce qu'on AFFICHE
                 const shouldShowNew = statusFilter === "tous" || statusFilter === "en_attente" || statusFilter === "valide";
                 const shouldShowWait = statusFilter === "tous" || statusFilter === "en_attente";
                 const shouldShowRefused = statusFilter === "tous" || statusFilter === "annule";
@@ -728,7 +781,6 @@ export default function AdminManagerView() {
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
-                            // On cherche dans l'adoptionList PURE pour que le propriétaire apparaisse toujours
                             const acceptedApp = adoptionList.find(a => a.puppy_id === pup.id && a.status === 'accepté');
                             return (
                               <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
@@ -823,7 +875,15 @@ export default function AdminManagerView() {
           {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune commande trouvée avec ces filtres.</div> : filteredSellerie.map((item) => (
              <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name} • {item.client_phone}</span></div>
+                <div className="flex gap-2 mb-1">
+                  <button 
+                    onClick={() => handleFilterFromCard(item)}
+                    title="Voir l'historique complet"
+                    className="text-[10px] font-black uppercase text-amber-600 hover:bg-amber-50 px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    {item.client_name} • {item.client_phone} <span className="text-[12px]">🔍</span>
+                  </button>
+                </div>
                 <h4 className="text-base font-black mt-1">{item.item_type}</h4>
                 <p className="text-xs text-stone-500">{item.color_finish} • {item.dog_size}</p>
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
@@ -893,6 +953,7 @@ export default function AdminManagerView() {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
+                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
                   const hasReservations = eduCount > 0 || penCount > 0;
@@ -900,23 +961,26 @@ export default function AdminManagerView() {
                   const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
                   const isClosed = !!closure;
 
+                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
 
-                  let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
+                  let cellClass = "bg-stone-50 border border-stone-100";
                   let textClass = "text-stone-700";
 
                   if (isClosed) {
-                    bgClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 hover:border-red-400";
+                    cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 cursor-pointer hover:border-red-400";
                   } else if (hasReservations) {
-                    bgClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
+                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
                   } else if (isSelectedStart || isSelectedEnd) {
-                    bgClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10";
+                    cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10 cursor-pointer";
                     textClass = "text-white font-black";
                   } else if (isBetween) {
-                    bgClass = "bg-stone-200 border-stone-300";
+                    cellClass = "bg-stone-200 border-stone-300 cursor-pointer";
                     textClass = "text-stone-900 font-bold";
+                  } else {
+                    cellClass += " hover:border-orange-400 cursor-pointer";
                   }
 
                   return (
@@ -924,18 +988,19 @@ export default function AdminManagerView() {
                       key={day} 
                       disabled={hasReservations && !isClosed && !isSelectedStart && !isSelectedEnd && !isBetween}
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
-                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
+                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${cellClass}`}
+                      title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
                     >
                       <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
-                      <div className="flex gap-1 mt-0.5">
-                        {eduCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>}
-                        {penCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                      
+                      <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
+                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
+                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
                       </div>
                     </button>
                   );
                 })}
               </div>
-              {/* LÉGENDE */}
               <div className="mt-6 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                  <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Éducation</span>
                  <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Pension</span>
@@ -943,7 +1008,7 @@ export default function AdminManagerView() {
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
+            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
