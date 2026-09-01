@@ -11,19 +11,16 @@ import ContactSection from "../components/ContactSection";
 
 // CATALOGUE DE LA BOUTIQUE
 const PRODUCTS = [
-  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
-  { id: "lais-multi", name: "Laisse Multipositions (2m)", price: "35€", type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
-  { id: "harn-para", name: "Collier Paracorde Tressé", price: "30€", type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
-  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: "45€", type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
+  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: 25, type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
+  { id: "lais-multi", name: "Laisse Multipositions (2m)", price: 35, type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
+  { id: "harn-para", name: "Collier Paracorde Tressé", price: 30, type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
+  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: 45, type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
 ];
 
 export default function SelleriePage() {
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
-
-  // --- NOUVEAU : État de l'arrêt d'urgence ---
-  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -35,6 +32,7 @@ export default function SelleriePage() {
     dogName: "",
     dogBreed: "",
     color: "",
+    hardware: "Laiton Doré", // Option ajoutée pour l'aperçu
     neckSize: "",
     clientPhone: "",
   });
@@ -48,14 +46,6 @@ export default function SelleriePage() {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data.session?.user || null);
-
-      // Récupération du paramètre d'urgence global
-      try {
-        const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
-        if (setting && setting.value === "true") setIsEmergencyStopActive(true);
-      } catch (e) {
-        // Ignorer si erreur ou table inexistante
-      }
     };
     fetchUser();
   }, [supabase]);
@@ -83,13 +73,16 @@ export default function SelleriePage() {
   ];
 
   const handleOpenProduct = (product: any) => {
-    if (isEmergencyStopActive) return; // Sécurité supplémentaire
     if (!user) {
       setIsAuthOpen(true);
       return;
     }
     setSelectedProduct(product);
-    setFormData(prev => ({ ...prev, color: product.colors[0] })); // Couleur par défaut
+    setFormData(prev => ({ 
+      ...prev, 
+      color: product.colors[0],
+      hardware: "Laiton Doré"
+    }));
     setSubmitted(false);
   };
 
@@ -106,7 +99,7 @@ export default function SelleriePage() {
 
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.dog_id) {
+    if (!formData.dog_id && selectedProduct.type === "Collier") {
       alert("Veuillez sélectionner un chien pour associer les mensurations.");
       return;
     }
@@ -115,13 +108,13 @@ export default function SelleriePage() {
     try {
       const { error } = await supabase.from("sellerie_orders").insert([{
         user_id: user.id,
-        dog_id: formData.dog_id,
+        dog_id: formData.dog_id || null, // Optionnel si on commande une laisse
         client_name: user.user_metadata?.full_name || "Client",
         client_email: user.email,
         client_phone: formData.clientPhone,
         item_type: selectedProduct.name,
-        color_finish: formData.color,
-        dog_size: `Tour de cou: ${formData.neckSize}cm`,
+        color_finish: `${formData.color} - Mousquetons: ${formData.hardware}`,
+        dog_size: formData.neckSize ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
         status: "en_attente",
       }]);
       if (error) throw error;
@@ -133,10 +126,24 @@ export default function SelleriePage() {
     }
   };
 
+  // --- Dictionnaire de couleurs pour le configurateur visuel ---
+  const colorMap: Record<string, string> = {
+    "Noir": "bg-stone-900",
+    "Fauve": "bg-amber-600",
+    "Kaki": "bg-emerald-800",
+    "Bordeaux": "bg-rose-900",
+    "Beige": "bg-stone-200",
+    "Vert Forêt": "bg-emerald-900",
+    "Orange Fluo": "bg-orange-500",
+    "Jaune Fluo": "bg-yellow-400",
+    "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
+  };
+
+  const hardwareColor = formData.hardware === "Laiton Doré" ? "bg-amber-400 border-amber-500" : "bg-stone-800 border-stone-900";
+
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
       
-      {/* HALOS FAUVE (Optimisés pour iOS) */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -144,7 +151,6 @@ export default function SelleriePage() {
 
       <LiquidNavbar />
 
-      {/* HERO SECTION */}
       <section className="relative z-10 flex w-full flex-col items-center pt-36 pb-6 text-center px-4">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-50/70 backdrop-blur-md px-4 py-1 text-xs font-bold text-amber-700 shadow-sm">
           <span>Fait Main en France</span>
@@ -157,10 +163,8 @@ export default function SelleriePage() {
         </p>
       </section>
 
-      {/* CARROUSEL INTÉGRÉ SOUS LE TITRE */}
       <AppleCarousel slides={sellerieCarouselSlides} />
 
-      {/* GRILLE DE LA BOUTIQUE (E-COMMERCE) */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 my-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {PRODUCTS.map((product) => (
@@ -171,29 +175,22 @@ export default function SelleriePage() {
                 </div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-black text-stone-900 text-lg leading-tight">{product.name}</h3>
-                  <span className="font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-sm">{product.price}</span>
+                  <span className="font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-lg text-sm">{product.price}€</span>
                 </div>
                 <p className="text-xs text-stone-500 mt-2 leading-relaxed">{product.desc}</p>
               </div>
               
-              {/* BOUTON AVEC VERROU D'URGENCE */}
               <button 
                 onClick={() => handleOpenProduct(product)}
-                disabled={isEmergencyStopActive}
-                className={`mt-6 w-full py-3 font-bold text-xs uppercase tracking-wide rounded-full transition-colors ${
-                  isEmergencyStopActive 
-                    ? "bg-stone-200 text-stone-400 cursor-not-allowed" 
-                    : "bg-stone-900 text-white hover:bg-amber-600 cursor-pointer"
-                }`}
+                className="mt-6 w-full py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-amber-600 transition-colors cursor-pointer"
               >
-                {isEmergencyStopActive ? "Commandes Suspendues" : "Personnaliser"}
+                Personnaliser
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
@@ -212,58 +209,188 @@ export default function SelleriePage() {
         </div>
       )}
 
-      {/* MODALE COMMANDE PRODUIT */}
+      {/* MODALE CONFIGURATEUR DE COMMANDE */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white p-8 rounded-[2.5rem] shadow-2xl">
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-sm">
+          <div className="relative w-full max-w-5xl h-[90vh] flex flex-col md:flex-row bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 z-50 flex items-center justify-center w-8 h-8 bg-white/50 backdrop-blur-md hover:bg-white text-stone-500 hover:text-stone-900 rounded-full cursor-pointer transition shadow-sm border border-stone-200">✕</button>
             
             {submitted ? (
-              <div className="text-center py-8">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4 text-2xl">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
-                <p className="text-xs text-stone-500 mt-2">Nous préparons votre {selectedProduct.name}. Vous recevrez un lien de paiement par email prochainement.</p>
-                <button onClick={() => setSelectedProduct(null)} className="mt-6 px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Retour à la boutique</button>
+              <div className="w-full flex flex-col items-center justify-center p-8 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-6 text-3xl">✓</div>
+                <h3 className="text-2xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
+                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Nous préparons votre {selectedProduct.name} ({formData.color}). Vous recevrez un lien de paiement Stripe par email une fois votre équipement prêt à être expédié.</p>
+                <button onClick={() => setSelectedProduct(null)} className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-widest rounded-full cursor-pointer hover:bg-stone-800 transition">Fermer</button>
               </div>
             ) : (
-              <form onSubmit={handleOrder} className="space-y-5">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Sur-mesure</span>
-                  <h3 className="text-2xl font-black text-stone-900 mt-2">{selectedProduct.name}</h3>
-                  <p className="text-sm font-black text-stone-500 mt-1">{selectedProduct.price}</p>
-                </div>
+              <>
+                {/* COLONNE GAUCHE : APERÇU VISUEL (CONFIGURATEUR) */}
+                <div className="w-full md:w-1/2 bg-stone-50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
+                  <div className="p-6 shrink-0 z-10">
+                    <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
+                    <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
+                  </div>
 
-                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 space-y-4">
-                  {/* SÉLECTEUR DE CHIEN */}
-                  <ClientDogSelector
-                    isAdmin={false}
-                    currentUserId={user?.id}
-                    onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
-                  />
+                  <div className="flex-1 relative flex items-center justify-center p-8 min-h-[250px]">
+                    
+                    {/* --- DESSIN SVG DYNAMIQUE : LAISSE MULTIPOSITIONS --- */}
+                    {selectedProduct.type === "Laisse" && (
+                      <div className="w-full h-full max-h-[400px] flex items-center justify-center relative">
+                         {/* Corde Principale */}
+                         <div className={`absolute top-1/2 -translate-y-1/2 w-4/5 h-3 ${colorMap[formData.color] || 'bg-stone-800'} rounded-full shadow-inner transition-colors duration-500`} />
+                         
+                         {/* Mousqueton Gauche (Chien) */}
+                         <div className={`absolute left-[10%] top-1/2 -translate-y-1/2 w-6 h-10 ${hardwareColor} rounded-l-full rounded-r-sm border-2 shadow-md transition-colors duration-500 flex items-center justify-end pr-1`}>
+                            <div className="w-1.5 h-6 bg-black/20 rounded-full" />
+                         </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200">
-                    <div className="w-full min-w-0">
-                      <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Couleur</label>
-                      <select value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})} className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none cursor-pointer">
-                        {selectedProduct.colors.map((c: string) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div className="w-full min-w-0">
-                      <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Tour de cou exact (cm) *</label>
-                      <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs focus:outline-none" />
-                    </div>
+                         {/* Anneau 1 (Attache rapide) */}
+                         <div className={`absolute left-[30%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
+
+                         {/* Anneau 2 (Moitié) */}
+                         <div className={`absolute left-[60%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
+
+                         {/* Anneau 3 (Poignée) */}
+                         <div className={`absolute right-[20%] top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
+
+                         {/* Mousqueton Droit (Maitre) */}
+                         <div className={`absolute right-[5%] top-1/2 -translate-y-1/2 w-6 h-10 ${hardwareColor} rounded-r-full rounded-l-sm border-2 shadow-md transition-colors duration-500 flex items-center justify-start pl-1`}>
+                            <div className="w-1.5 h-6 bg-black/20 rounded-full" />
+                         </div>
+
+                         {/* Étiquette d'explication */}
+                         <div className="absolute bottom-4 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                           {formData.color} • {formData.hardware}
+                         </div>
+                      </div>
+                    )}
+
+                    {/* --- DESSIN SVG DYNAMIQUE : COLLIER --- */}
+                    {selectedProduct.type === "Collier" && (
+                      <div className="w-full h-full flex flex-col items-center justify-center relative">
+                        <div className={`w-64 h-64 rounded-full border-[24px] ${colorMap[formData.color] || 'bg-stone-800'} shadow-xl relative transition-all duration-500`}>
+                          <div className={`absolute -top-[12px] left-1/2 -translate-x-1/2 w-16 h-[48px] ${hardwareColor} border-2 rounded-lg shadow-md transition-colors duration-500 flex items-center justify-center`}>
+                             <div className="w-2 h-10 bg-black/20 rounded-full" />
+                          </div>
+                          <div className={`absolute top-[20px] left-[15px] w-8 h-8 rounded-full border-4 ${hardwareColor} shadow-md transition-colors duration-500`} />
+                        </div>
+                        <div className="absolute bottom-4 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-4">
+                           {formData.color} • {formData.hardware}
+                         </div>
+                      </div>
+                    )}
+
+                    {/* --- AUTRES PRODUITS (Fallback) --- */}
+                    {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && (
+                      <div className="text-center">
+                        <div className={`w-32 h-32 mx-auto rounded-3xl ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-500 flex items-center justify-center text-4xl`}>
+                          📦
+                        </div>
+                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-4">{formData.color}</p>
+                      </div>
+                    )}
+
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Téléphone de contact *</label>
-                  <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none" />
-                </div>
+                {/* COLONNE DROITE : FORMULAIRE DE COMMANDE */}
+                <div className="w-full md:w-1/2 flex flex-col h-full overflow-y-auto">
+                  <div className="p-6 sm:p-8 flex-1">
+                    <form id="order-form" onSubmit={handleOrder} className="space-y-8">
+                      
+                      {/* Choix des couleurs (Pastilles cliquables) */}
+                      <div>
+                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
+                        <div className="flex flex-wrap gap-3">
+                          {selectedProduct.colors.map((c: string) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, color: c })}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}
+                            >
+                              <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
+                              <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
 
-                <button type="submit" disabled={submitting || !formData.dog_id} className="w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase rounded-full hover:bg-stone-800 disabled:opacity-50 transition-all cursor-pointer shadow-md">
-                  {submitting ? "Validation..." : "Valider ma commande"}
-                </button>
-              </form>
+                      {/* Choix de la Bouclerie */}
+                      <div>
+                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Finition de la bouclerie</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })}
+                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}
+                          >
+                            <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
+                            <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, hardware: "Acier Noir" })}
+                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}
+                          >
+                            <span className="font-black text-sm text-stone-900 block">Acier Tactique</span>
+                            <span className="text-[10px] font-bold text-stone-500">Finition Mate Noir (+0€)</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-stone-200 pt-6 space-y-5">
+                        <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">3. Mensurations & Contact</label>
+                        
+                        {/* Optionnel si ce n'est pas un collier */}
+                        {selectedProduct.type === "Collier" ? (
+                           <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                            <ClientDogSelector
+                              isAdmin={false}
+                              currentUserId={user?.id}
+                              onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
+                            />
+                            <div className="mt-4">
+                              <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Tour de cou exact (cm) *</label>
+                              <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                            </div>
+                           </div>
+                        ) : (
+                          <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 text-xs text-stone-500 font-medium">
+                            <span className="block mb-2">🐕 Ce produit taille de manière standard. Vous pouvez néanmoins associer la commande à un de vos chiens si vous le souhaitez (optionnel).</span>
+                            <ClientDogSelector
+                              isAdmin={false}
+                              currentUserId={user?.id}
+                              onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Téléphone de contact *</label>
+                          <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* BANDEAU DE VALIDATION EN BAS */}
+                  <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
+                      <span className="text-2xl font-black text-white">{selectedProduct.price}€</span>
+                    </div>
+                    <button 
+                      form="order-form"
+                      type="submit" 
+                      disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} 
+                      className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg"
+                    >
+                      {submitting ? "..." : "Valider"}
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
