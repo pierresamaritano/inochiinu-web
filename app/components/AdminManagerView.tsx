@@ -233,13 +233,11 @@ export default function AdminManagerView() {
   };
 
   const handleCalClick = (dateStr: string, closureId?: string, hasReservations?: boolean) => {
-    // Si c'est déjà fermé, on propose de supprimer
     if (closureId) {
       removeClosure(closureId);
       return;
     }
 
-    // Si le jour contient des réservations, on bloque la sélection
     if (hasReservations) {
       alert("Impossible de bloquer cette date : vous avez déjà des réservations confirmées ou en attente à ce moment-là.");
       return;
@@ -254,7 +252,6 @@ export default function AdminManagerView() {
       setNewClosureEnd("");
     } else {
       if (dateStr >= newClosureStart) {
-        // Vérification de la plage entière
         if (checkOverlapWithReservations(newClosureStart, dateStr)) {
           alert("La période sélectionnée englobe des jours avec des réservations. La sélection a été réinitialisée.");
           setNewClosureStart(dateStr);
@@ -295,7 +292,6 @@ export default function AdminManagerView() {
       setNewClosureStart("");
       setNewClosureEnd("");
       
-      // On bascule sur la liste après l'ajout pour confirmer visuellement
       setClosureViewMode("list");
     } catch (err: any) {
       alert(`Erreur : ${err.message}`);
@@ -381,7 +377,7 @@ export default function AdminManagerView() {
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
             <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-              <option value="">Sélectionner un chiot...</option>
+              <option value="">Sélectionner un chiot (obligatoire)...</option>
               {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
                 <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
               ))}
@@ -403,7 +399,10 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
+                if (!hasPuppySelected) {
+                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
+                  return;
+                }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -413,11 +412,13 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
+
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
+
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -435,7 +436,7 @@ export default function AdminManagerView() {
     <div className="mt-8 space-y-6">
 
       {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
           <p className="text-xs text-stone-500 mt-0.5">Gérez les demandes, les plannings et l'état du site.</p>
@@ -906,14 +907,14 @@ export default function AdminManagerView() {
 
               {closureViewMode === "calendar" ? (
                 <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] border border-stone-200 shadow-sm flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <div className="flex-1">
+                  <div className="flex flex-col gap-3">
+                    <div className="w-full">
                       <label className="block text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 mb-1">Du</label>
-                      <input type="date" value={newClosureStart} onChange={e => setNewClosureStart(e.target.value)} className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 text-[10px] sm:text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+                      <input type="date" value={newClosureStart} onChange={e => setNewClosureStart(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
                     </div>
-                    <div className="flex-1">
+                    <div className="w-full">
                       <label className="block text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 mb-1">Au</label>
-                      <input type="date" value={newClosureEnd} onChange={e => setNewClosureEnd(e.target.value)} className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 text-[10px] sm:text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
+                      <input type="date" value={newClosureEnd} onChange={e => setNewClosureEnd(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
                     </div>
                   </div>
 
