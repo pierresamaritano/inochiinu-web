@@ -147,6 +147,7 @@ export default function ClientDashboardHub() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
           
+          {/* 1. WIDGET ÉDUCATION */}
           {filteredEdu.length > 0 && (
             <div id="widget-edu" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'edu' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -154,8 +155,14 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
-                  {filteredEdu.length}
+                {/* NOUVEAU : Bouton Réserver à côté du compteur */}
+                <div className="flex items-center gap-2">
+                  <a href="/education" className="flex items-center h-8 px-4 rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700 text-[10px] font-black uppercase transition-colors shadow-sm">
+                    📅 Réserver
+                  </a>
+                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0">
+                    {filteredEdu.length}
+                  </div>
                 </div>
               </div>
 
@@ -172,7 +179,13 @@ export default function ClientDashboardHub() {
                             {item.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-400 block mt-0.5">{item.preferred_slot}</span>
+                        {/* NOUVEAU : Affichage de la nature, date et lieu de la séance */}
+                        <span className="text-[11px] text-stone-500 font-medium block mt-1.5">
+                          <strong className="text-stone-700">{item.session_type === 'bilan' ? 'Bilan' : 'Séance'}</strong> • {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Date à définir'} à {item.preferred_slot}
+                        </span>
+                        <span className="text-[10px] text-stone-400 block mt-0.5">
+                          📍 {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
+                        </span>
                       </div>
 
                       {item.status !== "annulé" && item.status !== "terminé" && (
@@ -203,6 +216,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
+          {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -228,7 +242,7 @@ export default function ClientDashboardHub() {
                             {item.status}
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-400 font-medium block mt-0.5">Du {item.start_date} au {item.end_date}</span>
+                        <span className="text-[11px] text-stone-400 font-medium block mt-0.5">Du {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR') : ''} au {item.end_date ? new Date(item.end_date).toLocaleDateString('fr-FR') : ''}</span>
                       </div>
 
                       {item.status !== "annulé" && item.status !== "terminé" && (
@@ -259,6 +273,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
+          {/* 3. WIDGET ÉLEVAGE */}
           {filteredAdoption.length > 0 && (
             <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -315,6 +330,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
+          {/* 4. WIDGET SELLERIE */}
           {filteredSellerie.length > 0 && (
             <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
