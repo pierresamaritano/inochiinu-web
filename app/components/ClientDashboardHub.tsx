@@ -125,10 +125,19 @@ export default function ClientDashboardHub() {
     }
   };
 
+  // Ce clic vient du Mini-Calendrier
   const handleMiniCalClick = (dateStr: string) => {
     setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
     setQuickSubmitted(false);
-    setQuickBookStep(1); // ETAPE 1 : CHOIX DU CHIEN (pour que le calendrier de l'étape 2 filtre bien)
+    setQuickBookStep(1); 
+    setIsQuickBookOpen(true);
+  };
+
+  // Ce clic vient du bouton 📅 en haut du widget
+  const openQuickBooking = () => {
+    setQuickForm(prev => ({ ...prev, scheduledDate: "", timeSlot: "" }));
+    setQuickSubmitted(false);
+    setQuickBookStep(1);
     setIsQuickBookOpen(true);
   };
 
@@ -223,12 +232,24 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
-                  {filteredEdu.length}
+                
+                {/* BOUTONS D'ACTION HAUT DE WIDGET */}
+                <div className="flex items-center gap-2">
+                  {/* C'est ce bouton que j'avais enlevé et qui ouvre la modale complète ! */}
+                  <button 
+                    onClick={openQuickBooking}
+                    title="Réserver une nouvelle séance"
+                    className="flex items-center justify-center h-10 w-10 rounded-full bg-white hover:bg-orange-50 border border-stone-200 text-lg transition-colors shadow-sm cursor-pointer"
+                  >
+                    📅
+                  </button>
+                  <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
+                    {filteredEdu.length}
+                  </div>
                 </div>
               </div>
 
-              {/* MINI-CALENDRIER EXCLUSIF */}
+              {/* LE MINI CALENDRIER RESTE BIEN PRÉSENT ! */}
               <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
 
               <div className="mt-6 space-y-3">
@@ -603,7 +624,7 @@ export default function ClientDashboardHub() {
                         location={quickForm.location}
                         selectedDate={quickForm.scheduledDate}
                         selectedTime={quickForm.timeSlot}
-                        selectedDogId={quickForm.dog_id} // Le calendrier utilise le chien sélectionné !
+                        selectedDogId={quickForm.dog_id} 
                         onChange={(date, time) => setQuickForm({ ...quickForm, scheduledDate: date, timeSlot: time })}
                       />
                     </div>
