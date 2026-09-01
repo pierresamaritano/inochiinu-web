@@ -29,7 +29,7 @@ export default function ElevagePage() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // --- NOUVEAU : État de l'arrêt d'urgence global ---
+  // --- État de l'arrêt d'urgence global ---
   const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
 
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -550,32 +550,32 @@ export default function ElevagePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC Z-INDEX 9999) */}
+      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC Z-INDEX 99999) */}
       {isImmersionMode && activeLitters.length > 0 && (
-        <div className="fixed inset-0 z-[9999] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
-          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[10000] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
+        <div className="fixed inset-0 z-[99999] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
+          <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[100000] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           
-          <div className="absolute top-8 left-8 z-[10000]">
+          <div className="absolute top-8 left-8 z-[100000]">
             <span className="text-white/50 text-[10px] font-black uppercase tracking-widest">Mode Immersion</span>
           </div>
 
           <div className="relative w-full h-[85vh] flex items-center justify-center px-4 sm:px-16">
             {litterSlides.length > 1 && (
-              <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-4 sm:left-8 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+              <button onClick={() => setModalSlideIndex((p) => (p - 1 + litterSlides.length) % litterSlides.length)} className="absolute left-4 sm:left-8 z-[100000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
                 ←
               </button>
             )}
             
             <div className="relative w-full h-full flex flex-col items-center justify-center">
               {litterSlides[modalSlideIndex].type === "video" ? (
-                <video src={litterSlides[modalSlideIndex].src} autoPlay loop muted playsInline className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[10000]" />
+                <video src={litterSlides[modalSlideIndex].src} autoPlay loop muted playsInline className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[100000]" />
               ) : (
-                <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[10000]" />
+                <img src={litterSlides[modalSlideIndex].src} alt={litterSlides[modalSlideIndex].alt} className="max-w-full max-h-full object-contain rounded-lg drop-shadow-2xl z-[100000]" />
               )}
               
-              <div className="absolute bottom-8 inset-x-0 flex flex-col items-center justify-center pointer-events-none z-[10000]">
+              <div className="absolute bottom-8 inset-x-0 flex flex-col items-center justify-center pointer-events-none z-[100000]">
                 <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl text-center border border-white/10 max-w-md">
                   <span className="text-orange-400 text-[10px] font-black uppercase tracking-wider block mb-1">{litterSlides[modalSlideIndex].tag}</span>
                   <p className="text-white text-sm font-medium">{litterSlides[modalSlideIndex].caption}</p>
@@ -584,7 +584,7 @@ export default function ElevagePage() {
             </div>
 
             {litterSlides.length > 1 && (
-              <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-4 sm:right-8 z-[10000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
+              <button onClick={() => setModalSlideIndex((p) => (p + 1) % litterSlides.length)} className="absolute right-4 sm:right-8 z-[100000] w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition cursor-pointer">
                 →
               </button>
             )}
@@ -592,9 +592,9 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* POP-UP : PORTÉE ET CHIOTS (z-index 9999) */}
+      {/* POP-UP : PORTÉE ET CHIOTS (z-index 99999) */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowLitterModal(false)} />
           <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2rem] sm:rounded-[3rem] bg-[#FDFCF8] shadow-2xl flex flex-col">
             
@@ -755,7 +755,7 @@ export default function ElevagePage() {
       )}
 
       {showInfoModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
@@ -781,7 +781,7 @@ export default function ElevagePage() {
       )}
 
       {isAuthOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
@@ -798,7 +798,7 @@ export default function ElevagePage() {
       )}
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
