@@ -242,8 +242,8 @@ export default function EducationPage() {
     }
   };
 
-  // NOUVELLE FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan ?
-  const selectedDogHasBilan = userEduRequests.some(r => r.dog_id === formData.dog_id && r.session_type === 'bilan' && r.status !== 'annulé');
+  // FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan TERMINÉ ?
+  const selectedDogHasBilan = userEduRequests.some(r => r.dog_id === formData.dog_id && r.session_type === 'bilan' && r.status === 'terminé');
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -474,12 +474,11 @@ export default function EducationPage() {
                       />
                     )}
 
-                    <div className="pt-4 flex justify-end">
+                    <div className="pt-4 flex justify-end border-t border-stone-100 mt-4">
                       <button 
                         type="button" 
                         disabled={!formData.dog_id} 
                         onClick={() => {
-                          // Si le chien sélectionné n'a jamais fait de bilan, on force le type à "Bilan"
                           if (!selectedDogHasBilan) {
                             setFormData(prev => ({ ...prev, sessionType: "bilan" }));
                           }
@@ -512,7 +511,6 @@ export default function EducationPage() {
 
                         <button 
                           type="button" 
-                          // On désactive le bouton si aucun bilan n'a été fait pour ce chien
                           disabled={!selectedDogHasBilan}
                           onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} 
                           className={`p-4 rounded-2xl border text-left transition-all ${!selectedDogHasBilan ? "opacity-50 grayscale cursor-not-allowed bg-stone-50" : formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm cursor-pointer" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}
@@ -524,7 +522,7 @@ export default function EducationPage() {
                             </div>
                           </div>
                           <span className={`text-[10px] mt-1 block font-bold ${!selectedDogHasBilan ? "text-red-500" : "text-stone-500 font-normal"}`}>
-                            {!selectedDogHasBilan ? "Bilan initial requis avant la 1ère séance" : "Client existant"}
+                            {!selectedDogHasBilan ? "Bilan initial terminé requis" : "Client existant"}
                           </span>
                         </button>
                       </div>

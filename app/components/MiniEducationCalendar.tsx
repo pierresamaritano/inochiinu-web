@@ -29,7 +29,7 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
-      
+
       {/* FILTRE PAR CHIEN (S'affiche uniquement si > 1 chien) */}
       {userDogs.length > 1 && (
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
@@ -56,7 +56,7 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
         <span className="text-[11px] font-black uppercase tracking-wider text-stone-900">{monthNames[month]} {year}</span>
         <button onClick={() => setMiniCalDate(new Date(year, month + 1, 1))} className="text-stone-400 hover:text-stone-700 text-xs font-bold cursor-pointer px-2 py-1">→</button>
       </div>
-      
+
       <div className="grid grid-cols-7 gap-1.5 mb-2">
         {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
           <div key={i} className="text-center text-[10px] font-black text-stone-400">{d}</div>
@@ -65,16 +65,16 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
 
       <div className="grid grid-cols-7 gap-1.5">
         {Array.from({ length: startDay }).map((_, i) => <div key={`empty-${i}`} />)}
-        
+
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
           const status = getDayStatus(dateStr);
           const isPast = dateStr <= today; // Modifié pour interdire les clics dans le passé ou aujourd'hui
-          
+
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400 text-stone-700 cursor-pointer shadow-sm";
-          
+
           if (status === "confirmé") {
             bgClass = "bg-emerald-500 border-emerald-500 text-white shadow-md font-bold cursor-not-allowed";
           } else if (status === "en_attente") {
@@ -99,7 +99,7 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
           );
         })}
       </div>
-      
+
       <div className="mt-5 pt-3 border-t border-stone-200/60 flex justify-center flex-wrap gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
         <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></div> Validé</span>
         <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm"></div> Attente</span>

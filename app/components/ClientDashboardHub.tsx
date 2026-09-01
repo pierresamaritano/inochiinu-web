@@ -26,7 +26,7 @@ export default function ClientDashboardHub() {
   const [period, setPeriod] = useState<PeriodOption>("1m");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [clientPhone, setClientPhone] = useState("");
-  
+
   // Stockage des chiens pour les passer au MiniCalendrier
   const [userDogs, setUserDogs] = useState<any[]>([]);
 
@@ -224,7 +224,7 @@ export default function ClientDashboardHub() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-start">
-          
+
           {/* ========================================================================= */}
           {/* WIDGET ÉDUCATION */}
           {/* ========================================================================= */}
@@ -235,7 +235,7 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                
+
                 {/* BOUTON CALENDRIER QUI AFFICHE/MASQUE LE MINI-CALENDRIER */}
                 <div className="flex items-center gap-2">
                   <button 
@@ -310,7 +310,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... (RESTE DES WIDGETS : PENSION, ELEVAGE, SELLERIE IDENTIQUES À LA VERSION PRÉCÉDENTE) ... */}
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
@@ -537,19 +536,27 @@ export default function ClientDashboardHub() {
                   
                   {/* SÉLECTION DU CHIEN AU MÊME NIVEAU */}
                   {currentUser && (
-                    <ClientDogSelector
-                      isAdmin={false}
-                      currentUserId={currentUser.id}
-                      onDogSelected={(dog) =>
-                        setQuickForm({
-                          ...quickForm,
-                          dog_id: dog.id,
-                          dogName: dog.name,
-                          dogBreed: dog.breed,
-                          dogAge: calculateDogAge(dog.birth_date || ""),
-                        })
-                      }
-                    />
+                    <div className="w-full min-w-0">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Chien concerné *</label>
+                      <select 
+                        required
+                        value={quickForm.dog_id} 
+                        onChange={(e) => {
+                          const dog = userDogs.find(d => d.id === e.target.value);
+                          setQuickForm({
+                            ...quickForm, 
+                            dog_id: e.target.value, 
+                            dogName: dog?.name || "", 
+                            dogBreed: dog?.breed || "", 
+                            dogAge: calculateDogAge(dog?.birth_date || "") 
+                          });
+                        }}
+                        className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
+                      >
+                        <option value="">Sélectionnez un chien...</option>
+                        {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-3">
@@ -574,7 +581,7 @@ export default function ClientDashboardHub() {
                     </button>
                   </div>
 
-                  {/* LE GRAND CALENDRIER (S'adapte au chien sélectionné) */}
+                  {/* LE GRAND CALENDRIER (S'adapte au chien sélectionné !) */}
                   <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
                     <EducationCalendar 
                       location={quickForm.location}
