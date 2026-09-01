@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import EducationCalendar from "../components/EducationCalendar";
+import PaymentSimulation from "../components/PaymentSimulation"; // <-- NOUVEL IMPORT
 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -196,14 +197,19 @@ export default function EducationPage() {
     return basePrice;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // --- NOUVEAU : On gère l'avancée vers le paiement au lieu de soumettre directement ---
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!formData.dog_id || !formData.scheduledDate || !formData.preferredSlot) {
+    if (!formData.dog_id || !formData.scheduledDate || !formData.preferredSlot || !formData.clientPhone) {
       alert("Veuillez remplir toutes les informations nécessaires pour la réservation.");
       return;
     }
+    setStep(4); // On passe à la modale de paiement
+  };
 
+  // --- La vraie fonction d'enregistrement (appelée par PaymentSimulation) ---
+  const handleFinalSubmit = async () => {
     setSubmitting(true);
     try {
       const { error } = await supabase.from("education_requests").insert([
@@ -223,7 +229,7 @@ export default function EducationPage() {
           session_type: formData.sessionType,
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
-          status: "en_attente",
+          status: "en_attente", // La demande est enregistrée
         },
       ]);
       if (error) throw error;
@@ -235,35 +241,26 @@ export default function EducationPage() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      alert("Une erreur est survenue lors de l'enregistrement de votre demande.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // =========================================================================
-  // NOUVEAU VERROU MÉTIER (Bilan Terminé + 1 an d'expiration)
-  // =========================================================================
-  
-  // Requêtes du chien sélectionné
   const dogReqs = userEduRequests.filter(r => r.dog_id === formData.dog_id && r.status !== 'annulé');
-  
-  // 1. A-t-il un Bilan "terminé" ?
   const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
-  
-  // 2. A-t-il un Bilan "en attente" ou "confirmé" ? (Pour bloquer les bilans à l'infini)
   const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
   
-  // 3. Est-ce que sa dernière séance remonte à moins d'un an ?
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const hasRecentSession = dogReqs.some(r => r.scheduled_date && new Date(r.scheduled_date) >= oneYearAgo);
+  const hasRecentSession = dogReqs.some(r => {
+    if (!r.scheduled_date) return true;
+    return new Date(r.scheduled_date) >= oneYearAgo;
+  });
 
-  // Un bilan est VALIDE s'il est terminé ET récent (- d'1 an)
   const isBilanValid = hasCompletedBilan && hasRecentSession;
 
-  // On bloque l'accès au Suivi si le bilan n'est pas valide
   const canBookSuivi = !!formData.dog_id && isBilanValid;
-  // On bloque l'accès au Bilan s'il en a déjà un valide, ou s'il en a un en attente
   const canBookBilan = !!formData.dog_id && !isBilanValid && !hasPendingBilan;
 
   return (
@@ -458,12 +455,21 @@ export default function EducationPage() {
             {submitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Demande envoyée !</h3>
-                <p className="text-xs text-stone-500 mt-2">Nous allons vous recontacter très vite pour fixer la date de votre {formData.sessionType === 'bilan' ? 'bilan' : 'séance'}.</p>
+                <h3 className="text-xl font-black text-stone-900">Paiement validé !</h3>
+                <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(formData.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
                 <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
               </div>
+            ) : step === 4 ? (
+              // --- NOUVELLE ÉTAPE : LE COMPOSANT DE PAIEMENT ---
+              <PaymentSimulation 
+                amount={getEstimatedPrice()} 
+                serviceName={formData.sessionType === "bilan" ? "Bilan Initial" : "Séance de Suivi"}
+                onSuccess={handleFinalSubmit}
+                onCancel={() => setStep(3)} // Permet de revenir à l'étape précédente sans tout perdre
+              />
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleProceedToPayment} className="space-y-6">
+                {/* L'en-tête dynamique du formulaire */}
                 <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                   <div>
                     <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 3</span>
@@ -496,7 +502,7 @@ export default function EducationPage() {
                     )}
 
                     {formData.dog_id && !canBookSuivi && !canBookBilan && (
-                      <div className="p-4 mt-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium text-center">
+                      <div className="p-4 mt-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium text-center shadow-sm">
                         ⚠️ Vous avez déjà une demande de Bilan en cours pour ce chien.
                       </div>
                     )}
@@ -602,24 +608,8 @@ export default function EducationPage() {
                 {step === 3 && (
                   <div className="space-y-6 animate-in fade-in">
 
-                    {/* Résumé de la demande avec Tarif */}
-                    <div className="bg-stone-900 text-white p-6 rounded-[2rem] shadow-md flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider">Montant indicatif</span>
-                        <div className="text-3xl font-black mt-1">
-                          {getEstimatedPrice()}€
-                        </div>
-                        <p className="text-[10px] text-stone-400 mt-1">
-                          {formData.sessionType === "bilan" ? "Bilan (1h30)" : "Séance (1h)"} • {formData.location === "domicile" ? "À domicile (+20€ dép.)" : "Sur terrain"}
-                        </p>
-                      </div>
-                      <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-xl">
-                        💳
-                      </div>
-                    </div>
-
+                    {/* Résumé de la demande avec Tarif caché pour laisser la place au bouton */}
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                      {/* INTÉGRATION DU CALENDRIER INTELLIGENT */}
                       <EducationCalendar 
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
@@ -630,7 +620,7 @@ export default function EducationPage() {
                     </div>
 
                     <div className="w-full min-w-0">
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
+                      <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">
                         {formData.sessionType === "bilan" ? "Que souhaitez-vous travailler ? *" : "Objectif de la séance *"}
                       </label>
                       <textarea 
@@ -643,7 +633,6 @@ export default function EducationPage() {
                       />
                     </div>
 
-                    {/* On affiche les problèmes spécifiques UNIQUEMENT lors d'un bilan initial */}
                     {formData.sessionType === "bilan" && (
                       <div className="animate-in slide-in-from-top-2">
                         <label className="block text-xs font-bold uppercase text-stone-600 mb-2">Comportements à signaler (Facultatif)</label>
@@ -654,7 +643,7 @@ export default function EducationPage() {
                                 type="checkbox" 
                                 checked={formData.issues.includes(issue)} 
                                 onChange={() => toggleIssue(issue)} 
-                                className="rounded text-orange-600 focus:ring-orange-500" 
+                                className="rounded text-orange-600 focus:ring-orange-500 cursor-pointer" 
                               />
                               <span className="text-[11px] font-medium text-stone-700">{issue}</span>
                             </label>
@@ -671,14 +660,14 @@ export default function EducationPage() {
                         placeholder="06 12 34 56 78" 
                         value={formData.clientPhone} 
                         onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
-                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
                       />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
-                        {submitting ? "Envoi en cours..." : "Valider la demande"}
+                      <button type="submit" disabled={!formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
+                        Payer {getEstimatedPrice()}€ et Valider
                       </button>
                     </div>
                   </div>

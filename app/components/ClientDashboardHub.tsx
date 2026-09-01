@@ -6,6 +6,7 @@ import DogProfileManager from "./DogProfileManager";
 import ClientDogSelector from "./ClientDogSelector";
 import EducationCalendar from "./EducationCalendar";
 import MiniEducationCalendar from "./MiniEducationCalendar";
+import PaymentSimulation from "./PaymentSimulation"; // <-- NOUVEL IMPORT
 
 interface CancelTarget {
   table: string;
@@ -27,19 +28,19 @@ export default function ClientDashboardHub() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [clientPhone, setClientPhone] = useState("");
 
-  // Stockage des chiens pour les passer au MiniCalendrier
   const [userDogs, setUserDogs] = useState<any[]>([]);
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // --- ÉTAT POUR AFFICHER/MASQUER LE MINI-CALENDRIER ---
   const [showEduCalendar, setShowEduCalendar] = useState(false);
 
-  // --- ÉTATS POUR LA RÉSERVATION RAPIDE (Un seul écran) ---
   const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
   const [quickSubmitting, setQuickSubmitting] = useState(false);
   const [quickSubmitted, setQuickSubmitted] = useState(false);
+  
+  // --- NOUVEAU : État qui dit si on affiche le formulaire (false) ou le paiement (true) ---
+  const [showPayment, setShowPayment] = useState(false);
 
   const [quickForm, setQuickForm] = useState({
     dog_id: "",
@@ -132,7 +133,6 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // Clic depuis le Mini-Calendrier
   const handleMiniCalClick = (dateStr: string, dogId?: string) => {
     setQuickForm(prev => ({ 
       ...prev, 
@@ -141,6 +141,7 @@ export default function ClientDashboardHub() {
       dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
     }));
     setQuickSubmitted(false);
+    setShowPayment(false); // Reset l'état du paiement
     setIsQuickBookOpen(true);
   };
 
@@ -154,9 +155,19 @@ export default function ClientDashboardHub() {
     else return `${Math.floor(diffDays / 365)} ans`;
   };
 
-  const handleQuickSubmit = async (e: React.FormEvent) => {
+  // --- NOUVEAU : On passe à l'étape paiement ---
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    if (!quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives) {
+      alert("Veuillez remplir toutes les informations nécessaires.");
+      return;
+    }
+    setShowPayment(true);
+  };
+
+  // --- Sauvegarde en BDD appelée par le composant PaymentSimulation ---
+  const handleFinalSubmit = async () => {
     setQuickSubmitting(true);
     try {
       const { error } = await supabase.from("education_requests").insert([
@@ -170,10 +181,10 @@ export default function ClientDashboardHub() {
           dog_breed: quickForm.dogBreed,
           dog_age: quickForm.dogAge,
           objectives: quickForm.objectives,
-          issues: [], // Pas de problèmes spécifiques demandés en suivi
+          issues: [],
           scheduled_date: quickForm.scheduledDate,
           preferred_slot: quickForm.timeSlot,
-          session_type: "suivi", // Toujours un suivi via l'espace membre
+          session_type: "suivi", 
           location_preference: quickForm.location,
           price_estimate: quickForm.location === "domicile" ? 65 : 45, 
           status: "en_attente",
@@ -181,15 +192,15 @@ export default function ClientDashboardHub() {
       ]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Met à jour le mini-calendrier en arrière-plan
+      fetchUserServices(); 
     } catch (err) {
       console.error(err);
+      alert("Erreur lors de la réservation.");
     } finally {
       setQuickSubmitting(false);
     }
   };
 
-  // NOUVEAU VERROU MÉTIER : Gestion des différents états du bilan
   const dogBilanStatus = useMemo(() => {
     if (!quickForm.dog_id) return { isValid: false, isPending: false, needsNew: false };
     const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
@@ -197,7 +208,6 @@ export default function ClientDashboardHub() {
     const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
     const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
     
-    // Ce bilan date-t-il de moins d'1 an ?
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const hasRecentSession = dogReqs.some(r => {
@@ -208,11 +218,9 @@ export default function ClientDashboardHub() {
     if (hasCompletedBilan && hasRecentSession) {
       return { isValid: true, isPending: false, needsNew: false };
     }
-    // S'il n'a pas de bilan valide, mais qu'il a déjà fait une demande de bilan en cours de traitement
     if (hasPendingBilan) {
       return { isValid: false, isPending: true, needsNew: false };
     }
-    // Sinon, il lui faut un nouveau bilan
     return { isValid: false, isPending: false, needsNew: true };
   }, [quickForm.dog_id, eduRequests]);
 
@@ -337,6 +345,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
+          {/* ... (WIDGETS PENSION, ELEVAGE, SELLERIE IDENTIQUES) ... */}
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>
@@ -537,7 +546,7 @@ export default function ClientDashboardHub() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODALE RÉSERVATION RAPIDE ÉDUCATION (1 SEULE ÉTAPE) */}
+      {/* MODALE RÉSERVATION RAPIDE ÉDUCATION (AVEC COMPOSANT DE PAIEMENT) */}
       {/* ========================================================================= */}
       {isQuickBookOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -548,19 +557,27 @@ export default function ClientDashboardHub() {
             {quickSubmitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
-                <h3 className="text-xl font-black text-stone-900">Séance demandée !</h3>
+                <h3 className="text-xl font-black text-stone-900">Paiement validé !</h3>
                 <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
                 <button onClick={() => setIsQuickBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md">Fermer</button>
               </div>
+            ) : showPayment ? (
+              // --- COMPOSANT DE SIMULATION DE PAIEMENT ---
+              <PaymentSimulation 
+                amount={quickForm.location === "domicile" ? 65 : 45} 
+                serviceName="Séance de Suivi"
+                onSuccess={handleFinalSubmit}
+                onCancel={() => setShowPayment(false)}
+              />
             ) : (
-              <form onSubmit={handleQuickSubmit} className="space-y-6">
+              <form onSubmit={handleProceedToPayment} className="space-y-6">
                 <div>
                   <h3 className="text-xl font-black text-stone-900">Demander un suivi</h3>
                   <p className="text-xs text-stone-500 mt-1">Réservez une nouvelle séance pour votre chien.</p>
                 </div>
 
                 <div className="space-y-5 animate-in fade-in">
-                  
+
                   {/* SÉLECTION DU CHIEN AU MÊME NIVEAU */}
                   {currentUser && (
                     <div className="w-full min-w-0">
@@ -657,7 +674,7 @@ export default function ClientDashboardHub() {
 
                       <div className="pt-2 border-t border-stone-100">
                         <button type="submit" disabled={quickSubmitting || !quickForm.dog_id || !quickForm.timeSlot || !quickForm.objectives} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
-                          {quickSubmitting ? "Envoi en cours..." : "Valider la séance"}
+                          Payer {quickForm.location === "domicile" ? 65 : 45}€ et Valider
                         </button>
                       </div>
                     </div>
