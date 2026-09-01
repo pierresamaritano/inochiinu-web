@@ -32,11 +32,14 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
+  // =========================================================================
+  // RÉCUPÉRATION SUPABASE
+  // =========================================================================
   useEffect(() => {
     const fetchReservations = async () => {
       const { data } = await supabase
         .from("education_requests")
-        .select("scheduled_date, preferred_slot")
+        .select("scheduled_date, preferred_slot, location_preference")
         .in("status", ["en_attente", "confirmé"]);
       
       setReservations(data || []);
@@ -44,44 +47,48 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     fetchReservations();
   }, [month, year, supabase]);
 
-  // LOGIQUE DE CALCUL DES CRÉNEAUX
+  // =========================================================================
+  // LOGIQUE INTELLIGENTE DES CRÉNEAUX (TERRAIN VS DOMICILE)
+  // =========================================================================
   const getAvailableSlotsForDay = (dateStr: string) => {
-    const dayRes = reservations.filter(r => r.scheduled_date === dateStr);
+    // 1. Isoler les réservations de ce jour précis
+    const dayRes = reservations.filter((r) => r.scheduled_date === dateStr);
     
-    let morningBooked = false;
-    let afternoonBooked = false;
-    let morningSlotsTaken = 0;
-    let afternoonSlotsTaken = 0;
+    let hasMorningDomicile = false;
+    let hasAfternoonDomicile = false;
+    let terrainMorningSlotsTaken: string[] = [];
+    let terrainAfternoonSlotsTaken: string[] = [];
 
-    dayRes.forEach(r => {
-      const slot = r.preferred_slot || "";
-      if (slot.includes("09:00 - 12:00") || slot.toLowerCase().includes("matinée")) morningBooked = true;
-      else if (slot.includes("14:00 - 17:00") || slot.toLowerCase().includes("après-midi")) afternoonBooked = true;
-      else if (["09:00", "10:00", "11:00"].includes(slot)) morningSlotsTaken++;
-      else if (["14:00", "15:00", "16:00"].includes(slot)) afternoonSlotsTaken++;
+    // 2. Analyser l'occupation existante
+    dayRes.forEach((r) => {
+      if (r.location_preference === "domicile") {
+        if (r.preferred_slot === "Matinée") hasMorningDomicile = true;
+        if (r.preferred_slot === "Après-midi") hasAfternoonDomicile = true;
+      } else {
+        const slot = r.preferred_slot || "";
+        if (["09:00", "10:00", "11:00"].includes(slot)) terrainMorningSlotsTaken.push(slot);
+        if (["14:00", "15:00", "16:00", "17:00"].includes(slot)) terrainAfternoonSlotsTaken.push(slot);
+      }
     });
-
-    // Si on a 3 chiens le matin sur terrain, la matinée est pleine
-    if (morningSlotsTaken >= 3) morningBooked = true;
-    if (afternoonSlotsTaken >= 3) afternoonBooked = true;
 
     let availableSlots: string[] = [];
 
+    // 3. Générer les créneaux proposés selon le CHOIX DU CLIENT (Terrain ou Domicile)
     if (location === "domicile") {
-      // Pour un déplacement, il faut que TOUTE la demi-journée soit vide (0 chien sur terrain)
-      if (!morningBooked && morningSlotsTaken === 0) availableSlots.push("09:00 - 12:00");
-      if (!afternoonBooked && afternoonSlotsTaken === 0) availableSlots.push("14:00 - 17:00");
+      // Pour un déplacement, la demi-journée doit être TOTALEMENT libre
+      if (!hasMorningDomicile && terrainMorningSlotsTaken.length === 0) availableSlots.push("Matinée");
+      if (!hasAfternoonDomicile && terrainAfternoonSlotsTaken.length === 0) availableSlots.push("Après-midi");
     } else {
-      // Pour le terrain, on propose les créneaux d'1h non occupés
-      if (!morningBooked) {
-        if (!dayRes.some(r => r.preferred_slot === "09:00")) availableSlots.push("09:00");
-        if (!dayRes.some(r => r.preferred_slot === "10:00")) availableSlots.push("10:00");
-        if (!dayRes.some(r => r.preferred_slot === "11:00")) availableSlots.push("11:00");
+      // Pour le terrain, on propose à l'heure, sauf si un déplacement est déjà prévu sur cette demi-journée
+      if (!hasMorningDomicile) {
+        ["09:00", "10:00", "11:00"].forEach(h => {
+          if (!terrainMorningSlotsTaken.includes(h)) availableSlots.push(h);
+        });
       }
-      if (!afternoonBooked) {
-        if (!dayRes.some(r => r.preferred_slot === "14:00")) availableSlots.push("14:00");
-        if (!dayRes.some(r => r.preferred_slot === "15:00")) availableSlots.push("15:00");
-        if (!dayRes.some(r => r.preferred_slot === "16:00")) availableSlots.push("16:00");
+      if (!hasAfternoonDomicile) {
+        ["14:00", "15:00", "16:00", "17:00"].forEach(h => {
+          if (!terrainAfternoonSlotsTaken.includes(h)) availableSlots.push(h);
+        });
       }
     }
 
@@ -95,12 +102,12 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
     
-    if (clickedDate < today) return; // Empêcher la sélection dans le passé
+    if (clickedDate <= today) return; // On empêche de réserver le jour même ou dans le passé
 
     const { isFull } = getAvailableSlotsForDay(clickedDate);
     if (isFull) return;
 
-    onChange(clickedDate, ""); // On reset l'heure si on change de jour
+    onChange(clickedDate, ""); // On reset l'heure quand on change de jour
   };
 
   const currentDaySlots = selectedDate ? getAvailableSlotsForDay(selectedDate).slots : [];
@@ -130,14 +137,14 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
           const day = i + 1;
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
-          const isPast = currentISODate < today;
+          const isPastOrToday = currentISODate <= today;
           
           const { isFull } = getAvailableSlotsForDay(currentISODate);
           const isSelected = selectedDate === currentISODate;
-          const isDisabled = isPast || isFull;
+          const isDisabled = isPastOrToday || isFull;
 
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
-          let textClass = "text-stone-700";
+          let textClass = "text-stone-700 font-medium";
 
           if (isDisabled) {
             bgClass = "bg-stone-50 border border-stone-100 opacity-50 cursor-not-allowed";
@@ -162,11 +169,11 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
         })}
       </div>
 
-      {/* SÉLECTION DES HORAIRES */}
+      {/* SÉLECTION DES HORAIRES (S'affiche uniquement si un jour est sélectionné) */}
       {selectedDate && (
         <div className="mt-6 animate-in slide-in-from-top-2">
-          <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-wider text-center">
-            Horaires disponibles le {new Date(selectedDate).toLocaleDateString('fr-FR')}
+          <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-wider text-center border-t border-stone-100 pt-4">
+            Créneaux disponibles le {new Date(selectedDate).toLocaleDateString('fr-FR')}
           </label>
           <div className="flex flex-wrap justify-center gap-2">
             {currentDaySlots.map(slot => (
@@ -174,10 +181,10 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
                 key={slot}
                 type="button"
                 onClick={() => onChange(selectedDate, slot)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   selectedTime === slot 
                     ? "bg-stone-900 text-white shadow-md scale-105" 
-                    : "bg-white border border-stone-200 text-stone-600 hover:border-stone-400"
+                    : "bg-white border border-stone-200 text-stone-600 hover:border-stone-400 hover:text-stone-900 hover:bg-stone-50"
                 }`}
               >
                 {slot}

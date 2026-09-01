@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
-import EducationCalendar from "../components/EducationCalendar"; // NOUVEAU COMPOSANT
+import EducationCalendar from "../components/EducationCalendar";
 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -41,8 +41,8 @@ export default function EducationPage() {
     dogAge: string;
     objectives: string;
     issues: string[];
-    scheduledDate: string; // NOUVEAU
-    timeSlot: string;      // NOUVEAU
+    scheduledDate: string;
+    preferredSlot: string;
     clientPhone: string;
     sessionType: "bilan" | "suivi";
     location: "terrain" | "domicile";
@@ -54,7 +54,7 @@ export default function EducationPage() {
     objectives: "",
     issues: [],
     scheduledDate: "",
-    timeSlot: "",
+    preferredSlot: "",
     clientPhone: "",
     sessionType: "bilan",
     location: "terrain"
@@ -93,52 +93,19 @@ export default function EducationPage() {
   }, [supabase]);
 
   const slides = [
-    {
-      title: "Bilan Comportemental Initial",
-      subtitle: "Une analyse complète à domicile ou sur terrain pour comprendre les besoins spécifiques de votre chien.",
-      tag: "Évaluation",
-      gradient: "from-orange-950/90 via-stone-900/60 to-black/80",
-    },
-    {
-      title: "Cours Individuels Sur-Mesure",
-      subtitle: "Travail des ordres de base, marche en laisse, rappel et gestion des troubles (réactivité, anxiété).",
-      tag: "Progression",
-      gradient: "from-stone-900/90 via-stone-900/60 to-black/80",
-    },
-    {
-      title: "Promenades Éducatives & Socialisation",
-      subtitle: "Mise en pratique en situation réelle avec des congénères codés pour renforcer les bons comportements.",
-      tag: "En groupe",
-      gradient: "from-amber-950/90 via-stone-900/60 to-black/80",
-    },
+    { title: "Bilan Comportemental Initial", subtitle: "Une analyse complète à domicile ou sur terrain pour comprendre les besoins spécifiques de votre chien.", tag: "Évaluation", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
+    { title: "Cours Individuels Sur-Mesure", subtitle: "Travail des ordres de base, marche en laisse, rappel et gestion des troubles (réactivité, anxiété).", tag: "Progression", gradient: "from-stone-900/90 via-stone-900/60 to-black/80" },
+    { title: "Promenades Éducatives & Socialisation", subtitle: "Mise en pratique en situation réelle avec des congénères codés pour renforcer les bons comportements.", tag: "En groupe", gradient: "from-amber-950/90 via-stone-900/60 to-black/80" },
   ];
 
   const educationCarouselSlides: CarouselSlide[] = [
-    {
-      src: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1080&auto=format&fit=crop",
-      alt: "Chien attentif en éducation",
-      tag: "Écoute & Complicité",
-      caption: "Apprendre à communiquer avec son chien dans le calme.",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?q=80&w=1080&auto=format&fit=crop",
-      alt: "Chien en extérieur",
-      tag: "Mise en situation",
-      caption: "Travail en environnement réel pour des résultats durables.",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1544568100-847a948585b9?q=80&w=1080&auto=format&fit=crop",
-      alt: "Maître et chien",
-      tag: "Relation de confiance",
-      caption: "Renforcer le lien maître-chien par le jeu et la positivité.",
-    }
+    { src: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1080&auto=format&fit=crop", alt: "Chien attentif", tag: "Écoute & Complicité", caption: "Apprendre à communiquer avec son chien dans le calme." },
+    { src: "https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?q=80&w=1080&auto=format&fit=crop", alt: "Chien extérieur", tag: "Mise en situation", caption: "Travail en environnement réel pour des résultats durables." },
+    { src: "https://images.unsplash.com/photo-1544568100-847a948585b9?q=80&w=1080&auto=format&fit=crop", alt: "Maître et chien", tag: "Relation de confiance", caption: "Renforcer le lien maître-chien par le jeu et la positivité." }
   ];
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-      setTimeToNext(6000); 
-    }, timeToNext);
+    const timer = setTimeout(() => { setCurrentSlide((prev) => (prev + 1) % slides.length); setTimeToNext(6000); }, timeToNext);
     return () => clearTimeout(timer);
   }, [currentSlide, timeToNext, slides.length]);
 
@@ -148,52 +115,34 @@ export default function EducationPage() {
   const goToSlide = (index: number) => { handleUserInteraction(); setCurrentSlide(index); };
 
   const handleInitialClick = () => {
-    const hideInfo = localStorage.getItem("hideEducationInfo");
-    if (hideInfo === "true") {
-      handleActionClick();
-    } else {
-      setShowInfoModal(true);
-    }
+    if (localStorage.getItem("hideEducationInfo") === "true") handleActionClick();
+    else setShowInfoModal(true);
   };
 
   const handleContinueFromInfo = () => {
-    if (dontShowAgain) {
-      localStorage.setItem("hideEducationInfo", "true");
-    }
+    if (dontShowAgain) localStorage.setItem("hideEducationInfo", "true");
     setShowInfoModal(false);
     handleActionClick();
   };
 
   const handleActionClick = () => {
-    if (user) {
-      setIsFormOpen(true);
-      setStep(1); 
-    } else {
-      setIsAuthOpen(true);
-    }
+    if (user) { setIsFormOpen(true); setStep(1); } 
+    else setIsAuthOpen(true);
   };
 
   const handleGoogleLogin = async () => {
     try {
-      setAuthLoading(true);
-      setAuthError("");
-      const redirectUrl = `${window.location.origin}/auth/callback?next=/education`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: redirectUrl },
-      });
+      setAuthLoading(true); setAuthError("");
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=/education` } });
       if (error) throw error;
     } catch (err: any) {
-      console.error(err);
-      setAuthError(err.message);
-      setAuthLoading(false);
+      console.error(err); setAuthError(err.message); setAuthLoading(false);
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
+    setAuthLoading(true); setAuthError("");
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
@@ -202,13 +151,10 @@ export default function EducationPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        setIsAuthOpen(false);
-        setIsFormOpen(true);
-        setStep(1);
+        setIsAuthOpen(false); setIsFormOpen(true); setStep(1);
       }
     } catch (err: any) {
-      console.error(err);
-      setAuthError("Email ou mot de passe incorrect.");
+      console.error(err); setAuthError("Email ou mot de passe incorrect.");
     } finally {
       setAuthLoading(false);
     }
@@ -217,9 +163,7 @@ export default function EducationPage() {
   const toggleIssue = (issue: string) => {
     setFormData((prev) => ({
       ...prev,
-      issues: prev.issues.includes(issue)
-        ? prev.issues.filter((i) => i !== issue)
-        : [...prev.issues, issue],
+      issues: prev.issues.includes(issue) ? prev.issues.filter((i) => i !== issue) : [...prev.issues, issue],
     }));
   };
 
@@ -232,31 +176,21 @@ export default function EducationPage() {
     const diffTime = Math.abs(today.getTime() - dateObj.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays < 30) {
-      return `${diffDays} jours`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} mois`;
-    } else {
-      const years = Math.floor(diffDays / 365);
-      const remainingMonths = Math.floor((diffDays % 365) / 30);
-      return remainingMonths > 0 ? `${years} ans et ${remainingMonths} mois` : `${years} ans`;
-    }
+    if (diffDays < 30) return `${diffDays} jours`;
+    else if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`;
+    else return `${Math.floor(diffDays / 365)} ans`;
   };
 
   const getEstimatedPrice = () => {
     let basePrice = formData.sessionType === "bilan" ? 60 : 45; 
-    if (formData.location === "domicile") {
-      basePrice += 20; 
-    }
+    if (formData.location === "domicile") basePrice += 20; 
     return basePrice;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    if (!formData.dog_id || !formData.scheduledDate || !formData.timeSlot) {
+    if (!formData.dog_id || !formData.scheduledDate || !formData.preferredSlot) {
       alert("Veuillez remplir toutes les informations nécessaires pour la réservation.");
       return;
     }
@@ -275,8 +209,8 @@ export default function EducationPage() {
           dog_age: formData.dogAge,
           objectives: formData.objectives,
           issues: formData.issues,
-          scheduled_date: formData.scheduledDate, // NOUVEAU
-          preferred_slot: formData.timeSlot,      // NOUVEAU
+          scheduled_date: formData.scheduledDate,
+          preferred_slot: formData.preferredSlot,
           session_type: formData.sessionType,
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
@@ -286,10 +220,7 @@ export default function EducationPage() {
       if (error) throw error;
 
       if (formData.clientPhone) {
-        await supabase
-          .from("profiles")
-          .update({ phone: formData.clientPhone })
-          .eq("id", user.id);
+        await supabase.from("profiles").update({ phone: formData.clientPhone }).eq("id", user.id);
       }
 
       setSubmitted(true);
@@ -302,8 +233,7 @@ export default function EducationPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-
-      {/* HALOS FAUVE */}
+      
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -329,7 +259,6 @@ export default function EducationPage() {
         </div>
       </section>
 
-      {/* CARROUSEL VALEURS HERO */}
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
@@ -488,7 +417,8 @@ export default function EducationPage() {
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
+          {/* AJOUT DE scrollbar-hide POUR MASQUER LA BARRE DE DÉFILEMENT */}
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer z-50">✕</button>
 
             {submitted ? (
@@ -518,7 +448,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Nature de la demande</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "bilan" ? "text-orange-900" : "text-stone-800"}`}>Bilan Initial</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "bilan" ? "border-orange-500" : "border-stone-300"}`}>
@@ -528,7 +458,7 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">1er rdv obligatoire</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "suivi" ? "text-orange-900" : "text-stone-800"}`}>Suivi / Séance</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "suivi" ? "border-orange-500" : "border-stone-300"}`}>
@@ -543,7 +473,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -553,7 +483,7 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -586,11 +516,14 @@ export default function EducationPage() {
                             dog_id: dog.id,
                             dogName: dog.name,
                             dogBreed: dog.breed,
+                            // L'âge est toujours calculé silencieusement
                             dogAge: calculateDogAge(dog.birth_date || ""),
                           })
                         }
                       />
                     )}
+
+                    {/* CHAMP AGE MASQUÉ COMME DEMANDÉ */}
 
                     <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
@@ -656,11 +589,12 @@ export default function EducationPage() {
                     </div>
 
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      {/* INTÉGRATION DU NOUVEAU CALENDRIER */}
                       <EducationCalendar 
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
-                        selectedTime={formData.timeSlot}
-                        onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, timeSlot: time })}
+                        selectedTime={formData.preferredSlot}
+                        onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, preferredSlot: time })}
                       />
                     </div>
 
@@ -672,13 +606,13 @@ export default function EducationPage() {
                         placeholder="06 12 34 56 78" 
                         value={formData.clientPhone} 
                         onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
-                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
                       />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.timeSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
+                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
                         {submitting ? "Envoi en cours..." : "Valider la demande"}
                       </button>
                     </div>
