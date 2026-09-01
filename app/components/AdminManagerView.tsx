@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import AdminLitterForm from "./AdminLitterForm";
+import AdminReproducteurs from "./AdminReproducteurs"; // L'IMPORT EST ICI !
 
 interface ActionTarget {
   table: string;
@@ -54,7 +55,7 @@ export default function AdminManagerView() {
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
   
-  // --- NOUVEAU : État du filtre par statut (par défaut sur en_attente) ---
+  // --- État du filtre par statut (par défaut sur en_attente) ---
   const [statusFilter, setStatusFilter] = useState<StatusGroup>("en_attente");
   
   const [editingLitter, setEditingLitter] = useState<any>(null);
@@ -152,7 +153,6 @@ export default function AdminManagerView() {
     setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
   };
 
-  // --- NOUVELLE FONCTION DE FILTRAGE (INCLUANT LES STATUTS) ---
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
@@ -165,7 +165,6 @@ export default function AdminManagerView() {
       if (selectedFilterClient && item.user_id !== selectedFilterClient.id) return false;
       if (selectedFilterDogId !== "all" && item.dog_id !== selectedFilterDogId) return false;
 
-      // Filtre par statut
       if (statusFilter !== "tous") {
         if (statusFilter === "en_attente" && !['en_attente', 'liste_attente'].includes(item.status)) return false;
         if (statusFilter === "valide" && !['confirmé', 'accepté', 'en_atelier'].includes(item.status)) return false;
@@ -252,11 +251,14 @@ export default function AdminManagerView() {
       removeClosure(closureId);
       return;
     }
+
     if (hasReservations) {
       alert("Impossible de bloquer cette date : vous avez déjà des réservations confirmées ou en attente à ce moment-là.");
       return;
     }
+
     if (closureViewMode !== "calendar") setClosureViewMode("calendar");
+
     if (!newClosureStart || (newClosureStart && newClosureEnd)) {
       setNewClosureStart(dateStr);
       setNewClosureEnd("");
@@ -496,7 +498,6 @@ export default function AdminManagerView() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="w-full md:w-auto">
-            {/* Grille 2 colonnes sur mobile pour éviter le scroll, ligne flex sur tablette/desktop */}
             <div className="grid grid-cols-2 md:flex md:flex-row items-center gap-1.5 p-1.5 rounded-[1.5rem] md:rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner w-full md:w-auto">
               <button onClick={() => setTab("education")} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
                 Éducation <span className="opacity-60 font-bold ml-1">({filteredEdu.length})</span>
@@ -666,9 +667,13 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE */}
+      {/* 5. CONTENU : ÉLEVAGE (AVEC NOUVEAU COMPOSANT REPRODUCTEURS) */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
+          
+          {/* NOUVEAU COMPOSANT ICI */}
+          <AdminReproducteurs supabase={supabase} />
+
           {!showLitterForm && (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
               <div>
@@ -690,7 +695,6 @@ export default function AdminManagerView() {
               {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune portée créée pour le moment.</div>}
 
               {littersList.map(litter => {
-                // IMPORTANT: on filtre les candidatures avec `adoptionList` pure pour ne pas perdre les "accepté" lors du filtrage "en attente"
                 const activeLitterApps = adoptionList.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
                 const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
@@ -699,7 +703,6 @@ export default function AdminManagerView() {
                 const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
                 const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
 
-                // Application du filtre de statut UNIQUEMENT pour déterminer ce qu'on AFFICHE
                 const shouldShowNew = statusFilter === "tous" || statusFilter === "en_attente" || statusFilter === "valide";
                 const shouldShowWait = statusFilter === "tous" || statusFilter === "en_attente";
                 const shouldShowRefused = statusFilter === "tous" || statusFilter === "annule";
@@ -728,7 +731,6 @@ export default function AdminManagerView() {
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
-                            // On cherche dans l'adoptionList PURE pour que le propriétaire apparaisse toujours
                             const acceptedApp = adoptionList.find(a => a.puppy_id === pup.id && a.status === 'accepté');
                             return (
                               <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
@@ -893,6 +895,7 @@ export default function AdminManagerView() {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
+                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
                   const hasReservations = eduCount > 0 || penCount > 0;
@@ -900,23 +903,26 @@ export default function AdminManagerView() {
                   const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
                   const isClosed = !!closure;
 
+                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
 
-                  let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
+                  let cellClass = "bg-stone-50 border border-stone-100";
                   let textClass = "text-stone-700";
 
                   if (isClosed) {
-                    bgClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 hover:border-red-400";
+                    cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 cursor-pointer hover:border-red-400";
                   } else if (hasReservations) {
-                    bgClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
+                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
                   } else if (isSelectedStart || isSelectedEnd) {
-                    bgClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10";
+                    cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10 cursor-pointer";
                     textClass = "text-white font-black";
                   } else if (isBetween) {
-                    bgClass = "bg-stone-200 border-stone-300";
+                    cellClass = "bg-stone-200 border-stone-300 cursor-pointer";
                     textClass = "text-stone-900 font-bold";
+                  } else {
+                    cellClass += " hover:border-orange-400 cursor-pointer";
                   }
 
                   return (
@@ -924,18 +930,19 @@ export default function AdminManagerView() {
                       key={day} 
                       disabled={hasReservations && !isClosed && !isSelectedStart && !isSelectedEnd && !isBetween}
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
-                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
+                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${cellClass}`}
+                      title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
                     >
                       <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
-                      <div className="flex gap-1 mt-0.5">
-                        {eduCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>}
-                        {penCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                      
+                      <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
+                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
+                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
                       </div>
                     </button>
                   );
                 })}
               </div>
-              {/* LÉGENDE */}
               <div className="mt-6 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
                  <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Éducation</span>
                  <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Pension</span>
@@ -943,7 +950,7 @@ export default function AdminManagerView() {
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
+            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
