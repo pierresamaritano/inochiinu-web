@@ -373,7 +373,7 @@ export default function AdminManagerView() {
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
             <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-              <option value="">Sélectionner un chiot...</option>
+              <option value="">Sélectionner un chiot (obligatoire)...</option>
               {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
                 <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
               ))}
@@ -395,7 +395,10 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
+                if (!hasPuppySelected) {
+                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
+                  return;
+                }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -405,11 +408,13 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
+
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
+
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -426,8 +431,8 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-sm">
+      {/* 0. CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
           <p className="text-xs text-stone-500 mt-0.5">Gérez les demandes, les plannings et l'état du site.</p>
@@ -799,11 +804,11 @@ export default function AdminManagerView() {
       {showAdminCalendar && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAdminCalendar(false)} />
-          <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#FDFCF8] p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-4 sm:gap-8 overflow-y-auto">
-            <button onClick={() => setShowAdminCalendar(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full cursor-pointer z-50">✕</button>
+          <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#FDFCF8] p-4 pt-14 sm:p-8 sm:pt-8 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-4 sm:gap-8 overflow-y-auto">
+            <button onClick={() => setShowAdminCalendar(false)} className="absolute top-3 right-3 sm:top-6 sm:right-6 w-8 h-8 flex items-center justify-center text-stone-400 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-full cursor-pointer z-50 transition">✕</button>
 
             {/* PARTIE GAUCHE : LE CALENDRIER */}
-            <div className="w-full lg:w-[65%] bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-stone-200 shadow-sm flex-shrink-0">
+            <div className="w-full md:w-[65%] bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-stone-200 shadow-sm flex-shrink-0">
               <div className="flex items-center justify-between mb-4 sm:mb-6 border-b border-stone-100 pb-3 sm:pb-4">
                 <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() - 1, 1))} className="px-2 sm:px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg sm:rounded-xl font-black text-stone-600 cursor-pointer">←</button>
                 <h3 className="text-sm sm:text-lg font-black uppercase tracking-wider text-stone-900">
@@ -817,14 +822,17 @@ export default function AdminManagerView() {
               </div>
 
               <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                {/* VIDES */}
                 {Array.from({ length: new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() === 0 ? 6 : new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() - 1 }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-12 sm:h-16 rounded-lg sm:rounded-xl bg-transparent" />
+                  <div key={`empty-${i}`} className="h-12 rounded-xl bg-transparent" />
                 ))}
                 
+                {/* JOURS */}
                 {Array.from({ length: new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
+                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
                   const hasReservations = eduCount > 0 || penCount > 0;
@@ -832,25 +840,24 @@ export default function AdminManagerView() {
                   const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
                   const isClosed = !!closure;
 
+                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
 
-                  let cellClass = "bg-stone-50 border border-stone-100";
+                  let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
                   let textClass = "text-stone-700";
 
                   if (isClosed) {
-                    cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 cursor-pointer hover:border-red-400";
+                    bgClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 hover:border-red-400";
                   } else if (hasReservations) {
-                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
+                    bgClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; 
                   } else if (isSelectedStart || isSelectedEnd) {
-                    cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10 cursor-pointer";
+                    bgClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10";
                     textClass = "text-white font-black";
                   } else if (isBetween) {
-                    cellClass = "bg-stone-200 border-stone-300 cursor-pointer";
+                    bgClass = "bg-stone-200 border-stone-300";
                     textClass = "text-stone-900 font-bold";
-                  } else {
-                    cellClass += " hover:border-orange-400 cursor-pointer";
                   }
 
                   return (
@@ -858,27 +865,26 @@ export default function AdminManagerView() {
                       key={day} 
                       disabled={hasReservations && !isClosed && !isSelectedStart && !isSelectedEnd && !isBetween}
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
-                      className={`relative h-12 sm:h-16 w-full rounded-lg sm:rounded-xl flex flex-col items-center justify-center transition-all ${cellClass}`}
-                      title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
+                      className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
                     >
-                      <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
-                      
-                      <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
-                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
-                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
+                      <span className={`text-xs ${textClass}`}>{day}</span>
+                      <div className="flex gap-1 mt-0.5">
+                        {eduCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>}
+                        {penCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                       </div>
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-4 sm:mt-6 flex justify-center gap-3 sm:gap-4 text-[8px] sm:text-[10px] font-bold text-stone-500 uppercase tracking-wider">
-                 <span className="flex items-center gap-1 sm:gap-1.5"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-orange-500"></div> Éducation</span>
-                 <span className="flex items-center gap-1 sm:gap-1.5"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500"></div> Pension</span>
+              {/* LÉGENDE */}
+              <div className="mt-6 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-400"></div> Éducation</span>
+                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-400"></div> Pension</span>
               </div>
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
+            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
