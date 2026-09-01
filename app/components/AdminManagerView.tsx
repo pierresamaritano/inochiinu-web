@@ -15,6 +15,9 @@ interface ActionTarget {
 
 type PeriodOption = "1m" | "6m" | "1y";
 
+// Nouveau type pour les filtres de statut
+type StatusGroup = "en_attente" | "valide" | "termine" | "annule" | "tous";
+
 interface Dog {
   id: string;
   user_id: string;
@@ -30,7 +33,6 @@ interface ClientProfile {
   phone?: string;
 }
 
-// --- Type pour les blocages par service ---
 interface ServiceClosure {
   id: string;
   start: string;
@@ -51,6 +53,10 @@ export default function AdminManagerView() {
   const [littersList, setLittersList] = useState<any[]>([]); 
 
   const [tab, setTab] = useState<"education" | "pension" | "elevage" | "sellerie">("education");
+  
+  // --- NOUVEAU : État du filtre par statut (par défaut sur en_attente) ---
+  const [statusFilter, setStatusFilter] = useState<StatusGroup>("en_attente");
+  
   const [editingLitter, setEditingLitter] = useState<any>(null);
   const [showLitterForm, setShowLitterForm] = useState(false);
 
@@ -67,7 +73,6 @@ export default function AdminManagerView() {
   const [noteText, setNoteText] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  // --- ÉTATS : Arrêt d'urgence, Calendrier Global & Fermetures ---
   const [isEmergencyStop, setIsEmergencyStop] = useState(false);
   const [togglingEmergency, setTogglingEmergency] = useState(false);
   
@@ -111,7 +116,7 @@ export default function AdminManagerView() {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_bookings").select("*").order("created_at", { ascending: false }),
-      supabase.from("adoption_requests").select("*, puppies(name)").neq("status", "annulé").neq("status", "refusé").order("created_at", { ascending: false }),
+      supabase.from("adoption_requests").select("*, puppies(name)").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
     ]);
@@ -147,24 +152,35 @@ export default function AdminManagerView() {
     setSelectedFilterClient(null); setClientSearchQuery(""); setClientDogs([]); setSelectedFilterDogId("all"); setSearchResults([]);
   };
 
+  // --- NOUVELLE FONCTION DE FILTRAGE (INCLUANT LES STATUTS) ---
   const applyFilters = (items: any[]) => {
     const now = new Date().getTime();
     return items.filter((item) => {
       const itemDate = new Date(item.created_at || Date.now()).getTime();
       const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+      
       if (period === "1m" && diffDays > 31) return false;
       if (period === "6m" && diffDays > 183) return false;
       if (period === "1y" && diffDays > 365) return false;
       if (selectedFilterClient && item.user_id !== selectedFilterClient.id) return false;
       if (selectedFilterDogId !== "all" && item.dog_id !== selectedFilterDogId) return false;
+
+      // Filtre par statut
+      if (statusFilter !== "tous") {
+        if (statusFilter === "en_attente" && !['en_attente', 'liste_attente'].includes(item.status)) return false;
+        if (statusFilter === "valide" && !['confirmé', 'accepté', 'en_atelier'].includes(item.status)) return false;
+        if (statusFilter === "termine" && !['terminé', 'expédié'].includes(item.status)) return false;
+        if (statusFilter === "annule" && !['annulé', 'refusé'].includes(item.status)) return false;
+      }
+
       return true;
     });
   };
 
-  const filteredEdu = useMemo(() => applyFilters(eduList), [eduList, period, selectedFilterClient, selectedFilterDogId]);
-  const filteredPension = useMemo(() => applyFilters(pensionList), [pensionList, period, selectedFilterClient, selectedFilterDogId]);
-  const filteredAdoption = useMemo(() => applyFilters(adoptionList), [adoptionList, period, selectedFilterClient, selectedFilterDogId]);
-  const filteredSellerie = useMemo(() => applyFilters(sellerieList), [sellerieList, period, selectedFilterClient, selectedFilterDogId]);
+  const filteredEdu = useMemo(() => applyFilters(eduList), [eduList, period, selectedFilterClient, selectedFilterDogId, statusFilter]);
+  const filteredPension = useMemo(() => applyFilters(pensionList), [pensionList, period, selectedFilterClient, selectedFilterDogId, statusFilter]);
+  const filteredAdoption = useMemo(() => applyFilters(adoptionList), [adoptionList, period, selectedFilterClient, selectedFilterDogId, statusFilter]);
+  const filteredSellerie = useMemo(() => applyFilters(sellerieList), [sellerieList, period, selectedFilterClient, selectedFilterDogId, statusFilter]);
 
   const openAction = (table: string, id: string, newStatus: string, title: string, clientName: string, currentNote?: string) => {
     setActionModal({ table, id, newStatus, title, clientName, currentNote });
@@ -236,14 +252,11 @@ export default function AdminManagerView() {
       removeClosure(closureId);
       return;
     }
-
     if (hasReservations) {
       alert("Impossible de bloquer cette date : vous avez déjà des réservations confirmées ou en attente à ce moment-là.");
       return;
     }
-
     if (closureViewMode !== "calendar") setClosureViewMode("calendar");
-
     if (!newClosureStart || (newClosureStart && newClosureEnd)) {
       setNewClosureStart(dateStr);
       setNewClosureEnd("");
@@ -395,10 +408,7 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) {
-                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
-                  return;
-                }
+                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -408,13 +418,11 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
-
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
-
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -431,7 +439,7 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
+      {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
@@ -454,7 +462,7 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 1. BARRE DE FILTRAGE */}
+      {/* 1. BARRE DE FILTRAGE PAR CLIENT/CHIEN */}
       <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-1/2">
@@ -484,21 +492,67 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 2. ONGLETS DE NAVIGATION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner">
-            <button onClick={() => setTab("education")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Éducation ({filteredEdu.length})</button>
-            <button onClick={() => setTab("pension")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Pension ({filteredPension.length})</button>
-            <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Élevage ({filteredAdoption.length})</button>
-            <button onClick={() => setTab("sellerie")} className={`px-4 py-2 rounded-full text-xs font-black uppercase transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>Sellerie ({filteredSellerie.length})</button>
+      {/* 2. ONGLETS DE SERVICES ET SOUS-FILTRES DE STATUT */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="w-full md:w-auto">
+            {/* Grille 2 colonnes sur mobile pour éviter le scroll, ligne flex sur tablette/desktop */}
+            <div className="grid grid-cols-2 md:flex md:flex-row items-center gap-1.5 p-1.5 rounded-[1.5rem] md:rounded-full bg-stone-100/90 border border-stone-200/60 shadow-inner w-full md:w-auto">
+              <button onClick={() => setTab("education")} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "education" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
+                Éducation <span className="opacity-60 font-bold ml-1">({filteredEdu.length})</span>
+              </button>
+              <button onClick={() => setTab("pension")} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "pension" ? "bg-white text-emerald-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
+                Pension <span className="opacity-60 font-bold ml-1">({filteredPension.length})</span>
+              </button>
+              <button onClick={() => { setTab("elevage"); setShowLitterForm(false); }} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "elevage" ? "bg-white text-orange-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
+                Élevage <span className="opacity-60 font-bold ml-1">({filteredAdoption.length})</span>
+              </button>
+              <button onClick={() => setTab("sellerie")} className={`px-2 py-2.5 md:px-4 md:py-2 rounded-xl md:rounded-full text-[10px] sm:text-xs font-black uppercase text-center transition-all ${tab === "sellerie" ? "bg-white text-amber-600 shadow-sm" : "text-stone-500 hover:text-stone-900 cursor-pointer"}`}>
+                Sellerie <span className="opacity-60 font-bold ml-1">({filteredSellerie.length})</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider hidden sm:block">Période :</label>
+            <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer">
+              <option value="1m">1 Mois (Défaut)</option><option value="6m">6 Mois</option><option value="1y">1 Année</option>
+            </select>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Période :</label>
-          <select value={period} onChange={(e) => setPeriod(e.target.value as PeriodOption)} className="px-3.5 py-1.5 rounded-full bg-white border border-stone-200 text-xs font-black shadow-sm focus:outline-none focus:border-orange-500 cursor-pointer">
-            <option value="1m">1 Mois (Défaut)</option><option value="6m">6 Mois</option><option value="1y">1 Année</option>
-          </select>
+
+        {/* NOUVEAU : Boutons de filtre par STATUT */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <button 
+            onClick={() => setStatusFilter("en_attente")} 
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === "en_attente" ? "bg-orange-500 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"}`}
+          >
+            Nouvelles / Attente
+          </button>
+          <button 
+            onClick={() => setStatusFilter("valide")} 
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === "valide" ? "bg-emerald-500 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"}`}
+          >
+            Validées / En cours
+          </button>
+          <button 
+            onClick={() => setStatusFilter("termine")} 
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === "termine" ? "bg-stone-800 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"}`}
+          >
+            Terminées / Expédiées
+          </button>
+          <button 
+            onClick={() => setStatusFilter("annule")} 
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === "annule" ? "bg-red-500 text-white shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"}`}
+          >
+            Refusées / Annulées
+          </button>
+          <button 
+            onClick={() => setStatusFilter("tous")} 
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${statusFilter === "tous" ? "bg-stone-200 text-stone-800 shadow-md" : "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"}`}
+          >
+            Tout voir
+          </button>
         </div>
       </div>
 
@@ -506,7 +560,7 @@ export default function AdminManagerView() {
       {tab === "education" && (
         <div className="space-y-4">
           {filteredEdu.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div>
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune demande trouvée avec ces filtres.</div>
           ) : (
             filteredEdu.map((item) => {
               const isTerminated = item.status === "terminé" || item.status === "annulé";
@@ -595,7 +649,7 @@ export default function AdminManagerView() {
       {/* 4. CONTENU : PENSION */}
       {tab === "pension" && (
         <div className="space-y-4">
-           {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredPension.map((item) => (
+           {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune demande trouvée avec ces filtres.</div> : filteredPension.map((item) => (
             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
                 <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-emerald-600">{item.client_name} • {item.client_phone}</span></div>
@@ -633,16 +687,22 @@ export default function AdminManagerView() {
             </div>
           ) : (
             <div className="space-y-8">
-              {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
+              {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune portée créée pour le moment.</div>}
 
               {littersList.map(litter => {
-                const activeLitterApps = filteredAdoption.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
+                // IMPORTANT: on filtre les candidatures avec `adoptionList` pure pour ne pas perdre les "accepté" lors du filtrage "en attente"
+                const activeLitterApps = adoptionList.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
                 const waitlistApps = activeLitterApps.filter(a => a.status === 'liste_attente');
                 const refusedApps = activeLitterApps.filter(a => ['annulé', 'refusé'].includes(a.status));
 
                 const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
                 const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
+
+                // Application du filtre de statut UNIQUEMENT pour déterminer ce qu'on AFFICHE
+                const shouldShowNew = statusFilter === "tous" || statusFilter === "en_attente" || statusFilter === "valide";
+                const shouldShowWait = statusFilter === "tous" || statusFilter === "en_attente";
+                const shouldShowRefused = statusFilter === "tous" || statusFilter === "annule";
 
                 return (
                   <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
@@ -668,7 +728,8 @@ export default function AdminManagerView() {
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
-                            const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
+                            // On cherche dans l'adoptionList PURE pour que le propriétaire apparaisse toujours
+                            const acceptedApp = adoptionList.find(a => a.puppy_id === pup.id && a.status === 'accepté');
                             return (
                               <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
                                 <div className="flex items-center justify-between">
@@ -710,15 +771,15 @@ export default function AdminManagerView() {
                           <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
                           <div className="space-y-6">
-                            {newApps.length > 0 && (
+                            {shouldShowNew && newApps.length > 0 && (
                               <div>
                                 <h5 className="text-[10px] font-bold uppercase text-orange-600 mb-3 border-b border-orange-100 pb-1.5 flex items-center justify-between">
-                                  <span>Nouvelles ({newApps.length})</span>
+                                  <span>Nouvelles / Validées ({newApps.length})</span>
                                 </h5>
                                 <div className="space-y-3">{newApps.map(item => renderAppCard(item, litter))}</div>
                               </div>
                             )}
-                            {waitlistApps.length > 0 && (
+                            {shouldShowWait && waitlistApps.length > 0 && (
                               <div>
                                 <button onClick={() => toggleSectionCollapse(litter.id, 'waitlist')} className="w-full text-[10px] font-bold uppercase text-amber-600 mb-3 border-b border-amber-100 pb-1.5 flex items-center justify-between hover:bg-amber-50/50 transition cursor-pointer">
                                   <span>Liste d'attente ({waitlistApps.length})</span>
@@ -727,7 +788,7 @@ export default function AdminManagerView() {
                                 {!isWaitlistCollapsed && <div className="space-y-3 animate-in fade-in duration-200">{waitlistApps.map(item => renderAppCard(item, litter))}</div>}
                               </div>
                             )}
-                            {refusedApps.length > 0 && (
+                            {shouldShowRefused && refusedApps.length > 0 && (
                               <div>
                                 <button onClick={() => toggleSectionCollapse(litter.id, 'refused')} className="w-full text-[10px] font-bold uppercase text-stone-400 mb-3 border-b border-stone-100 pb-1.5 flex items-center justify-between hover:bg-stone-50 transition cursor-pointer">
                                   <span>Archivées / Refusées ({refusedApps.length})</span>
@@ -759,7 +820,7 @@ export default function AdminManagerView() {
       {/* 6. CONTENU : SELLERIE */}
       {tab === "sellerie" && (
         <div className="space-y-4">
-          {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune commande trouvée.</div> : filteredSellerie.map((item) => (
+          {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune commande trouvée avec ces filtres.</div> : filteredSellerie.map((item) => (
              <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="max-w-xl">
                 <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-amber-600">{item.client_name} • {item.client_phone}</span></div>
@@ -832,7 +893,6 @@ export default function AdminManagerView() {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
-                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
                   const hasReservations = eduCount > 0 || penCount > 0;
@@ -840,7 +900,6 @@ export default function AdminManagerView() {
                   const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
                   const isClosed = !!closure;
 
-                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
@@ -867,7 +926,7 @@ export default function AdminManagerView() {
                       onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
                       className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${bgClass}`}
                     >
-                      <span className={`text-xs ${textClass}`}>{day}</span>
+                      <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
                       <div className="flex gap-1 mt-0.5">
                         {eduCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>}
                         {penCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
@@ -884,7 +943,7 @@ export default function AdminManagerView() {
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0 min-w-0">
+            <div className="w-full md:flex-1 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 min-w-0">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
                 <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
