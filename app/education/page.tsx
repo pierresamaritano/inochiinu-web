@@ -286,6 +286,7 @@ export default function EducationPage() {
         <p className="mx-auto mt-3 max-w-2xl text-sm font-medium text-stone-600 sm:text-base">
           Des méthodes bienveillantes, claires et adaptées à la psychologie de votre chien pour bâtir une relation de confiance et de respect mutuel.
         </p>
+        {/* NOUVEAU MESSAGE EN ROUGE */}
         <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-red-200 bg-red-50/80 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
           <p className="text-sm font-bold text-red-700 leading-relaxed">
             Actuellement en révision pour passage de l'ACACED ! Objectif, obtention en septembre 2026.<br className="hidden sm:block" />
@@ -417,14 +418,17 @@ export default function EducationPage() {
         </div>
       </section>
 
+      {/* APPEL DU CARROUSEL MAÎTRE AVEC LES IMAGES "ÉDUCATION" */}
       <AppleCarousel slides={educationCarouselSlides} />
 
+      {/* APPEL DU COMPOSANT CONTACT */}
       <ContactSection />
 
       <footer className="relative z-10 border-t border-stone-200/60 bg-transparent py-12 text-center text-sm text-stone-400">
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
+      {/* NOUVEAU POP-UP : MODALE D'INFORMATION PRÉALABLE */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
@@ -465,6 +469,7 @@ export default function EducationPage() {
         </div>
       )}
 
+      {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
@@ -486,6 +491,7 @@ export default function EducationPage() {
         </div>
       )}
 
+      {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
