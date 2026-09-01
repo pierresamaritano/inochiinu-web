@@ -6,8 +6,8 @@ import DogProfileManager from "./DogProfileManager";
 import ClientDogSelector from "./ClientDogSelector";
 import EducationCalendar from "./EducationCalendar";
 import MiniEducationCalendar from "./MiniEducationCalendar";
-import PensionCalendar from "./PensionCalendar"; // <-- IMPORT PENSION
-import MiniPensionCalendar from "./MiniPensionCalendar"; // <-- NOUVEL IMPORT
+import PensionCalendar from "./PensionCalendar"; 
+import MiniPensionCalendar from "./MiniPensionCalendar"; 
 import PaymentSimulation from "./PaymentSimulation"; 
 
 interface CancelTarget {
@@ -184,7 +184,7 @@ export default function ClientDashboardHub() {
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); 
+      fetchUserServices(); // Rafraîchit les données pour mettre à jour la liste et le calendrier
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation.");
@@ -247,7 +247,7 @@ export default function ClientDashboardHub() {
 
       if (error) throw error;
       setQuickPenSubmitted(true);
-      fetchUserServices(); 
+      fetchUserServices(); // Rafraîchit les données pour mettre à jour le calendrier pension
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation de la pension.");
@@ -387,7 +387,6 @@ export default function ClientDashboardHub() {
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séjours en Garde</h3>
                 </div>
                 
-                {/* NOUVEAU BOUTON CALENDRIER PENSION */}
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setShowPenCalendar(!showPenCalendar)}
@@ -402,7 +401,6 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
-              {/* NOUVEAU MINI CALENDRIER PENSION */}
               {showPenCalendar && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <MiniPensionCalendar onDayClick={handleMiniPenCalClick} />
@@ -449,7 +447,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* 3. WIDGET ÉLEVAGE */}
+          {/* ... WIDGETS ADOPTION ET SELLERIE (IDENTIQUES) ... */}
           {filteredAdoption.length > 0 && (
             <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -502,7 +500,6 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* 4. WIDGET SELLERIE */}
           {filteredSellerie.length > 0 && (
             <div id="widget-sel" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'sel' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-amber-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -558,7 +555,7 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
-      {/* ... MODALE D'ANNULATION (INCHANGÉE) ... */}
+      {/* ... MODALE ANNULATION ... */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -610,7 +607,15 @@ export default function ClientDashboardHub() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Paiement validé !</h3>
                 <p className="text-xs text-stone-500 mt-2">Votre demande pour le {new Date(quickForm.scheduledDate).toLocaleDateString('fr-FR')} a bien été enregistrée.</p>
-                <button onClick={() => setIsQuickBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md">Fermer</button>
+                <button 
+                  onClick={() => {
+                    setIsQuickBookOpen(false);
+                    // Le rafraichissement est déjà géré par fetchUserServices() appelé dans handleFinalSubmit
+                  }} 
+                  className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
+                >
+                  Fermer
+                </button>
               </div>
             ) : showPayment ? (
               <PaymentSimulation 
@@ -734,7 +739,7 @@ export default function ClientDashboardHub() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODALE RÉSERVATION RAPIDE PENSION (Direct Submission) */}
+      {/* MODALE RÉSERVATION RAPIDE PENSION */}
       {/* ========================================================================= */}
       {isQuickPenBookOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -747,7 +752,15 @@ export default function ClientDashboardHub() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
                 <h3 className="text-xl font-black text-stone-900">Demande de séjour envoyée !</h3>
                 <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des boxs et validons votre demande très vite.</p>
-                <button onClick={() => setIsQuickPenBookOpen(false)} className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md">Fermer</button>
+                <button 
+                  onClick={() => {
+                    setIsQuickPenBookOpen(false);
+                    // Le rafraichissement est déjà géré par fetchUserServices()
+                  }} 
+                  className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md"
+                >
+                  Fermer
+                </button>
               </div>
             ) : (
               <form onSubmit={handleQuickPenSubmit} className="space-y-6">
@@ -758,7 +771,6 @@ export default function ClientDashboardHub() {
 
                 <div className="space-y-5 animate-in fade-in">
 
-                  {/* SÉLECTION DU CHIEN */}
                   {currentUser && (
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pensionnaire(s) *</label>
@@ -825,7 +837,6 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
-                  {/* LE GRAND CALENDRIER PENSION */}
                   <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
                     <PensionCalendar 
                       startDate={quickPenForm.startDate}
