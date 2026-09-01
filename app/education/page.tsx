@@ -367,7 +367,6 @@ export default function EducationPage() {
         </div>
       )}
 
-      {/* MODALE CONNEXION (GOOGLE + EMAIL) */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
@@ -413,7 +412,6 @@ export default function EducationPage() {
         </div>
       )}
 
-      {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
@@ -593,7 +591,8 @@ export default function EducationPage() {
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
                         selectedTime={formData.preferredSlot}
-                        selectedDogId={formData.dog_id} // Le calendrier utilise le chien sélectionné !
+                        // On force la valeur selectedDogId pour s'assurer que le calendrier filtre correctement
+                        selectedDogId={formData.dog_id} 
                         onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, preferredSlot: time })}
                       />
                     </div>
