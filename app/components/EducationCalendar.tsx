@@ -7,7 +7,7 @@ interface EducationCalendarProps {
   location: "terrain" | "domicile";
   selectedDate: string;
   selectedTime: string;
-  selectedDogId: string; // NOUVEAU : Identifiant du chien en cours de réservation
+  selectedDogId: string; // NOUVEAU : Chien en cours de réservation
   onChange: (date: string, time: string) => void;
 }
 
@@ -43,7 +43,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
       const { data } = await supabase
         .from("education_requests")
         .select("user_id, dog_id, scheduled_date, preferred_slot, location_preference, status")
-        .in("status", ["en_attente", "confirmé", "terminé"]);
+        .in("status", ["en_attente", "confirmé", "terminé"]); // Prise en compte de terminé
       
       setReservations(data || []);
     };
@@ -51,12 +51,10 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   }, [month, year, supabase]);
 
   const getMyStatus = (dateStr: string) => {
-    // NOUVEAU : On vérifie uniquement les réservations du CHIEN sélectionné !
-    // Si j'ai réservé pour Dog A, je peux tout à fait réserver la même journée pour Dog B.
     const myRes = reservations.find(r => 
       r.scheduled_date === dateStr && 
       r.user_id === currentUser && 
-      r.dog_id === selectedDogId
+      r.dog_id === selectedDogId // <-- Ne bloque que si CE chien a déjà une séance
     );
     return myRes ? myRes.status : null;
   };
@@ -110,7 +108,6 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     
     if (clickedDate < today) return; 
 
-    // Bloque uniquement si CE chien a déjà une séance
     const myPersonalStatus = getMyStatus(clickedDate);
     if (myPersonalStatus) return;
 
@@ -131,11 +128,11 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
     return (
       <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
-        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances de ce chien</p>
+        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances pour ce chien</p>
         {hasMyPending && (
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
-            <p><strong>En attente :</strong> Séance en cours de validation.</p>
+            <p><strong>En attente :</strong> Demande en cours de traitement.</p>
           </div>
         )}
         {hasMyConfirmed && (

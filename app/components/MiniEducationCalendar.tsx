@@ -10,6 +10,8 @@ interface MiniEducationCalendarProps {
 
 export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniEducationCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
+  
+  // NOUVEAU : Gestion des chiens pour le filtrage
   const [dogs, setDogs] = useState<any[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("all");
 
@@ -17,12 +19,6 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-
-  const year = miniCalDate.getFullYear();
-  const month = miniCalDate.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startDay = new Date(year, month, 1).getDay() === 0 ? 6 : new Date(year, month, 1).getDay() - 1;
-  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
   useEffect(() => {
     const fetchDogs = async () => {
@@ -35,11 +31,17 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
     fetchDogs();
   }, [supabase]);
 
+  const year = miniCalDate.getFullYear();
+  const month = miniCalDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDay = new Date(year, month, 1).getDay() === 0 ? 6 : new Date(year, month, 1).getDay() - 1;
+  const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
   const getDayStatus = (dateStr: string) => {
     const req = eduRequests.find(r => 
       r.scheduled_date === dateStr && 
       r.status !== 'annulé' &&
-      // NOUVEAU : On filtre par chien si un chien spécifique est sélectionné
+      // Filtre intelligent : on n'affiche le statut que si on regarde "tous les chiens" ou le chien spécifique
       (selectedDogId === "all" || r.dog_id === selectedDogId)
     );
     return req ? req.status : null; 
@@ -48,7 +50,7 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
       
-      {/* NOUVEAU : Filtre par chien affiché uniquement s'il y a plus d'1 chien */}
+      {/* SÉLECTEUR DE CHIEN (Uniquement si > 1 chien) */}
       {dogs.length > 1 && (
         <div className="mb-4">
           <select 

@@ -128,7 +128,7 @@ export default function ClientDashboardHub() {
   const handleMiniCalClick = (dateStr: string) => {
     setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "" }));
     setQuickSubmitted(false);
-    setQuickBookStep(1); // Étape 1 : Le Chien (Pour lier le calendrier !)
+    setQuickBookStep(1); // ETAPE 1 : CHOIX DU CHIEN (pour que le calendrier de l'étape 2 filtre bien)
     setIsQuickBookOpen(true);
   };
 
@@ -223,12 +223,12 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Éducation</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
-                
                 <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
                   {filteredEdu.length}
                 </div>
               </div>
 
+              {/* MINI-CALENDRIER EXCLUSIF */}
               <MiniEducationCalendar eduRequests={eduRequests} onDayClick={handleMiniCalClick} />
 
               <div className="mt-6 space-y-3">
@@ -561,6 +561,18 @@ export default function ClientDashboardHub() {
                       />
                     </div>
 
+                    <div className="pt-4 flex justify-end border-t border-stone-100">
+                      <button type="button" disabled={!quickForm.dog_id || !quickForm.objectives} onClick={() => setQuickBookStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 disabled:opacity-50">
+                        Suivant ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ÉTAPE 2 : CALENDRIER ET HORAIRE */}
+                {quickBookStep === 2 && (
+                  <div className="space-y-6 animate-in fade-in">
+                    
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -585,18 +597,6 @@ export default function ClientDashboardHub() {
                         </button>
                       </div>
                     </div>
-
-                    <div className="pt-4 flex justify-end border-t border-stone-100">
-                      <button type="button" disabled={!quickForm.dog_id || !quickForm.objectives} onClick={() => setQuickBookStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 disabled:opacity-50">
-                        Suivant ➔
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ÉTAPE 2 : CALENDRIER ET HORAIRE */}
-                {quickBookStep === 2 && (
-                  <div className="space-y-6 animate-in fade-in">
 
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
                       <EducationCalendar 
