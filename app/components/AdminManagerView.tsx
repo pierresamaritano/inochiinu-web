@@ -82,7 +82,7 @@ export default function AdminManagerView() {
     if (clientSearchQuery.trim().length < 2) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
       const { data } = await supabase.from("profiles").select("id, full_name, email, phone").or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`).limit(6);
-      searchResults(data || []);
+      setSearchResults(data || []); // CORRECTION ICI (ajout du set)
     }, 250);
     return () => clearTimeout(timer);
   }, [clientSearchQuery, selectedFilterClient, supabase]);
