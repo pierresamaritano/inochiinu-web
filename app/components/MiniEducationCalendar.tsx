@@ -4,14 +4,12 @@ import { useState } from "react";
 
 interface MiniEducationCalendarProps {
   eduRequests: any[];
-  userDogs?: any[]; // NOUVEAU : Récupère les chiens du client
+  userDogs?: any[]; // On importe les chiens pour le filtre
   onDayClick: (dateStr: string, dogId?: string) => void;
 }
 
 export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDayClick }: MiniEducationCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
-  
-  // NOUVEAU : État pour le filtre du chien
   const [selectedDogId, setSelectedDogId] = useState<string>("all");
 
   const year = miniCalDate.getFullYear();
@@ -24,7 +22,6 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
     const req = eduRequests.find(r => 
       r.scheduled_date === dateStr && 
       r.status !== 'annulé' &&
-      // NOUVEAU : On filtre la couleur selon le chien sélectionné !
       (selectedDogId === "all" || r.dog_id === selectedDogId)
     );
     return req ? req.status : null; 
@@ -33,7 +30,7 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
       
-      {/* NOUVEAU : Filtre par chien si le client en a plusieurs */}
+      {/* FILTRE PAR CHIEN (S'affiche uniquement si > 1 chien) */}
       {userDogs.length > 1 && (
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
           <button 
@@ -74,7 +71,7 @@ export default function MiniEducationCalendar({ eduRequests, userDogs = [], onDa
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
           const status = getDayStatus(dateStr);
-          const isPast = dateStr < today;
+          const isPast = dateStr <= today; // Modifié pour interdire les clics dans le passé ou aujourd'hui
           
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400 text-stone-700 cursor-pointer shadow-sm";
           

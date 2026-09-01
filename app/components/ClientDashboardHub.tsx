@@ -27,16 +27,16 @@ export default function ClientDashboardHub() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [clientPhone, setClientPhone] = useState("");
   
-  // NOUVEAU : Stockage des chiens pour les passer au MiniCalendrier
+  // Stockage des chiens pour les passer au MiniCalendrier
   const [userDogs, setUserDogs] = useState<any[]>([]);
 
   const [cancelModal, setCancelModal] = useState<CancelTarget | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  // --- ÉTATS POUR LE MINI-CALENDRIER ---
+  // --- ÉTAT POUR AFFICHER/MASQUER LE MINI-CALENDRIER ---
   const [showEduCalendar, setShowEduCalendar] = useState(false);
 
-  // --- ÉTATS POUR LA RÉSERVATION RAPIDE ---
+  // --- ÉTATS POUR LA RÉSERVATION RAPIDE (Un seul écran) ---
   const [isQuickBookOpen, setIsQuickBookOpen] = useState(false);
   const [quickSubmitting, setQuickSubmitting] = useState(false);
   const [quickSubmitted, setQuickSubmitted] = useState(false);
@@ -65,7 +65,6 @@ export default function ClientDashboardHub() {
     const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
     if (profile && profile.phone) setClientPhone(profile.phone);
 
-    // NOUVEAU : Récupération simultanée des chiens
     const [edu, pen, adp, sel, dogsData] = await Promise.all([
       supabase.from("education_requests").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("pension_bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -171,10 +170,10 @@ export default function ClientDashboardHub() {
           dog_breed: quickForm.dogBreed,
           dog_age: quickForm.dogAge,
           objectives: quickForm.objectives,
-          issues: [], // Pas de problèmes spécifiques pour un suivi
+          issues: [], // Pas de problèmes spécifiques demandés en suivi
           scheduled_date: quickForm.scheduledDate,
           preferred_slot: quickForm.timeSlot,
-          session_type: "suivi", 
+          session_type: "suivi", // Toujours un suivi via l'espace membre
           location_preference: quickForm.location,
           price_estimate: quickForm.location === "domicile" ? 65 : 45, 
           status: "en_attente",
@@ -182,7 +181,7 @@ export default function ClientDashboardHub() {
       ]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données du dashboard
+      fetchUserServices(); // Met à jour le mini-calendrier en arrière-plan
     } catch (err) {
       console.error(err);
     } finally {
@@ -237,7 +236,7 @@ export default function ClientDashboardHub() {
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Séances & Bilan</h3>
                 </div>
                 
-                {/* BOUTON D'AFFICHAGE DU MINI-CALENDRIER */}
+                {/* BOUTON CALENDRIER QUI AFFICHE/MASQUE LE MINI-CALENDRIER */}
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setShowEduCalendar(!showEduCalendar)}
@@ -311,7 +310,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... (WIDGETS PENSION, ELEVAGE, SELLERIE IDENTIQUES) ... */}
+          {/* ... (RESTE DES WIDGETS : PENSION, ELEVAGE, SELLERIE IDENTIQUES À LA VERSION PRÉCÉDENTE) ... */}
           {/* 2. WIDGET PENSION */}
           {filteredPension.length > 0 && (
             <div id="widget-pen" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'pen' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-emerald-100' : ''}`}>

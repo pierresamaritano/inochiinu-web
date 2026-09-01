@@ -108,7 +108,8 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
     
-    if (clickedDate < today) return; 
+    // Bloque le clic sur aujourd'hui et les dates passées
+    if (clickedDate <= today) return; 
 
     // Bloque uniquement si CE chien a déjà une séance
     const myPersonalStatus = getMyStatus(clickedDate);
@@ -180,7 +181,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
           
-          const isPast = currentISODate < today;
+          const isPast = currentISODate <= today; // Vérification stricte
           const myPersonalStatus = getMyStatus(currentISODate);
           const { isFull } = getAvailableSlotsForDay(currentISODate);
           

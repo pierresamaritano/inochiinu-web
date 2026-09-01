@@ -34,6 +34,9 @@ export default function EducationPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState("");
   
+  // NOUVEAU : On stocke les anciennes requêtes d'éducation pour bloquer/débloquer la séance "Suivi"
+  const [userEduRequests, setUserEduRequests] = useState<any[]>([]);
+
   const [formData, setFormData] = useState<{
     dog_id: string;
     dogName: string;
@@ -81,6 +84,14 @@ export default function EducationPage() {
         if (profile && profile.phone) {
           setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
         }
+
+        // On récupère tout de suite l'historique d'éducation pour savoir si le client a déjà fait un bilan !
+        const { data: reqs } = await supabase
+          .from("education_requests")
+          .select("dog_id, session_type, status")
+          .eq("user_id", currentUser.id);
+        
+        setUserEduRequests(reqs || []);
       }
     };
     fetchUser();
@@ -208,7 +219,7 @@ export default function EducationPage() {
           dog_breed: formData.dogBreed,
           dog_age: formData.dogAge,
           objectives: formData.objectives,
-          issues: formData.issues,
+          issues: formData.sessionType === 'bilan' ? formData.issues : [], // Uniquement si bilan
           scheduled_date: formData.scheduledDate,
           preferred_slot: formData.preferredSlot,
           session_type: formData.sessionType,
@@ -230,6 +241,9 @@ export default function EducationPage() {
       setSubmitting(false);
     }
   };
+
+  // NOUVELLE FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan ?
+  const selectedDogHasBilan = userEduRequests.some(r => r.dog_id === formData.dog_id && r.session_type === 'bilan' && r.status !== 'annulé');
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -367,6 +381,7 @@ export default function EducationPage() {
         </div>
       )}
 
+      {/* MODALE CONNEXION (GOOGLE + EMAIL) */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
@@ -412,6 +427,7 @@ export default function EducationPage() {
         </div>
       )}
 
+      {/* MODALE FORMULAIRE ÉDUCATION */}
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsFormOpen(false)} />
@@ -431,15 +447,54 @@ export default function EducationPage() {
                   <div>
                     <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 3</span>
                     <h3 className="text-lg font-black text-stone-900">
-                      {step === 1 && "Type de séance & Lieu"}
-                      {step === 2 && "Chien & Besoins"}
-                      {step === 3 && "Disponibilités & Validation"}
+                      {step === 1 && "Choix du chien"}
+                      {step === 2 && "Type de séance & Lieu"}
+                      {step === 3 && "Disponibilités & Objectifs"}
                     </h3>
                   </div>
                 </div>
 
-                {/* ÉTAPE 1 : Type de séance et Lieu */}
+                {/* ÉTAPE 1 NOUVELLE : CHOIX DU CHIEN */}
                 {step === 1 && (
+                  <div className="space-y-6 animate-in fade-in">
+                    
+                    {user && (
+                      <ClientDogSelector
+                        isAdmin={false}
+                        currentUserId={user.id}
+                        onDogSelected={(dog) =>
+                          setFormData({
+                            ...formData,
+                            dog_id: dog.id,
+                            dogName: dog.name,
+                            dogBreed: dog.breed,
+                            dogAge: calculateDogAge(dog.birth_date || ""),
+                          })
+                        }
+                      />
+                    )}
+
+                    <div className="pt-4 flex justify-end">
+                      <button 
+                        type="button" 
+                        disabled={!formData.dog_id} 
+                        onClick={() => {
+                          // Si le chien sélectionné n'a jamais fait de bilan, on force le type à "Bilan"
+                          if (!selectedDogHasBilan) {
+                            setFormData(prev => ({ ...prev, sessionType: "bilan" }));
+                          }
+                          setStep(2);
+                        }} 
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer shadow-md hover:bg-stone-800 transition"
+                      >
+                        Suivant ➔
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ÉTAPE 2 NOUVELLE : Type de séance et Lieu */}
+                {step === 2 && (
                   <div className="space-y-6 animate-in fade-in">
 
                     <div className="space-y-3">
@@ -455,14 +510,22 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">1er rdv obligatoire</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button 
+                          type="button" 
+                          // On désactive le bouton si aucun bilan n'a été fait pour ce chien
+                          disabled={!selectedDogHasBilan}
+                          onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} 
+                          className={`p-4 rounded-2xl border text-left transition-all ${!selectedDogHasBilan ? "opacity-50 grayscale cursor-not-allowed bg-stone-50" : formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm cursor-pointer" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}
+                        >
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "suivi" ? "text-orange-900" : "text-stone-800"}`}>Suivi / Séance</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "suivi" ? "border-orange-500" : "border-stone-300"}`}>
                               {formData.sessionType === "suivi" && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                             </div>
                           </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">Client existant</span>
+                          <span className={`text-[10px] mt-1 block font-bold ${!selectedDogHasBilan ? "text-red-500" : "text-stone-500 font-normal"}`}>
+                            {!selectedDogHasBilan ? "Bilan initial requis avant la 1ère séance" : "Client existant"}
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -470,7 +533,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300 cursor-pointer"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -480,7 +543,7 @@ export default function EducationPage() {
                           <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard</span>
                         </button>
 
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300 cursor-pointer"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -492,80 +555,16 @@ export default function EducationPage() {
                       </div>
                     </div>
 
-                    <div className="pt-4 flex justify-end">
-                      <button type="button" onClick={() => setStep(2)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800">
-                        Suivant ➔
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ÉTAPE 2 : Chien & Besoins */}
-                {step === 2 && (
-                  <div className="space-y-5 animate-in fade-in">
-                    {user && (
-                      <ClientDogSelector
-                        isAdmin={false}
-                        currentUserId={user.id}
-                        onDogSelected={(dog) =>
-                          setFormData({
-                            ...formData,
-                            dog_id: dog.id,
-                            dogName: dog.name,
-                            dogBreed: dog.breed,
-                            // L'âge est toujours calculé silencieusement
-                            dogAge: calculateDogAge(dog.birth_date || ""),
-                          })
-                        }
-                      />
-                    )}
-
-                    {/* CHAMP AGE MASQUÉ COMME DEMANDÉ */}
-
-                    <div className="w-full min-w-0">
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
-                        {formData.sessionType === "bilan" ? "Que souhaitez-vous travailler ? *" : "Objectif de la séance *"}
-                      </label>
-                      <textarea 
-                        required 
-                        rows={3} 
-                        placeholder={formData.sessionType === "bilan" ? "Expliquez brièvement vos attentes pour ce premier bilan..." : "Point spécifique à réviser aujourd'hui..."}
-                        value={formData.objectives} 
-                        onChange={(e) => setFormData({ ...formData, objectives: e.target.value })} 
-                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                      />
-                    </div>
-
-                    {/* On affiche les problèmes spécifiques UNIQUEMENT lors d'un bilan initial */}
-                    {formData.sessionType === "bilan" && (
-                      <div className="animate-in slide-in-from-top-2">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-2">Comportements à signaler (Facultatif)</label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {["Aboiements excessifs", "Destruction", "Malpropreté", "Tire en laisse", "Réactivité congénères", "Réactivité humains", "Anxiété de séparation", "Fugue"].map((issue) => (
-                            <label key={issue} className="flex items-center gap-2 p-2 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors">
-                              <input 
-                                type="checkbox" 
-                                checked={formData.issues.includes(issue)} 
-                                onChange={() => toggleIssue(issue)} 
-                                className="rounded text-orange-600 focus:ring-orange-500" 
-                              />
-                              <span className="text-[11px] font-medium text-stone-700">{issue}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="button" disabled={!formData.dog_id || !formData.objectives} onClick={() => setStep(3)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer shadow-md">
+                      <button type="button" onClick={() => setStep(3)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer shadow-md hover:bg-stone-800 transition">
                         Suivant ➔
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* ÉTAPE 3 : Validation et Résumé */}
+                {/* ÉTAPE 3 : Disponibilités & Objectifs */}
                 {step === 3 && (
                   <div className="space-y-6 animate-in fade-in">
 
@@ -586,16 +585,49 @@ export default function EducationPage() {
                     </div>
 
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                      {/* INTÉGRATION DU NOUVEAU CALENDRIER */}
+                      {/* INTÉGRATION DU CALENDRIER INTELLIGENT */}
                       <EducationCalendar 
                         location={formData.location}
                         selectedDate={formData.scheduledDate}
                         selectedTime={formData.preferredSlot}
-                        // On force la valeur selectedDogId pour s'assurer que le calendrier filtre correctement
-                        selectedDogId={formData.dog_id} 
+                        selectedDogId={formData.dog_id} // Le calendrier utilise le chien sélectionné !
                         onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, preferredSlot: time })}
                       />
                     </div>
+
+                    <div className="w-full min-w-0">
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
+                        {formData.sessionType === "bilan" ? "Que souhaitez-vous travailler ? *" : "Objectif de la séance *"}
+                      </label>
+                      <textarea 
+                        required 
+                        rows={3} 
+                        placeholder={formData.sessionType === "bilan" ? "Expliquez brièvement vos attentes pour ce premier bilan..." : "Point spécifique à réviser aujourd'hui..."}
+                        value={formData.objectives} 
+                        onChange={(e) => setFormData({ ...formData, objectives: e.target.value })} 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
+                    </div>
+
+                    {/* On affiche les problèmes spécifiques UNIQUEMENT lors d'un bilan initial */}
+                    {formData.sessionType === "bilan" && (
+                      <div className="animate-in slide-in-from-top-2">
+                        <label className="block text-xs font-bold uppercase text-stone-600 mb-2">Comportements à signaler (Facultatif)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {["Aboiements excessifs", "Destruction", "Malpropreté", "Tire en laisse", "Réactivité congénères", "Réactivité humains", "Anxiété de séparation", "Fugue"].map((issue) => (
+                            <label key={issue} className="flex items-center gap-2 p-2 rounded-xl border border-stone-200 bg-white cursor-pointer hover:bg-stone-50 transition-colors shadow-sm">
+                              <input 
+                                type="checkbox" 
+                                checked={formData.issues.includes(issue)} 
+                                onChange={() => toggleIssue(issue)} 
+                                className="rounded text-orange-600 focus:ring-orange-500" 
+                              />
+                              <span className="text-[11px] font-medium text-stone-700">{issue}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
