@@ -34,7 +34,6 @@ export default function EducationPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState("");
   
-  // NOUVEAU : On stocke les anciennes requêtes d'éducation pour bloquer/débloquer la séance "Suivi"
   const [userEduRequests, setUserEduRequests] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<{
@@ -85,10 +84,9 @@ export default function EducationPage() {
           setFormData((prev) => ({ ...prev, clientPhone: profile.phone }));
         }
 
-        // On récupère tout de suite l'historique d'éducation pour savoir si le client a déjà fait un bilan !
         const { data: reqs } = await supabase
           .from("education_requests")
-          .select("dog_id, session_type, status")
+          .select("dog_id, session_type, status, scheduled_date")
           .eq("user_id", currentUser.id);
         
         setUserEduRequests(reqs || []);
@@ -219,7 +217,7 @@ export default function EducationPage() {
           dog_breed: formData.dogBreed,
           dog_age: formData.dogAge,
           objectives: formData.objectives,
-          issues: formData.sessionType === 'bilan' ? formData.issues : [], // Uniquement si bilan
+          issues: formData.sessionType === 'bilan' ? formData.issues : [], 
           scheduled_date: formData.scheduledDate,
           preferred_slot: formData.preferredSlot,
           session_type: formData.sessionType,
@@ -242,8 +240,30 @@ export default function EducationPage() {
     }
   };
 
-  // NOUVELLE FONCTION INTELLIGENTE : Le chien a-t-il déjà eu un Bilan TERMINÉ ?
-  const selectedDogHasBilan = userEduRequests.some(r => r.dog_id === formData.dog_id && r.session_type === 'bilan' && r.status === 'terminé');
+  // =========================================================================
+  // LOGIQUE MÉTIER AVANCÉE : Bilan & Suivi (1 an d'expiration)
+  // =========================================================================
+  
+  // 1. Filtrer les requêtes non-annulées du chien sélectionné
+  const dogReqs = userEduRequests.filter(r => r.dog_id === formData.dog_id && r.status !== 'annulé');
+  
+  // 2. A-t-il un jour fait un bilan validé ?
+  const hasCompletedBilanEver = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
+  
+  // 3. A-t-il un bilan en cours de traitement (empêche d'en demander un 2e)
+  const hasPendingOrConfirmedBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
+  
+  // 4. Le dossier est-il actif ? (La dernière séance remonte-t-elle à moins d'1 an ?)
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const isFileActive = dogReqs.some(r => {
+    if (!r.scheduled_date) return true; // Sécurité si date non définie
+    return new Date(r.scheduled_date) >= oneYearAgo;
+  });
+
+  // Déductions finales :
+  const canBookSuivi = formData.dog_id ? (hasCompletedBilanEver && isFileActive) : false;
+  const canBookBilan = formData.dog_id ? (!canBookSuivi && !hasPendingOrConfirmedBilan) : false;
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
@@ -454,7 +474,7 @@ export default function EducationPage() {
                   </div>
                 </div>
 
-                {/* ÉTAPE 1 NOUVELLE : CHOIX DU CHIEN */}
+                {/* ÉTAPE 1 : CHOIX DU CHIEN */}
                 {step === 1 && (
                   <div className="space-y-6 animate-in fade-in">
                     
@@ -474,13 +494,21 @@ export default function EducationPage() {
                       />
                     )}
 
+                    {formData.dog_id && !canBookSuivi && !canBookBilan && (
+                      <div className="p-4 mt-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium text-center">
+                        ⚠️ Vous avez déjà une demande de Bilan en cours pour ce chien.
+                      </div>
+                    )}
+
                     <div className="pt-4 flex justify-end border-t border-stone-100 mt-4">
                       <button 
                         type="button" 
-                        disabled={!formData.dog_id} 
+                        disabled={!formData.dog_id || (!canBookSuivi && !canBookBilan)} 
                         onClick={() => {
-                          if (!selectedDogHasBilan) {
+                          if (!canBookSuivi) {
                             setFormData(prev => ({ ...prev, sessionType: "bilan" }));
+                          } else if (!canBookBilan) {
+                            setFormData(prev => ({ ...prev, sessionType: "suivi" }));
                           }
                           setStep(2);
                         }} 
@@ -492,28 +520,35 @@ export default function EducationPage() {
                   </div>
                 )}
 
-                {/* ÉTAPE 2 NOUVELLE : Type de séance et Lieu */}
+                {/* ÉTAPE 2 : Type de séance et Lieu */}
                 {step === 2 && (
                   <div className="space-y-6 animate-in fade-in">
 
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Nature de la demande</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}>
+                        <button 
+                          type="button" 
+                          disabled={!canBookBilan}
+                          onClick={() => setFormData({ ...formData, sessionType: "bilan", preferredSlot: "", scheduledDate: "" })} 
+                          className={`p-4 rounded-2xl border text-left transition-all ${!canBookBilan ? "opacity-50 grayscale cursor-not-allowed bg-stone-50" : formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm cursor-pointer" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}
+                        >
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "bilan" ? "text-orange-900" : "text-stone-800"}`}>Bilan Initial</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "bilan" ? "border-orange-500" : "border-stone-300"}`}>
                               {formData.sessionType === "bilan" && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                             </div>
                           </div>
-                          <span className="text-[10px] text-stone-500 mt-1 block">1er rdv obligatoire</span>
+                          <span className={`text-[10px] mt-1 block ${!canBookBilan ? "font-bold text-red-500" : "text-stone-500"}`}>
+                            {!canBookBilan ? (hasPendingOrConfirmedBilan ? "Demande en cours" : "Bilan déjà valide") : "1er rdv obligatoire"}
+                          </span>
                         </button>
 
                         <button 
                           type="button" 
-                          disabled={!selectedDogHasBilan}
+                          disabled={!canBookSuivi}
                           onClick={() => setFormData({ ...formData, sessionType: "suivi", preferredSlot: "", scheduledDate: "" })} 
-                          className={`p-4 rounded-2xl border text-left transition-all ${!selectedDogHasBilan ? "opacity-50 grayscale cursor-not-allowed bg-stone-50" : formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm cursor-pointer" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}
+                          className={`p-4 rounded-2xl border text-left transition-all ${!canBookSuivi ? "opacity-50 grayscale cursor-not-allowed bg-stone-50" : formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm cursor-pointer" : "border-stone-200 bg-white hover:border-orange-300 cursor-pointer"}`}
                         >
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "suivi" ? "text-orange-900" : "text-stone-800"}`}>Suivi / Séance</span>
@@ -521,8 +556,8 @@ export default function EducationPage() {
                               {formData.sessionType === "suivi" && <div className="w-2 h-2 bg-orange-500 rounded-full" />}
                             </div>
                           </div>
-                          <span className={`text-[10px] mt-1 block font-bold ${!selectedDogHasBilan ? "text-red-500" : "text-stone-500 font-normal"}`}>
-                            {!selectedDogHasBilan ? "Bilan initial terminé requis" : "Client existant"}
+                          <span className={`text-[10px] mt-1 block font-bold ${!canBookSuivi ? "text-red-500" : "text-stone-500 font-normal"}`}>
+                            {!canBookSuivi ? "Bilan initial terminé requis" : "Client existant"}
                           </span>
                         </button>
                       </div>
@@ -640,7 +675,7 @@ export default function EducationPage() {
                     </div>
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
-                      <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
+                      <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
                       <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.preferredSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
                         {submitting ? "Envoi en cours..." : "Valider la demande"}
                       </button>
