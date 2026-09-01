@@ -60,7 +60,20 @@ export default function AdminManagerView() {
   const [noteText, setNoteText] = useState("");
   const [updating, setUpdating] = useState(false);
 
+  // --- NOUVEAU : État de l'arrêt d'urgence global ---
+  const [isEmergencyStop, setIsEmergencyStop] = useState(false);
+  const [togglingEmergency, setTogglingEmergency] = useState(false);
+
   const fetchAll = async () => {
+    // Récupération de l'état de l'arrêt d'urgence
+    try {
+      const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+      if (setting && setting.value === "true") setIsEmergencyStop(true);
+      else setIsEmergencyStop(false);
+    } catch (e) {
+      // Ignorer si la table n'existe pas encore
+    }
+
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("pension_bookings").select("*").order("created_at", { ascending: false }),
@@ -82,7 +95,7 @@ export default function AdminManagerView() {
     if (clientSearchQuery.trim().length < 2) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
       const { data } = await supabase.from("profiles").select("id, full_name, email, phone").or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`).limit(6);
-      setSearchResults(data || []); // CORRECTION ICI (ajout du set)
+      setSearchResults(data || []); 
     }, 250);
     return () => clearTimeout(timer);
   }, [clientSearchQuery, selectedFilterClient, supabase]);
@@ -151,6 +164,24 @@ export default function AdminManagerView() {
     }
   };
 
+  // --- NOUVEAU : Fonction pour activer/désactiver l'arrêt d'urgence ---
+  const toggleEmergencyStop = async () => {
+    if (confirm(isEmergencyStop ? "Réactiver toutes les réservations sur le site ?" : "ATTENTION : Suspendre immédiatement TOUTES les nouvelles réservations sur le site ?")) {
+      setTogglingEmergency(true);
+      try {
+        const newValue = isEmergencyStop ? "false" : "true";
+        // On fait un upsert au cas où la clé n'existe pas encore
+        const { error } = await supabase.from("site_settings").upsert({ key: "emergency_stop", value: newValue }, { onConflict: "key" });
+        if (error) throw error;
+        setIsEmergencyStop(!isEmergencyStop);
+      } catch (err: any) {
+        alert(`Erreur lors de la modification de l'état : ${err.message}`);
+      } finally {
+        setTogglingEmergency(false);
+      }
+    }
+  };
+
   const toggleLitterStatus = async (id: string, currentStatus: boolean) => {
     await supabase.from("litters").update({ is_active: !currentStatus }).eq("id", id);
     fetchAll();
@@ -202,14 +233,14 @@ export default function AdminManagerView() {
             {item.status}
           </span>
         </div>
-        
+
         <div className="text-xs text-stone-600 space-y-1">
           <p><strong className="text-stone-900">Tél :</strong> {item.client_phone}</p>
           <p><strong className="text-stone-900">Préférence :</strong> {renderPreferenceText(item)}</p>
           <p><strong className="text-stone-900">Cadre :</strong> {item.living_environment}</p>
           {item.admin_notes && <div className="mt-2 p-2 rounded-xl bg-orange-50/70 border border-orange-100 text-[10px] text-stone-700"><strong>Message :</strong> {item.admin_notes}</div>}
         </div>
-        
+
         {/* Assigner un chiot (UNIQUEMENT LES CHIOTS DISPONIBLES) */}
         {litter && !isRefused && (
           <div className="pt-2 border-t border-stone-100">
@@ -272,7 +303,22 @@ export default function AdminManagerView() {
 
   return (
     <div className="mt-8 space-y-6">
-      
+
+      {/* 0. BOUTON D'ARRÊT D'URGENCE (VISIBLE UNIQUEMENT PAR ADMIN) */}
+      <div className="flex justify-end mb-2">
+        <button 
+          onClick={toggleEmergencyStop}
+          disabled={togglingEmergency}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all shadow-sm ${isEmergencyStop ? 'bg-stone-800 text-white hover:bg-stone-900 cursor-pointer' : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer'}`}
+        >
+          {isEmergencyStop ? (
+            <><span>🟢</span> Réservations Suspendues (Cliquez pour réactiver)</>
+          ) : (
+            <><span>🔴</span> Arrêt d'urgence (Suspendre les réservations)</>
+          )}
+        </button>
+      </div>
+
       {/* 1. BARRE DE FILTRAGE */}
       <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -321,7 +367,7 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 3. CONTENU : ÉDUCATION (NOUVEAU DESIGN COMPLET) */}
+      {/* 3. CONTENU : ÉDUCATION */}
       {tab === "education" && (
         <div className="space-y-4">
           {filteredEdu.length === 0 ? (
@@ -329,10 +375,10 @@ export default function AdminManagerView() {
           ) : (
             filteredEdu.map((item) => {
               const isTerminated = item.status === "terminé" || item.status === "annulé";
-              
+
               return (
                 <div key={item.id} className={`p-6 rounded-[2rem] border transition-all flex flex-col lg:flex-row justify-between items-start lg:items-stretch gap-6 ${isTerminated ? 'border-stone-100 bg-stone-50/50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
-                  
+
                   {/* COLONNE GAUCHE : IDENTITÉ ET DÉTAILS */}
                   <div className="flex-1 w-full flex flex-col justify-between">
                     <div>
@@ -344,11 +390,11 @@ export default function AdminManagerView() {
                           {item.status}
                         </span>
                       </div>
-                      
+
                       <h4 className="text-xl font-black text-stone-900 mt-1">
                         {item.dog_name} <span className="text-xs text-stone-500 font-medium">({item.dog_breed}{item.dog_age ? `, ${item.dog_age}` : ''})</span>
                       </h4>
-                      
+
                       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
                         <p className="flex items-center gap-1.5">
                           <span className="text-stone-400">🏷️</span> 
@@ -380,7 +426,7 @@ export default function AdminManagerView() {
                   <div className="flex-1 w-full bg-stone-50 p-4 rounded-2xl border border-stone-100/80 flex flex-col">
                     <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-1.5">Objectifs de la séance :</strong>
                     <p className="text-xs text-stone-800 leading-relaxed flex-1">{item.objectives}</p>
-                    
+
                     {item.issues && Array.isArray(item.issues) && item.issues.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-stone-200/60">
                         <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-2">Comportements signalés :</strong>
@@ -445,7 +491,7 @@ export default function AdminManagerView() {
       {/* 5. CONTENU : ÉLEVAGE */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          
+
           {!showLitterForm && (
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-stone-200 pb-4">
               <div>
@@ -469,7 +515,7 @@ export default function AdminManagerView() {
           ) : (
             <div className="space-y-8">
               {littersList.length === 0 && <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune portée créée pour le moment.</div>}
-              
+
               {littersList.map(litter => {
                 const activeLitterApps = filteredAdoption.filter(a => a.litter_id === litter.id && !(a.status === 'accepté' && a.puppy_id));
                 const newApps = activeLitterApps.filter(a => a.status === 'en_attente' || (a.status === 'accepté' && !a.puppy_id));
@@ -478,10 +524,10 @@ export default function AdminManagerView() {
 
                 const isWaitlistCollapsed = collapsedSections[litter.id]?.waitlist ?? true;
                 const isRefusedCollapsed = collapsedSections[litter.id]?.refused ?? true;
-                
+
                 return (
                   <div key={litter.id} className="bg-white border border-stone-200 rounded-[2.5rem] shadow-sm overflow-hidden">
-                    
+
                     {/* EN-TÊTE DE LA PORTÉE */}
                     <div className="p-6 sm:p-8 bg-stone-50/50 border-b border-stone-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div>
@@ -502,14 +548,14 @@ export default function AdminManagerView() {
 
                     {/* CORPS DE LA PORTÉE */}
                     <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-                      
+
                       {/* COLONNE DE GAUCHE : LES CHIOTS */}
                       <div>
                         <h4 className="text-[11px] font-black uppercase text-stone-400 mb-4 tracking-wider">Chiots enregistrés ({litter.puppies?.length || 0})</h4>
                         <div className="space-y-3">
                           {litter.puppies?.map((pup: any) => {
                             const acceptedApp = filteredAdoption.find(a => a.puppy_id === pup.id && a.status === 'accepté');
-                            
+
                             return (
                               <div key={pup.id} className="flex flex-col p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
                                 <div className="flex items-center justify-between">
@@ -562,7 +608,7 @@ export default function AdminManagerView() {
                           <p className="text-xs text-stone-400 italic bg-stone-50 p-6 rounded-2xl border border-stone-100 text-center">Aucune candidature en attente pour cette portée.</p>
                         ) : (
                           <div className="space-y-6">
-                            
+
                             {/* NOUVELLES (Toujours ouvertes par défaut) */}
                             {newApps.length > 0 && (
                               <div>
