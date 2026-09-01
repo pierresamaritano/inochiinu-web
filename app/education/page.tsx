@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
+import EducationCalendar from "../components/EducationCalendar"; // NOUVEAU COMPOSANT
 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -14,7 +15,6 @@ const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/p
 export default function EducationPage() {
   const [user, setUser] = useState<any>(null);
   
-  // --- CARROUSEL DES VALEURS HERO ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -22,7 +22,6 @@ export default function EducationPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // ÉTATS POUR LE POP-UP D'INFORMATION PRÉALABLE
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
@@ -30,7 +29,6 @@ export default function EducationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // NOUVEAUX ÉTATS POUR L'AUTHENTIFICATION PAR EMAIL
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -43,7 +41,8 @@ export default function EducationPage() {
     dogAge: string;
     objectives: string;
     issues: string[];
-    preferredSlot: string;
+    scheduledDate: string; // NOUVEAU
+    timeSlot: string;      // NOUVEAU
     clientPhone: string;
     sessionType: "bilan" | "suivi";
     location: "terrain" | "domicile";
@@ -54,7 +53,8 @@ export default function EducationPage() {
     dogAge: "",
     objectives: "",
     issues: [],
-    preferredSlot: "Semaine en matinée",
+    scheduledDate: "",
+    timeSlot: "",
     clientPhone: "",
     sessionType: "bilan",
     location: "terrain"
@@ -167,7 +167,7 @@ export default function EducationPage() {
   const handleActionClick = () => {
     if (user) {
       setIsFormOpen(true);
-      setStep(1); // On force le retour à l'étape 1
+      setStep(1); 
     } else {
       setIsAuthOpen(true);
     }
@@ -244,11 +244,10 @@ export default function EducationPage() {
     }
   };
 
-  // CALCUL DYNAMIQUE DU TARIF
   const getEstimatedPrice = () => {
-    let basePrice = formData.sessionType === "bilan" ? 60 : 45; // Prix de base
+    let basePrice = formData.sessionType === "bilan" ? 60 : 45; 
     if (formData.location === "domicile") {
-      basePrice += 20; // Supplément déplacement
+      basePrice += 20; 
     }
     return basePrice;
   };
@@ -257,8 +256,8 @@ export default function EducationPage() {
     e.preventDefault();
     if (!user) return;
 
-    if (!formData.dog_id) {
-      alert("Veuillez sélectionner ou ajouter un chien pour la réservation.");
+    if (!formData.dog_id || !formData.scheduledDate || !formData.timeSlot) {
+      alert("Veuillez remplir toutes les informations nécessaires pour la réservation.");
       return;
     }
 
@@ -276,7 +275,8 @@ export default function EducationPage() {
           dog_age: formData.dogAge,
           objectives: formData.objectives,
           issues: formData.issues,
-          preferred_slot: formData.preferredSlot,
+          scheduled_date: formData.scheduledDate, // NOUVEAU
+          preferred_slot: formData.timeSlot,      // NOUVEAU
           session_type: formData.sessionType,
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
@@ -302,7 +302,7 @@ export default function EducationPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      
+
       {/* HALOS FAUVE */}
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -514,11 +514,11 @@ export default function EducationPage() {
                 {/* ÉTAPE 1 : Type de séance et Lieu */}
                 {step === 1 && (
                   <div className="space-y-6 animate-in fade-in">
-                    
+
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Nature de la demande</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "bilan", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "bilan" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "bilan" ? "text-orange-900" : "text-stone-800"}`}>Bilan Initial</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "bilan" ? "border-orange-500" : "border-stone-300"}`}>
@@ -527,8 +527,8 @@ export default function EducationPage() {
                           </div>
                           <span className="text-[10px] text-stone-500 mt-1 block">1er rdv obligatoire</span>
                         </button>
-                        
-                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
+
+                        <button type="button" onClick={() => setFormData({ ...formData, sessionType: "suivi", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.sessionType === "suivi" ? "border-orange-500 bg-orange-50 shadow-sm" : "border-stone-200 bg-white hover:border-orange-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.sessionType === "suivi" ? "text-orange-900" : "text-stone-800"}`}>Suivi / Séance</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.sessionType === "suivi" ? "border-orange-500" : "border-stone-300"}`}>
@@ -543,7 +543,7 @@ export default function EducationPage() {
                     <div className="space-y-3">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500">Lieu de la séance</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "terrain", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "terrain" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "terrain" ? "text-emerald-900" : "text-stone-800"}`}>Sur Terrain</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "terrain" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -552,8 +552,8 @@ export default function EducationPage() {
                           </div>
                           <span className="text-[10px] text-stone-500 mt-1 block">Tarif standard</span>
                         </button>
-                        
-                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
+
+                        <button type="button" onClick={() => setFormData({ ...formData, location: "domicile", timeSlot: "", scheduledDate: "" })} className={`p-4 rounded-2xl border text-left transition-all ${formData.location === "domicile" ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-stone-200 bg-white hover:border-emerald-300"}`}>
                           <div className="flex items-center justify-between">
                             <span className={`font-black text-sm ${formData.location === "domicile" ? "text-emerald-900" : "text-stone-800"}`}>À Domicile</span>
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${formData.location === "domicile" ? "border-emerald-500" : "border-stone-300"}`}>
@@ -593,18 +593,6 @@ export default function EducationPage() {
                     )}
 
                     <div className="w-full min-w-0">
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Âge du chien *</label>
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="Ex: 8 mois, 2 ans..." 
-                        value={formData.dogAge} 
-                        onChange={(e) => setFormData({ ...formData, dogAge: e.target.value })} 
-                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                      />
-                    </div>
-
-                    <div className="w-full min-w-0">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">
                         {formData.sessionType === "bilan" ? "Que souhaitez-vous travailler ? *" : "Objectif de la séance *"}
                       </label>
@@ -640,7 +628,7 @@ export default function EducationPage() {
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="button" disabled={!formData.dog_id || !formData.dogAge || !formData.objectives} onClick={() => setStep(3)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer shadow-md">
+                      <button type="button" disabled={!formData.dog_id || !formData.objectives} onClick={() => setStep(3)} className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer shadow-md">
                         Suivant ➔
                       </button>
                     </div>
@@ -650,7 +638,7 @@ export default function EducationPage() {
                 {/* ÉTAPE 3 : Validation et Résumé */}
                 {step === 3 && (
                   <div className="space-y-6 animate-in fade-in">
-                    
+
                     {/* Résumé de la demande avec Tarif */}
                     <div className="bg-stone-900 text-white p-6 rounded-[2rem] shadow-md flex items-center justify-between">
                       <div>
@@ -667,35 +655,30 @@ export default function EducationPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Disponibilité *</label>
-                        <select 
-                          value={formData.preferredSlot} 
-                          onChange={(e) => setFormData({ ...formData, preferredSlot: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 cursor-pointer"
-                        >
-                          <option value="Semaine en matinée">Semaine en matinée</option>
-                          <option value="Semaine en après-midi">Semaine en après-midi</option>
-                          <option value="Week-end">Week-end</option>
-                        </select>
-                      </div>
-                      <div className="w-full min-w-0">
-                        <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
-                        <input 
-                          type="tel" 
-                          required 
-                          placeholder="06 12 34 56 78" 
-                          value={formData.clientPhone} 
-                          onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
-                          className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                        />
-                      </div>
+                    <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      <EducationCalendar 
+                        location={formData.location}
+                        selectedDate={formData.scheduledDate}
+                        selectedTime={formData.timeSlot}
+                        onChange={(date, time) => setFormData({ ...formData, scheduledDate: date, timeSlot: time })}
+                      />
+                    </div>
+
+                    <div className="w-full min-w-0">
+                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="06 12 34 56 78" 
+                        value={formData.clientPhone} 
+                        onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })} 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                      />
                     </div>
 
                     <div className="pt-4 flex justify-between items-center border-t border-stone-100">
                       <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer">← Retour</button>
-                      <button type="submit" disabled={submitting || !formData.clientPhone} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
+                      <button type="submit" disabled={submitting || !formData.clientPhone || !formData.scheduledDate || !formData.timeSlot} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100">
                         {submitting ? "Envoi en cours..." : "Valider la demande"}
                       </button>
                     </div>
