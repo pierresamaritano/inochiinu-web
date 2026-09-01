@@ -63,9 +63,7 @@ export default function AdminManagerView() {
   const fetchAll = async () => {
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
-      // CORRECTION ICI : Pointage vers la nouvelle table fusionnée pension_bookings
       supabase.from("pension_bookings").select("*").order("created_at", { ascending: false }),
-      // NOUVEAU: Exclut complètement les statuts annulés et refusés pour nettoyer la vue
       supabase.from("adoption_requests").select("*, puppies(name)").neq("status", "annulé").neq("status", "refusé").order("created_at", { ascending: false }),
       supabase.from("sellerie_orders").select("*").order("created_at", { ascending: false }),
       supabase.from("litters").select("*, puppies(*)").order("created_at", { ascending: false }), 
@@ -84,7 +82,7 @@ export default function AdminManagerView() {
     if (clientSearchQuery.trim().length < 2) { setSearchResults([]); return; }
     const timer = setTimeout(async () => {
       const { data } = await supabase.from("profiles").select("id, full_name, email, phone").or(`full_name.ilike.%${clientSearchQuery}%,email.ilike.%${clientSearchQuery}%`).limit(6);
-      setSearchResults(data || []);
+      searchResults(data || []);
     }, 250);
     return () => clearTimeout(timer);
   }, [clientSearchQuery, selectedFilterClient, supabase]);
@@ -323,23 +321,104 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 3. CONTENU : ÉDUCATION */}
+      {/* 3. CONTENU : ÉDUCATION (NOUVEAU DESIGN COMPLET) */}
       {tab === "education" && (
         <div className="space-y-4">
-          {filteredEdu.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div> : filteredEdu.map((item) => (
-             <div key={item.id} className="p-6 rounded-[2rem] bg-white border border-stone-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="max-w-xl">
-                <div className="flex gap-2"><span className="text-[10px] font-black uppercase text-orange-600">{item.client_name} • {item.client_phone}</span></div>
-                <h4 className="text-base font-black mt-1">{item.dog_name}</h4>
-                <p className="text-xs text-stone-500">{item.objectives}</p>
-                {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
-              </div>
-              <div className="flex gap-2 shrink-0">
-                {item.status !== "confirmé" && <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Confirmer</button>}
-                <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
-              </div>
-            </div>
-          ))}
+          {filteredEdu.length === 0 ? (
+            <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400">Aucune demande trouvée.</div>
+          ) : (
+            filteredEdu.map((item) => {
+              const isTerminated = item.status === "terminé" || item.status === "annulé";
+              
+              return (
+                <div key={item.id} className={`p-6 rounded-[2rem] border transition-all flex flex-col lg:flex-row justify-between items-start lg:items-stretch gap-6 ${isTerminated ? 'border-stone-100 bg-stone-50/50 opacity-80' : 'border-stone-200 bg-white shadow-sm'}`}>
+                  
+                  {/* COLONNE GAUCHE : IDENTITÉ ET DÉTAILS */}
+                  <div className="flex-1 w-full flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider bg-orange-50 px-2 py-0.5 rounded-md">
+                          {item.client_name} • {item.client_phone}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${item.status === 'confirmé' ? 'bg-emerald-100 text-emerald-800' : item.status === 'annulé' ? 'bg-red-100 text-red-800' : item.status === 'terminé' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      
+                      <h4 className="text-xl font-black text-stone-900 mt-1">
+                        {item.dog_name} <span className="text-xs text-stone-500 font-medium">({item.dog_breed}{item.dog_age ? `, ${item.dog_age}` : ''})</span>
+                      </h4>
+                      
+                      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium">
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">🏷️</span> 
+                          <strong className="text-stone-900 capitalize">{item.session_type === 'bilan' ? 'Bilan Initial' : 'Suivi / Séance'}</strong>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">📅</span> 
+                          <span className={item.scheduled_date ? "text-stone-900 font-bold" : "text-stone-400 italic"}>
+                            {item.scheduled_date ? new Date(item.scheduled_date).toLocaleDateString('fr-FR') : 'Non définie'} à {item.preferred_slot || '--:--'}
+                          </span>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <span className="text-stone-400">📍</span> 
+                          {item.location_preference === 'domicile' ? 'À Domicile' : 'Sur Terrain'}
+                          {item.price_estimate && <span className="ml-1 px-1.5 bg-stone-100 rounded text-[10px] text-stone-500">{item.price_estimate}€</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {item.admin_notes && (
+                      <div className="mt-4 p-2.5 rounded-xl bg-orange-50/70 border border-orange-100 text-[11px] text-stone-700">
+                        <strong className="uppercase text-[9px] text-orange-800 tracking-wider block mb-0.5">Votre message :</strong> 
+                        {item.admin_notes}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COLONNE CENTRALE : OBJECTIFS ET PROBLÈMES */}
+                  <div className="flex-1 w-full bg-stone-50 p-4 rounded-2xl border border-stone-100/80 flex flex-col">
+                    <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-1.5">Objectifs de la séance :</strong>
+                    <p className="text-xs text-stone-800 leading-relaxed flex-1">{item.objectives}</p>
+                    
+                    {item.issues && Array.isArray(item.issues) && item.issues.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-stone-200/60">
+                        <strong className="text-stone-400 uppercase text-[9px] font-black tracking-wider block mb-2">Comportements signalés :</strong>
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.issues.map((issue: string) => (
+                            <span key={issue} className="bg-white border border-stone-200 text-stone-600 text-[9px] font-bold px-2 py-1 rounded-md shadow-sm">
+                              {issue}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* COLONNE DROITE : ACTIONS ADMINISTRATEUR */}
+                  <div className="flex flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-32 justify-end lg:justify-start">
+                    {item.status === "en_attente" && (
+                      <>
+                        <button onClick={() => openAction("education_requests", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black shadow-sm transition">Valider</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Refuser</button>
+                      </>
+                    )}
+                    {item.status === "confirmé" && (
+                      <>
+                        <button onClick={() => openAction("education_requests", item.id, "terminé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-800 hover:bg-black text-white text-xs font-black shadow-sm transition">Terminer</button>
+                        <button onClick={() => openAction("education_requests", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="flex-1 lg:flex-none py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-xs font-bold transition">Annuler</button>
+                      </>
+                    )}
+                    {isTerminated && (
+                      <button onClick={() => openAction("education_requests", item.id, "en_attente", item.dog_name, item.client_name, item.admin_notes)} className="w-full py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-500 hover:text-stone-900 text-xs font-bold transition">
+                        Restaurer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
@@ -355,7 +434,6 @@ export default function AdminManagerView() {
                 {item.admin_notes && <div className="mt-2 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-[11px] text-stone-700"><strong>Votre message :</strong> {item.admin_notes}</div>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {/* CORRECTION ICI : Pointage vers la nouvelle table fusionnée pension_bookings lors d'une action */}
                 {item.status !== "confirmé" && <button onClick={() => openAction("pension_bookings", item.id, "confirmé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-emerald-500 text-white text-xs font-black">Valider</button>}
                 <button onClick={() => openAction("pension_bookings", item.id, "annulé", item.dog_name, item.client_name, item.admin_notes)} className="px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Refuser</button>
               </div>
