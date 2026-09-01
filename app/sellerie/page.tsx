@@ -21,6 +21,9 @@ export default function SelleriePage() {
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // --- NOUVEAU : État de l'arrêt d'urgence ---
+  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -45,6 +48,14 @@ export default function SelleriePage() {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getSession();
       setUser(data.session?.user || null);
+
+      // Récupération du paramètre d'urgence global
+      try {
+        const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+        if (setting && setting.value === "true") setIsEmergencyStopActive(true);
+      } catch (e) {
+        // Ignorer si erreur ou table inexistante
+      }
     };
     fetchUser();
   }, [supabase]);
@@ -72,6 +83,7 @@ export default function SelleriePage() {
   ];
 
   const handleOpenProduct = (product: any) => {
+    if (isEmergencyStopActive) return; // Sécurité supplémentaire
     if (!user) {
       setIsAuthOpen(true);
       return;
@@ -164,11 +176,17 @@ export default function SelleriePage() {
                 <p className="text-xs text-stone-500 mt-2 leading-relaxed">{product.desc}</p>
               </div>
               
+              {/* BOUTON AVEC VERROU D'URGENCE */}
               <button 
                 onClick={() => handleOpenProduct(product)}
-                className="mt-6 w-full py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-amber-600 transition-colors cursor-pointer"
+                disabled={isEmergencyStopActive}
+                className={`mt-6 w-full py-3 font-bold text-xs uppercase tracking-wide rounded-full transition-colors ${
+                  isEmergencyStopActive 
+                    ? "bg-stone-200 text-stone-400 cursor-not-allowed" 
+                    : "bg-stone-900 text-white hover:bg-amber-600 cursor-pointer"
+                }`}
               >
-                Personnaliser
+                {isEmergencyStopActive ? "Commandes Suspendues" : "Personnaliser"}
               </button>
             </div>
           ))}
