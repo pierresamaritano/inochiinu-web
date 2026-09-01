@@ -17,8 +17,9 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
   const getDayStatus = (dateStr: string) => {
+    // NOUVEAU : On inclut désormais le statut "terminé"
     const req = eduRequests.find(r => r.scheduled_date === dateStr && r.status !== 'annulé');
-    return req ? req.status : null; // 'en_attente' ou 'confirmé'
+    return req ? req.status : null; 
   };
 
   return (
@@ -47,13 +48,14 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
           
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400 text-stone-700 cursor-pointer shadow-sm";
           
-          // Couleurs pour les jours réservés (Vert = Confirmé, Jaune = Attente)
           if (status === "confirmé") {
             bgClass = "bg-emerald-500 border-emerald-500 text-white shadow-md font-bold cursor-not-allowed";
           } else if (status === "en_attente") {
             bgClass = "bg-amber-400 border-amber-400 text-white shadow-md font-bold cursor-not-allowed";
+          } else if (status === "terminé") {
+            // NOUVEAU : Visuel pour les séances terminées
+            bgClass = "bg-stone-600 border-stone-600 text-white shadow-md font-bold cursor-not-allowed";
           } else if (isPast) {
-            // Jours passés grisés
             bgClass = "bg-transparent border border-transparent text-stone-300 cursor-not-allowed";
           }
 
@@ -72,9 +74,10 @@ export default function MiniEducationCalendar({ eduRequests, onDayClick }: MiniE
         })}
       </div>
       
-      <div className="mt-5 pt-3 border-t border-stone-200/60 flex justify-center gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+      <div className="mt-5 pt-3 border-t border-stone-200/60 flex justify-center flex-wrap gap-4 text-[10px] font-bold text-stone-500 uppercase tracking-wider">
         <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></div> Validé</span>
-        <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm"></div> En attente</span>
+        <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm"></div> Attente</span>
+        <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-stone-600 shadow-sm"></div> Terminé</span>
       </div>
     </div>
   );

@@ -33,9 +33,6 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-  // =========================================================================
-  // RÉCUPÉRATION SUPABASE (Global + Utilisateur)
-  // =========================================================================
   useEffect(() => {
     const fetchData = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -45,22 +42,21 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
       const { data } = await supabase
         .from("education_requests")
         .select("user_id, scheduled_date, preferred_slot, location_preference, status")
-        .in("status", ["en_attente", "confirmé"]);
+        // NOUVEAU : On récupère aussi les séances terminées
+        .in("status", ["en_attente", "confirmé", "terminé"]);
       
       setReservations(data || []);
     };
     fetchData();
   }, [month, year, supabase]);
 
-  // =========================================================================
-  // LOGIQUE DES CRÉNEAUX ET STATUTS
-  // =========================================================================
   const getMyStatus = (dateStr: string) => {
     const myRes = reservations.find(r => r.scheduled_date === dateStr && r.user_id === currentUser);
     return myRes ? myRes.status : null;
   };
 
   const getAvailableSlotsForDay = (dateStr: string) => {
+    // Les séances "terminées" bloquent aussi le créneau pour les autres
     const dayRes = reservations.filter((r) => r.scheduled_date === dateStr);
     
     let hasMorningDomicile = false;
@@ -110,7 +106,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     if (clickedDate < today) return; 
 
     const myPersonalStatus = getMyStatus(clickedDate);
-    if (myPersonalStatus) return; // On ne peut pas réserver si on a déjà une séance ce jour-là
+    if (myPersonalStatus) return;
 
     const { isFull } = getAvailableSlotsForDay(clickedDate);
     if (isFull) return;
@@ -123,8 +119,9 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   const getLegendText = () => {
     const hasMyPending = reservations.some(r => r.user_id === currentUser && r.status === "en_attente");
     const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.status === "confirmé");
+    const hasMyTerminated = reservations.some(r => r.user_id === currentUser && r.status === "terminé");
 
-    if (!hasMyPending && !hasMyConfirmed) return null;
+    if (!hasMyPending && !hasMyConfirmed && !hasMyTerminated) return null;
 
     return (
       <div className="mt-4 p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 space-y-2">
@@ -139,6 +136,13 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
           <div className="flex items-start gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-0.5 shadow-sm ring-1 ring-emerald-200"></span>
             <p><strong>Validée :</strong> Votre séance est confirmée.</p>
+          </div>
+        )}
+        {/* NOUVEAU : Légende pour les séances terminées */}
+        {hasMyTerminated && (
+          <div className="flex items-start gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-stone-600 shrink-0 mt-0.5 shadow-sm ring-1 ring-stone-300"></span>
+            <p><strong>Terminée :</strong> Cette séance a déjà eu lieu.</p>
           </div>
         )}
       </div>
@@ -185,6 +189,7 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
 
           if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
           if (myPersonalStatus === "confirmé") badgeColor = "bg-emerald-500 shadow-sm ring-1 ring-emerald-200";
+          if (myPersonalStatus === "terminé") badgeColor = "bg-stone-600 shadow-sm ring-1 ring-stone-300";
 
           if (isDisabled) {
             if (isMyDay) {
