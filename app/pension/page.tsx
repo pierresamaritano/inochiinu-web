@@ -14,7 +14,7 @@ const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/p
 
 export default function PensionPage() {
   const [user, setUser] = useState<any>(null);
-  
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [timeToNext, setTimeToNext] = useState(6000);
 
@@ -28,11 +28,14 @@ export default function PensionPage() {
   const [submitted, setSubmitted] = useState(false);
   const [hasSecondDog, setHasSecondDog] = useState(false);
 
+  // --- ÉTAT DE L'ARRÊT D'URGENCE ---
+  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState("");
-  
+
   const [formData, setFormData] = useState({
     dog_id: "", dogName: "", dogBreed: "", dog2_id: "", dog2Name: "", dog2Breed: "",
     startDate: "", endDate: "", clientPhone: "", specialNeeds: "",
@@ -49,7 +52,13 @@ export default function PensionPage() {
       const currentUser = data.session?.user || null;
       setUser(currentUser);
 
-      // NOUVEAU : Récupération du numéro de téléphone
+      try {
+        const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+        if (setting && setting.value === "true") setIsEmergencyStopActive(true);
+      } catch (e) {
+        // Ignorer
+      }
+
       if (currentUser) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -173,7 +182,7 @@ export default function PensionPage() {
     try {
       const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
       const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
-      
+
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
         dog_id: formData.dog_id || null,
@@ -187,7 +196,7 @@ export default function PensionPage() {
         special_needs: formData.specialNeeds,
         status: "en_attente",
       }]);
-      
+
       if (error) {
         console.error("Erreur Supabase :", error);
         alert(`Erreur de réservation : ${error.message}`);
@@ -195,14 +204,13 @@ export default function PensionPage() {
         return;
       }
 
-      // NOUVEAU : Sauvegarde du téléphone dans le profil de l'utilisateur
       if (formData.clientPhone) {
         await supabase
           .from("profiles")
           .update({ phone: formData.clientPhone })
           .eq("id", user.id);
       }
-      
+
       setSubmitted(true);
     } catch (err: any) {
       console.error("Erreur application :", err);
@@ -214,7 +222,7 @@ export default function PensionPage() {
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-orange-200 selection:text-stone-900">
-      
+
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -242,7 +250,7 @@ export default function PensionPage() {
 
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-6">
         <div className="relative overflow-hidden rounded-[2rem] border border-stone-200/80 bg-stone-900 shadow-md min-h-[220px] sm:min-h-[240px] flex items-center">
-          
+
           <div className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" onClick={prevSlide} />
           <div className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" onClick={nextSlide} />
 
@@ -288,11 +296,16 @@ export default function PensionPage() {
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-stone-900">Réserver un séjour en pension</h2>
-            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Vérifiez la disponibilité de nos 6 boxs et bloquez vos dates en toute tranquillité.</p>
+            <h2 className="text-xl font-black tracking-tight text-stone-900">Demander un rendez-vous</h2>
+            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Bilan comportemental initial ou séance de suivi personnalisée.</p>
           </div>
-          <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Réserver un séjour
+          {/* BOUTON BLOQUÉ SI ARRÊT D'URGENCE */}
+          <button 
+            onClick={handleInitialClick} 
+            disabled={isEmergencyStopActive}
+            className={`w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full px-7 font-bold text-xs uppercase tracking-wider transition ${isEmergencyStopActive ? 'bg-stone-300 text-stone-500 cursor-not-allowed' : 'bg-gradient-to-b from-orange-400 to-orange-500 text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:scale-105 hover:brightness-105 cursor-pointer'}`}
+          >
+            {isEmergencyStopActive ? "Réservations Suspendues" : "Réserver un séjour"}
           </button>
         </div>
       </section>
@@ -369,8 +382,8 @@ export default function PensionPage() {
 
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAuthOpen(false)} />
-          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 shadow-2xl backdrop-blur-2xl">
+          <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
+          <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-orange-600 to-orange-400 text-white font-black text-sm">犬</div>

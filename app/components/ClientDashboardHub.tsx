@@ -26,6 +26,9 @@ export default function ClientDashboardHub() {
   const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // --- NOUVEAU : État de l'arrêt d'urgence ---
+  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
+
   const [period, setPeriod] = useState<PeriodOption>("1m");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [clientPhone, setClientPhone] = useState("");
@@ -70,6 +73,15 @@ export default function ClientDashboardHub() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     setCurrentUser(user);
+
+    // --- Vérification de l'arrêt d'urgence ---
+    try {
+      const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+      if (setting && setting.value === "true") setIsEmergencyStopActive(true);
+      else setIsEmergencyStopActive(false);
+    } catch (e) {
+      // Ignore si la table n'existe pas encore
+    }
 
     const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
     if (profile && profile.phone) setClientPhone(profile.phone);
@@ -184,7 +196,7 @@ export default function ClientDashboardHub() {
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données pour mettre à jour la liste et le calendrier (silencieusement)
+      fetchUserServices(); 
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation.");
@@ -193,14 +205,11 @@ export default function ClientDashboardHub() {
     }
   };
 
-  // NOUVEAU VERROU MÉTIER : 2 états d'erreur possibles (En attente VS Inexistant/Expiré)
   const dogBilanStatus = useMemo(() => {
     if (!quickForm.dog_id) return { isValid: false, isPending: false, needsNew: false };
     const dogReqs = eduRequests.filter(r => r.dog_id === quickForm.dog_id && r.status !== 'annulé');
-    
     const hasCompletedBilan = dogReqs.some(r => r.session_type === 'bilan' && r.status === 'terminé');
     const hasPendingBilan = dogReqs.some(r => r.session_type === 'bilan' && (r.status === 'en_attente' || r.status === 'confirmé'));
-    
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const hasRecentSession = dogReqs.some(r => {
@@ -210,7 +219,6 @@ export default function ClientDashboardHub() {
 
     if (hasCompletedBilan && hasRecentSession) return { isValid: true, isPending: false, needsNew: false };
     if (hasPendingBilan) return { isValid: false, isPending: true, needsNew: false };
-    
     return { isValid: false, isPending: false, needsNew: true };
   }, [quickForm.dog_id, eduRequests]);
 
@@ -256,7 +264,7 @@ export default function ClientDashboardHub() {
 
       if (error) throw error;
       setQuickPenSubmitted(true);
-      fetchUserServices(); // Rafraîchit les données de la pension silencieusement !
+      fetchUserServices(); 
     } catch (err) {
       console.error(err);
       alert("Erreur lors de la réservation de la pension.");
@@ -273,6 +281,13 @@ export default function ClientDashboardHub() {
 
   return (
     <>
+      {/* BANDEAU ARRÊT D'URGENCE GLOBAL */}
+      {isEmergencyStopActive && (
+        <div className="mt-6 p-4 rounded-2xl bg-red-600 text-white text-center text-sm font-bold shadow-md animate-in fade-in">
+          ⚠️ En raison d'un imprévu, les nouvelles réservations sont momentanément suspendues. Rassurez-vous, vos séjours et séances déjà validés sont maintenus.
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-2 mt-6">
         <label htmlFor="client-period" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
           Période :
@@ -314,9 +329,14 @@ export default function ClientDashboardHub() {
 
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setShowEduCalendar(!showEduCalendar)}
-                    title="Afficher/Masquer le calendrier"
-                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm cursor-pointer ${showEduCalendar ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500'}`}
+                    onClick={() => !isEmergencyStopActive && setShowEduCalendar(!showEduCalendar)}
+                    disabled={isEmergencyStopActive}
+                    title={isEmergencyStopActive ? "Réservations suspendues" : "Afficher/Masquer le calendrier"}
+                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm ${
+                      isEmergencyStopActive ? 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed opacity-60' 
+                      : showEduCalendar ? 'bg-orange-50 border-orange-200 text-orange-600 cursor-pointer' 
+                      : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500 cursor-pointer'
+                    }`}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
@@ -326,8 +346,7 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
-              {/* AFFICHAGE DU MINI CALENDRIER */}
-              {showEduCalendar && (
+              {showEduCalendar && !isEmergencyStopActive && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <MiniEducationCalendar eduRequests={eduRequests} userDogs={userDogs} onDayClick={handleMiniCalClick} />
                 </div>
@@ -398,9 +417,14 @@ export default function ClientDashboardHub() {
                 
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setShowPenCalendar(!showPenCalendar)}
-                    title="Afficher/Masquer le calendrier de la pension"
-                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm cursor-pointer ${showPenCalendar ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500'}`}
+                    onClick={() => !isEmergencyStopActive && setShowPenCalendar(!showPenCalendar)}
+                    disabled={isEmergencyStopActive}
+                    title={isEmergencyStopActive ? "Réservations suspendues" : "Afficher/Masquer le calendrier de la pension"}
+                    className={`flex items-center justify-center h-10 w-10 rounded-full border text-lg transition-colors shadow-sm ${
+                      isEmergencyStopActive ? 'bg-stone-100 border-stone-200 text-stone-300 cursor-not-allowed opacity-60' 
+                      : showPenCalendar ? 'bg-emerald-50 border-emerald-200 text-emerald-600 cursor-pointer' 
+                      : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-500 cursor-pointer'
+                    }`}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
@@ -410,8 +434,7 @@ export default function ClientDashboardHub() {
                 </div>
               </div>
 
-              {/* AFFICHAGE DU MINI CALENDRIER PENSION */}
-              {showPenCalendar && (
+              {showPenCalendar && !isEmergencyStopActive && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                   <MiniPensionCalendar userDogs={userDogs} onDayClick={handleMiniPenCalClick} />
                 </div>
@@ -457,7 +480,7 @@ export default function ClientDashboardHub() {
             </div>
           )}
 
-          {/* ... WIDGETS ADOPTION ET SELLERIE (IDENTIQUES) ... */}
+          {/* ... WIDGETS ADOPTION ET SELLERIE ... */}
           {filteredAdoption.length > 0 && (
             <div id="widget-adp" className={`rounded-[2.5rem] bg-white/80 border border-stone-200/90 p-6 sm:p-8 shadow-sm transition-all duration-300 ${expandedWidget === 'adp' ? 'lg:col-span-2 shadow-md bg-white ring-1 ring-orange-100' : ''}`}>
               <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -565,6 +588,7 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
+      {/* ... MODALE ANNULATION ... */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -663,7 +687,6 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
-                  {/* VÉRIFICATION DU BILAN INTÉGRÉE (EN ATTENTE VS EXPIRÉ/INEXISTANT) */}
                   {quickForm.dog_id && !dogBilanStatus.isValid ? (
                     dogBilanStatus.isPending ? (
                       <div className="p-6 rounded-2xl bg-orange-50 border border-orange-100 text-center animate-in zoom-in-95 duration-200 mt-4 shadow-sm">
@@ -775,6 +798,7 @@ export default function ClientDashboardHub() {
 
                 <div className="space-y-5 animate-in fade-in">
 
+                  {/* SÉLECTION DU CHIEN */}
                   {currentUser && (
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pensionnaire(s) *</label>

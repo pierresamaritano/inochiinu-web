@@ -5,7 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import EducationCalendar from "../components/EducationCalendar";
-import PaymentSimulation from "../components/PaymentSimulation"; // <-- NOUVEL IMPORT
+import PaymentSimulation from "../components/PaymentSimulation";
 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -30,11 +30,15 @@ export default function EducationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // --- ÉTAT DE L'ARRÊT D'URGENCE ---
+  const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [authError, setAuthError] = useState("");
   
+  const [paymentSimulating, setPaymentSimulating] = useState(false);
   const [userEduRequests, setUserEduRequests] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<{
@@ -73,6 +77,13 @@ export default function EducationPage() {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user || null;
       setUser(currentUser);
+
+      try {
+        const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
+        if (setting && setting.value === "true") setIsEmergencyStopActive(true);
+      } catch (e) {
+        // Ignorer si la table n'existe pas encore
+      }
 
       if (currentUser) {
         const { data: profile } = await supabase
@@ -197,7 +208,6 @@ export default function EducationPage() {
     return basePrice;
   };
 
-  // --- NOUVEAU : On gère l'avancée vers le paiement au lieu de soumettre directement ---
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -205,10 +215,9 @@ export default function EducationPage() {
       alert("Veuillez remplir toutes les informations nécessaires pour la réservation.");
       return;
     }
-    setStep(4); // On passe à la modale de paiement
+    setStep(4);
   };
 
-  // --- La vraie fonction d'enregistrement (appelée par PaymentSimulation) ---
   const handleFinalSubmit = async () => {
     setSubmitting(true);
     try {
@@ -229,7 +238,7 @@ export default function EducationPage() {
           session_type: formData.sessionType,
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
-          status: "en_attente", // La demande est enregistrée
+          status: "en_attente",
         },
       ]);
       if (error) throw error;
@@ -241,7 +250,6 @@ export default function EducationPage() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert("Une erreur est survenue lors de l'enregistrement de votre demande.");
     } finally {
       setSubmitting(false);
     }
@@ -326,8 +334,13 @@ export default function EducationPage() {
             <h2 className="text-xl font-black tracking-tight text-stone-900">Demander un rendez-vous</h2>
             <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Bilan comportemental initial ou séance de suivi personnalisée.</p>
           </div>
-          <button onClick={handleInitialClick} className="w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full bg-gradient-to-b from-orange-400 to-orange-500 px-7 font-bold text-xs uppercase tracking-wider text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] transition hover:scale-105 hover:brightness-105 cursor-pointer">
-            Prendre rendez-vous
+          {/* BOUTON BLOQUÉ SI ARRÊT D'URGENCE */}
+          <button 
+            onClick={handleInitialClick} 
+            disabled={isEmergencyStopActive}
+            className={`w-full sm:w-auto shrink-0 flex h-12 items-center justify-center rounded-full px-7 font-bold text-xs uppercase tracking-wider transition ${isEmergencyStopActive ? 'bg-stone-300 text-stone-500 cursor-not-allowed' : 'bg-gradient-to-b from-orange-400 to-orange-500 text-white shadow-[0_4px_14px_rgba(249,115,22,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:scale-105 hover:brightness-105 cursor-pointer'}`}
+          >
+            {isEmergencyStopActive ? "Réservations Suspendues" : "Prendre rendez-vous"}
           </button>
         </div>
       </section>
@@ -460,16 +473,15 @@ export default function EducationPage() {
                 <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
               </div>
             ) : step === 4 ? (
-              // --- NOUVELLE ÉTAPE : LE COMPOSANT DE PAIEMENT ---
+              // --- COMPOSANT DE PAIEMENT ---
               <PaymentSimulation 
                 amount={getEstimatedPrice()} 
                 serviceName={formData.sessionType === "bilan" ? "Bilan Initial" : "Séance de Suivi"}
                 onSuccess={handleFinalSubmit}
-                onCancel={() => setStep(3)} // Permet de revenir à l'étape précédente sans tout perdre
+                onCancel={() => setStep(3)}
               />
             ) : (
               <form onSubmit={handleProceedToPayment} className="space-y-6">
-                {/* L'en-tête dynamique du formulaire */}
                 <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                   <div>
                     <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 3</span>
@@ -564,7 +576,7 @@ export default function EducationPage() {
                             </div>
                           </div>
                           <span className={`text-[10px] mt-1 block font-bold ${!canBookSuivi ? "text-red-500" : "text-stone-500 font-normal"}`}>
-                            {!canBookSuivi ? "Bilan terminé et valide (- de 1 an) requis" : "Client existant"}
+                            {!canBookSuivi ? "Bilan initial terminé requis" : "Client existant"}
                           </span>
                         </button>
                       </div>
@@ -608,7 +620,22 @@ export default function EducationPage() {
                 {step === 3 && (
                   <div className="space-y-6 animate-in fade-in">
 
-                    {/* Résumé de la demande avec Tarif caché pour laisser la place au bouton */}
+                    {/* Résumé de la demande avec Tarif */}
+                    <div className="bg-stone-900 text-white p-6 rounded-[2rem] shadow-md flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider">Montant indicatif</span>
+                        <div className="text-3xl font-black mt-1">
+                          {getEstimatedPrice()}€
+                        </div>
+                        <p className="text-[10px] text-stone-400 mt-1">
+                          {formData.sessionType === "bilan" ? "Bilan (1h30)" : "Séance (1h)"} • {formData.location === "domicile" ? "À domicile (+20€ dép.)" : "Sur terrain"}
+                        </p>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                        💳
+                      </div>
+                    </div>
+
                     <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
                       <EducationCalendar 
                         location={formData.location}
@@ -653,7 +680,7 @@ export default function EducationPage() {
                     )}
 
                     <div className="w-full min-w-0">
-                      <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
+                      <label className="block text-[11px] font-bold uppercase text-stone-600 mb-1">Téléphone *</label>
                       <input 
                         type="tel" 
                         required 
