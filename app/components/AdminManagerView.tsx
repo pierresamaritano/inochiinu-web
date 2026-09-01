@@ -77,10 +77,9 @@ export default function AdminManagerView() {
   const [closures, setClosures] = useState<ServiceClosure[]>([]);
   const [newClosureStart, setNewClosureStart] = useState("");
   const [newClosureEnd, setNewClosureEnd] = useState("");
-  const [newClosureServices, setNewClosureServices] = useState<string[]>([]);
+  const [newClosureServices, setNewClosureServices] = useState<string[]>(["education", "pension", "elevage", "sellerie"]); // Coché par défaut
   const [savingClosure, setSavingClosure] = useState(false);
   
-  // --- NOUVEAU : Gère la vue du panneau latéral (Formulaire vs Liste) ---
   const [closureViewMode, setClosureViewMode] = useState<"calendar" | "list">("calendar");
 
   const availableServices = [
@@ -107,9 +106,7 @@ export default function AdminManagerView() {
           }
         }
       }
-    } catch (e) {
-      // Ignorer si la table n'existe pas
-    }
+    } catch (e) {}
 
     const [edu, pen, adp, sel, lit] = await Promise.all([
       supabase.from("education_requests").select("*").order("created_at", { ascending: false }),
@@ -216,9 +213,38 @@ export default function AdminManagerView() {
     }
   };
 
-  // --- GESTION DU CALENDRIER DE FERMETURE ---
-  const handleCalClick = (dateStr: string) => {
-    // Si l'utilisateur clique alors qu'il est sur la liste, on le bascule auto sur le formulaire !
+  // --- GESTION DU CALENDRIER DE FERMETURE (INTELLIGENT) ---
+  const checkOverlapWithReservations = (startStr: string, endStr: string) => {
+    let curr = new Date(startStr);
+    let end = new Date(endStr);
+    let hasOverlap = false;
+
+    while (curr <= end) {
+      let checkStr = curr.toISOString().split("T")[0];
+      const eduC = eduList.filter(r => r.scheduled_date === checkStr && r.status !== 'annulé').length;
+      const penC = pensionList.filter(r => checkStr >= r.start_date && checkStr <= r.end_date && r.status !== 'annulé').length;
+      if (eduC > 0 || penC > 0) {
+        hasOverlap = true;
+        break;
+      }
+      curr.setDate(curr.getDate() + 1);
+    }
+    return hasOverlap;
+  };
+
+  const handleCalClick = (dateStr: string, closureId?: string, hasReservations?: boolean) => {
+    // Si c'est déjà fermé, on propose de supprimer
+    if (closureId) {
+      removeClosure(closureId);
+      return;
+    }
+
+    // Si le jour contient des réservations, on bloque la sélection
+    if (hasReservations) {
+      alert("Impossible de bloquer cette date : vous avez déjà des réservations confirmées ou en attente à ce moment-là.");
+      return;
+    }
+
     if (closureViewMode !== "calendar") {
       setClosureViewMode("calendar");
     }
@@ -227,8 +253,19 @@ export default function AdminManagerView() {
       setNewClosureStart(dateStr);
       setNewClosureEnd("");
     } else {
-      if (dateStr >= newClosureStart) setNewClosureEnd(dateStr);
-      else { setNewClosureStart(dateStr); setNewClosureEnd(""); }
+      if (dateStr >= newClosureStart) {
+        // Vérification de la plage entière
+        if (checkOverlapWithReservations(newClosureStart, dateStr)) {
+          alert("La période sélectionnée englobe des jours avec des réservations. La sélection a été réinitialisée.");
+          setNewClosureStart(dateStr);
+          setNewClosureEnd("");
+        } else {
+          setNewClosureEnd(dateStr);
+        }
+      } else {
+        setNewClosureStart(dateStr);
+        setNewClosureEnd("");
+      }
     }
   };
 
@@ -257,9 +294,8 @@ export default function AdminManagerView() {
       setClosures(updatedClosures);
       setNewClosureStart("");
       setNewClosureEnd("");
-      setNewClosureServices([]);
       
-      // Basculer automatiquement sur la liste après l'ajout
+      // On bascule sur la liste après l'ajout pour confirmer visuellement
       setClosureViewMode("list");
     } catch (err: any) {
       alert(`Erreur : ${err.message}`);
@@ -269,7 +305,7 @@ export default function AdminManagerView() {
   };
 
   const removeClosure = async (idToRemove: string) => {
-    if(!confirm("Supprimer ce blocage ?")) return;
+    if(!confirm("Voulez-vous réouvrir cette période à la réservation ?")) return;
     setSavingClosure(true);
     try {
       const updatedClosures = closures.filter(c => c.id !== idToRemove);
@@ -345,7 +381,7 @@ export default function AdminManagerView() {
           <div className="pt-2 border-t border-stone-100">
             <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5">Rattacher à un chiot * :</label>
             <select value={item.puppy_id || ""} onChange={(e) => assignToPuppy(item.id, e.target.value)} className="w-full px-2 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-stone-50 focus:outline-none focus:border-orange-500 cursor-pointer">
-              <option value="">Sélectionner un chiot (obligatoire)...</option>
+              <option value="">Sélectionner un chiot...</option>
               {litter.puppies?.filter((pup: any) => pup.status === 'disponible' || pup.id === item.puppy_id).map((pup: any) => (
                 <option key={pup.id} value={pup.id}>{pup.name} ({pup.status})</option>
               ))}
@@ -367,10 +403,7 @@ export default function AdminManagerView() {
           <div className="pt-2 flex flex-wrap gap-2 items-center">
             <button 
               onClick={() => {
-                if (!hasPuppySelected) {
-                  alert("Veuillez impérativement assigner un chiot à ce client avant d'accepter la candidature.");
-                  return;
-                }
+                if (!hasPuppySelected) { alert("Veuillez impérativement assigner un chiot avant d'accepter."); return; }
                 openAction("adoption_requests", item.id, "accepté", item.client_name, item.client_name, item.admin_notes);
               }} 
               title={!hasPuppySelected ? "Sélectionnez un chiot ci-dessus pour activer" : ""}
@@ -380,13 +413,11 @@ export default function AdminManagerView() {
             >
               Accepter
             </button>
-
             {item.status !== "liste_attente" && (
               <button onClick={() => openAction("adoption_requests", item.id, "liste_attente", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-black shadow-sm transition cursor-pointer">
                 Attente
               </button>
             )}
-
             <button onClick={() => openAction("adoption_requests", item.id, "annulé", item.client_name, item.client_name, item.admin_notes)} className="flex-1 py-1.5 rounded-lg bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-600 text-[11px] font-bold transition cursor-pointer">
               Refuser
             </button>
@@ -404,7 +435,7 @@ export default function AdminManagerView() {
     <div className="mt-8 space-y-6">
 
       {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
           <p className="text-xs text-stone-500 mt-0.5">Gérez les demandes, les plannings et l'état du site.</p>
@@ -774,64 +805,75 @@ export default function AdminManagerView() {
 
       {/* 8. MODALE DU CALENDRIER GLOBAL */}
       {showAdminCalendar && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAdminCalendar(false)} />
-          <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#FDFCF8] p-8 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-8">
-            <button onClick={() => setShowAdminCalendar(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full cursor-pointer z-50">✕</button>
+          <div className="relative w-full max-w-6xl max-h-[90vh] bg-[#FDFCF8] p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row gap-4 sm:gap-8 overflow-y-auto">
+            <button onClick={() => setShowAdminCalendar(false)} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full cursor-pointer z-50">✕</button>
 
             {/* PARTIE GAUCHE : LE CALENDRIER */}
-            <div className="w-full md:w-2/3 bg-white p-6 rounded-[2rem] border border-stone-200 shadow-sm overflow-y-auto">
-              <div className="flex items-center justify-between mb-6 border-b border-stone-100 pb-4">
-                <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() - 1, 1))} className="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-xl font-black text-stone-600 cursor-pointer">←</button>
-                <h3 className="text-lg font-black uppercase tracking-wider text-stone-900">
+            <div className="w-full md:w-2/3 bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-stone-200 shadow-sm flex-shrink-0">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 border-b border-stone-100 pb-3 sm:pb-4">
+                <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() - 1, 1))} className="px-2 sm:px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg sm:rounded-xl font-black text-stone-600 cursor-pointer">←</button>
+                <h3 className="text-sm sm:text-lg font-black uppercase tracking-wider text-stone-900">
                   {["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"][adminCalDate.getMonth()]} {adminCalDate.getFullYear()}
                 </h3>
-                <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() + 1, 1))} className="px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-xl font-black text-stone-600 cursor-pointer">→</button>
+                <button onClick={() => setAdminCalDate(new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() + 1, 1))} className="px-2 sm:px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg sm:rounded-xl font-black text-stone-600 cursor-pointer">→</button>
               </div>
 
-              <div className="grid grid-cols-7 gap-2 mb-2 text-center text-[10px] font-black uppercase text-stone-400">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[8px] sm:text-[10px] font-black uppercase text-stone-400">
                 {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => <div key={i}>{d}</div>)}
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {Array.from({ length: new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() === 0 ? 6 : new Date(adminCalDate.getFullYear(), adminCalDate.getMonth(), 1).getDay() - 1 }).map((_, i) => <div key={`empty-${i}`} />)}
                 
                 {Array.from({ length: new Date(adminCalDate.getFullYear(), adminCalDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
                   const day = i + 1;
                   const dateStr = new Date(Date.UTC(adminCalDate.getFullYear(), adminCalDate.getMonth(), day)).toISOString().split("T")[0];
                   
+                  // Décompte pour les pastilles
                   const eduCount = eduList.filter(r => r.scheduled_date === dateStr && r.status !== 'annulé').length;
                   const penCount = pensionList.filter(r => dateStr >= r.start_date && dateStr <= r.end_date && r.status !== 'annulé').length;
-                  const isClosed = closures.some(c => dateStr >= c.start && dateStr <= c.end);
+                  const hasReservations = eduCount > 0 || penCount > 0;
 
+                  const closure = closures.find(c => dateStr >= c.start && dateStr <= c.end);
+                  const isClosed = !!closure;
+
+                  // Gestion de la sélection (pour ajouter un blocage)
                   const isSelectedStart = newClosureStart === dateStr;
                   const isSelectedEnd = newClosureEnd === dateStr;
                   const isBetween = newClosureStart && newClosureEnd && dateStr > newClosureStart && dateStr < newClosureEnd;
 
-                  let cellClass = "bg-stone-50 hover:border-orange-400 border border-stone-100 cursor-pointer";
+                  let cellClass = "bg-stone-50 border border-stone-100";
                   let textClass = "text-stone-700";
 
                   if (isClosed) {
-                    cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-stone-200 opacity-60";
+                    cellClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_5px,#ffffff_5px,#ffffff_10px)] border-red-200 opacity-80 cursor-pointer hover:border-red-400";
+                  } else if (hasReservations) {
+                    cellClass = "bg-stone-50 border-stone-200 cursor-not-allowed"; // On empêche la fermeture si réservations
                   } else if (isSelectedStart || isSelectedEnd) {
-                    cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10";
+                    cellClass = "bg-stone-800 border-stone-900 shadow-md scale-105 z-10 cursor-pointer";
                     textClass = "text-white font-black";
                   } else if (isBetween) {
-                    cellClass = "bg-stone-200 border-stone-300";
+                    cellClass = "bg-stone-200 border-stone-300 cursor-pointer";
                     textClass = "text-stone-900 font-bold";
+                  } else {
+                    cellClass += " hover:border-orange-400 cursor-pointer";
                   }
 
                   return (
                     <button 
                       key={day} 
-                      onClick={() => handleCalClick(dateStr)}
-                      className={`relative h-16 w-full rounded-xl flex flex-col items-center justify-start pt-2 transition-all ${cellClass}`}
+                      onClick={() => handleCalClick(dateStr, closure?.id, hasReservations)}
+                      className={`relative h-12 sm:h-16 w-full rounded-lg sm:rounded-xl flex flex-col items-center justify-start pt-1 sm:pt-2 transition-all ${cellClass}`}
+                      title={isClosed ? "Cliquer pour supprimer cette fermeture" : hasReservations ? "Impossible à bloquer : des réservations sont prévues" : "Cliquer pour sélectionner"}
                     >
-                      <span className={`text-xs ${textClass}`}>{day}</span>
+                      <span className={`text-[10px] sm:text-xs ${textClass}`}>{day}</span>
                       
-                      <div className="absolute bottom-2 flex gap-1 items-center justify-center w-full">
-                        {eduCount > 0 && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
-                        {penCount > 0 && <span className="flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
+                      {/* Affichage des pastilles en bas de la case */}
+                      <div className="absolute bottom-1 sm:bottom-2 flex gap-0.5 sm:gap-1 items-center justify-center w-full">
+                        {eduCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-orange-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{eduCount}</span>}
+                        {penCount > 0 && <span className="flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-[6px] sm:text-[8px] font-bold text-white shadow-sm">{penCount}</span>}
                       </div>
                     </button>
                   );
@@ -840,46 +882,46 @@ export default function AdminManagerView() {
             </div>
 
             {/* PARTIE DROITE : GESTION DES BLOCAGES AVEC TOGGLE */}
-            <div className="w-full md:w-1/3 flex flex-col gap-6 h-full max-h-full">
+            <div className="w-full md:w-1/3 flex flex-col gap-4 sm:gap-6 mt-4 md:mt-0 flex-shrink-0">
               <div>
-                <h2 className="text-xl font-black text-stone-900">Gérer les fermetures</h2>
-                <p className="text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
+                <h2 className="text-lg sm:text-xl font-black text-stone-900">Gérer les fermetures</h2>
+                <p className="text-[10px] sm:text-xs text-stone-500 mt-1">Créez ou supprimez vos indisponibilités.</p>
               </div>
 
               {/* TOGGLE VUE */}
-              <div className="flex bg-stone-100/80 p-1.5 rounded-xl shrink-0">
+              <div className="flex bg-stone-100/80 p-1 sm:p-1.5 rounded-lg sm:rounded-xl shrink-0">
                 <button
                   onClick={() => setClosureViewMode("calendar")}
-                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${closureViewMode === "calendar" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+                  className={`flex-1 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-md sm:rounded-lg transition-all cursor-pointer ${closureViewMode === "calendar" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
                 >
                   + Nouveau
                 </button>
                 <button
                   onClick={() => setClosureViewMode("list")}
-                  className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${closureViewMode === "list" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+                  className={`flex-1 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-wider rounded-md sm:rounded-lg transition-all cursor-pointer ${closureViewMode === "list" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
                 >
                   Liste ({closures.length})
                 </button>
               </div>
 
               {closureViewMode === "calendar" ? (
-                <div className="bg-white p-5 rounded-[2rem] border border-stone-200 shadow-sm flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex gap-3">
+                <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-[2rem] border border-stone-200 shadow-sm flex flex-col gap-3 sm:gap-4 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <div className="flex-1">
-                      <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Du</label>
-                      <input type="date" value={newClosureStart} onChange={e => setNewClosureStart(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500" />
+                      <label className="block text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 mb-1">Du</label>
+                      <input type="date" value={newClosureStart} onChange={e => setNewClosureStart(e.target.value)} className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 text-[10px] sm:text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-[10px] font-bold uppercase text-stone-400 mb-1">Au</label>
-                      <input type="date" value={newClosureEnd} onChange={e => setNewClosureEnd(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500" />
+                      <label className="block text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 mb-1">Au</label>
+                      <input type="date" value={newClosureEnd} onChange={e => setNewClosureEnd(e.target.value)} className="w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-stone-200 text-[10px] sm:text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-stone-400 mb-2">Services à bloquer :</label>
-                    <div className="flex flex-wrap gap-2">
+                    <label className="block text-[9px] sm:text-[10px] font-bold uppercase text-stone-400 mb-1.5 sm:mb-2">Services à bloquer :</label>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {availableServices.map(service => (
-                        <label key={service.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold cursor-pointer transition-all ${newClosureServices.includes(service.id) ? 'bg-stone-800 border-stone-900 text-white' : 'bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
+                        <label key={service.id} className={`flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border text-[9px] sm:text-[10px] font-bold cursor-pointer transition-all ${newClosureServices.includes(service.id) ? 'bg-stone-800 border-stone-900 text-white' : 'bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
                           <input type="checkbox" className="hidden" checked={newClosureServices.includes(service.id)} onChange={() => handleToggleService(service.id)} />
                           {service.label}
                         </label>
@@ -887,29 +929,29 @@ export default function AdminManagerView() {
                     </div>
                   </div>
 
-                  <button onClick={saveClosureDates} disabled={savingClosure || !newClosureStart || newClosureServices.length === 0} className="w-full py-3 bg-stone-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer mt-2">
+                  <button onClick={saveClosureDates} disabled={savingClosure || !newClosureStart || newClosureServices.length === 0} className="w-full py-2.5 sm:py-3 bg-stone-900 text-white rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider hover:bg-stone-800 transition disabled:opacity-50 cursor-pointer mt-1 sm:mt-2">
                     {savingClosure ? "..." : "+ Ajouter le blocage"}
                   </button>
-                  <p className="text-[9px] text-stone-400 text-center italic">Sélectionnez les jours directement sur le calendrier à gauche pour pré-remplir les dates.</p>
+                  <p className="text-[8px] sm:text-[9px] text-stone-400 text-center italic">Sélectionnez les jours directement sur le calendrier à gauche pour pré-remplir les dates.</p>
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto pr-2 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex-1 space-y-2 sm:space-y-3 animate-in fade-in zoom-in-95 duration-200">
                   {closures.length === 0 ? (
-                    <div className="text-center p-6 text-xs text-stone-400 italic">Aucune fermeture programmée.</div>
+                    <div className="text-center p-4 sm:p-6 text-[10px] sm:text-xs text-stone-400 italic">Aucune fermeture programmée.</div>
                   ) : (
                     closures.map(closure => (
-                      <div key={closure.id} className="flex justify-between items-center p-4 bg-white border border-stone-200 rounded-2xl shadow-sm">
+                      <div key={closure.id} className="flex justify-between items-center p-3 sm:p-4 bg-white border border-stone-200 rounded-xl sm:rounded-2xl shadow-sm">
                         <div>
-                          <p className="text-xs font-black text-stone-800">
+                          <p className="text-[10px] sm:text-xs font-black text-stone-800">
                             {new Date(closure.start).toLocaleDateString('fr-FR')} {closure.start !== closure.end ? `- ${new Date(closure.end).toLocaleDateString('fr-FR')}` : ''}
                           </p>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
+                          <div className="flex flex-wrap gap-1 mt-1 sm:mt-1.5">
                             {closure.services.map(s => (
-                              <span key={s} className="px-1.5 py-0.5 bg-stone-100 text-stone-500 rounded text-[9px] font-bold uppercase">{availableServices.find(as => as.id === s)?.label}</span>
+                              <span key={s} className="px-1 sm:px-1.5 py-0.5 bg-stone-100 text-stone-500 rounded text-[8px] sm:text-[9px] font-bold uppercase">{availableServices.find(as => as.id === s)?.label}</span>
                             ))}
                           </div>
                         </div>
-                        <button onClick={() => removeClosure(closure.id)} className="h-8 w-8 flex justify-center items-center rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer transition shadow-sm">✕</button>
+                        <button onClick={() => removeClosure(closure.id)} className="h-6 w-6 sm:h-8 sm:w-8 flex justify-center items-center rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer transition shadow-sm text-xs">✕</button>
                       </div>
                     ))
                   )}
