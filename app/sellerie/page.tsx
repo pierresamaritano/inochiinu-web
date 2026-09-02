@@ -130,7 +130,7 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Variables Hexadécimales pour le dessin SVG
+  // Variables Hexadécimales pour le dessin SVG et le Masking CSS
   const hardwareHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524"; 
   const ropeHexMap: Record<string, string> = {
     "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Personnalisé (Préciser en note)": "#a8a29e"
@@ -220,7 +220,7 @@ export default function SelleriePage() {
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL (NOUVEAU DESIGN VECTORIEL) */}
+                {/* COLONNE GAUCHE : APERÇU VISUEL */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
                   <div className="p-6 shrink-0 z-10">
                     <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
@@ -229,31 +229,18 @@ export default function SelleriePage() {
 
                   <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px]">
                     
-                    {/* --- SVG : LAISSE MULTIPOSITIONS --- */}
+                    {/* --- SVG : LAISSE MULTIPOSITIONS (Resté en SVG car pas d'image définie pour le moment) --- */}
                     {selectedProduct.type === "Laisse" && (
                       <div className="w-full max-w-sm flex items-center justify-center">
                         <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500">
-                          {/* Corde ondulée */}
-                          <path 
-                            d="M 50,75 Q 125,140 200,75 T 350,75" 
-                            stroke={ropeHex} 
-                            strokeWidth="12" 
-                            fill="none" 
-                            strokeLinecap="round" 
-                            className="transition-colors duration-300"
-                          />
-                          {/* Anneaux de réglage */}
+                          <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           <circle cx="125" cy="107" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <circle cx="200" cy="75" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <circle cx="275" cy="42" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          
-                          {/* Mousqueton Gauche */}
                           <g transform="translate(15, 65)">
                             <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
                             <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           </g>
-                          
-                          {/* Mousqueton Droit */}
                           <g transform="translate(345, 65)">
                             <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
                             <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
@@ -262,22 +249,30 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* --- SVG : COLLIER --- */}
+                    {/* --- APERÇU RÉALISTE : COLLIER (La magie CSS !) --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div className="w-full max-w-[240px] flex items-center justify-center">
-                        <svg viewBox="0 0 200 200" className="w-full h-auto drop-shadow-2xl">
-                          {/* Anneau D */}
-                          <path d="M 100,15 C 130,15 130,55 100,55" stroke={hardwareHex} strokeWidth="8" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
-                          {/* Collier Biothane (Ellipse) */}
-                          <ellipse cx="100" cy="110" rx="75" ry="55" stroke={ropeHex} strokeWidth="26" fill="none" className="transition-colors duration-300" />
-                          {/* Texture Couture (Pointillés décoratifs) */}
-                          <ellipse cx="100" cy="110" rx="64" ry="44" stroke="#fff" strokeWidth="1.5" strokeDasharray="5 5" fill="none" opacity="0.3" />
-                          <ellipse cx="100" cy="110" rx="86" ry="66" stroke="#fff" strokeWidth="1.5" strokeDasharray="5 5" fill="none" opacity="0.3" />
-                          {/* Boucle */}
-                          <rect x="80" y="45" width="40" height="25" rx="3" fill={hardwareHex} className="transition-colors duration-300" />
-                          <rect x="85" y="45" width="10" height="25" rx="2" fill={ropeHex} className="transition-colors duration-300" />
-                          <rect x="88" y="45" width="4" height="18" rx="1" fill={hardwareHex} className="transition-colors duration-300" />
-                        </svg>
+                      <div className="relative aspect-square w-full max-w-[320px] rounded-2xl flex items-center justify-center overflow-hidden drop-shadow-2xl">
+                        {/* COUCHE 1 : La Couleur découpée à la forme de l'image (Mask) */}
+                        <div 
+                          className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
+                          style={{
+                            backgroundColor: ropeHex, 
+                            WebkitMaskImage: `url('/collier-base.png')`,
+                            WebkitMaskSize: "contain",
+                            WebkitMaskPosition: "center",
+                            WebkitMaskRepeat: "no-repeat",
+                            maskImage: `url('/collier-base.png')`,
+                            maskSize: "contain",
+                            maskPosition: "center",
+                            maskRepeat: "no-repeat",
+                          }}
+                        />
+                        {/* COUCHE 2 : L'image originale avec les ombres/lumières (Multiply) */}
+                        <img 
+                          src="/collier-base.png" 
+                          alt="Base Collier" 
+                          className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90"
+                        />
                       </div>
                     )}
 
@@ -290,7 +285,7 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200">
+                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm">
                       {formData.color} • {formData.hardware}
                     </div>
                   </div>
@@ -310,7 +305,7 @@ export default function SelleriePage() {
                               key={c}
                               type="button"
                               onClick={() => setFormData({ ...formData, color: c })}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm scale-105" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}
                             >
                               <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
                               <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
@@ -326,7 +321,7 @@ export default function SelleriePage() {
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })}
-                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}
+                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50 scale-105" : "border-stone-200 bg-white hover:border-amber-200"}`}
                           >
                             <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
                             <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
@@ -334,7 +329,7 @@ export default function SelleriePage() {
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, hardware: "Acier Noir" })}
-                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}
+                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100 scale-105" : "border-stone-200 bg-white hover:border-stone-300"}`}
                           >
                             <span className="font-black text-sm text-stone-900 block">Acier Tactique</span>
                             <span className="text-[10px] font-bold text-stone-500">Finition Mate Noir (+0€)</span>
@@ -354,7 +349,7 @@ export default function SelleriePage() {
                             />
                             <div className="mt-4">
                               <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Tour de cou exact (cm) *</label>
-                              <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                              <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors shadow-sm" />
                             </div>
                            </div>
                         ) : (
@@ -370,7 +365,7 @@ export default function SelleriePage() {
 
                         <div>
                           <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Téléphone de contact *</label>
-                          <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                          <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors shadow-sm" />
                         </div>
                       </div>
                     </form>
