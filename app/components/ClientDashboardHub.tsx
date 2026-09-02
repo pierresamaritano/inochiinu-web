@@ -189,7 +189,7 @@ export default function ClientDashboardHub() {
     setShowPayment(true);
   };
 
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (stripePaymentId: string) => {
     setQuickSubmitting(true);
     try {
       const { error } = await supabase.from("education_requests").insert([{
@@ -199,6 +199,7 @@ export default function ClientDashboardHub() {
         issues: [], scheduled_date: quickForm.scheduledDate, preferred_slot: quickForm.timeSlot,
         session_type: "suivi", location_preference: quickForm.location,
         price_estimate: quickForm.location === "domicile" ? 65 : 45, status: "en_attente",
+        stripe_payment_id: stripePaymentId
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
@@ -240,43 +241,8 @@ export default function ClientDashboardHub() {
       dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
     }));
     setQuickPenSubmitted(false);
+    setShowPayment(false);
     setIsQuickPenBookOpen(true);
-  };
-
-  const openQuickPenBooking = () => {
-    setQuickPenForm(prev => ({ ...prev, startDate: "", endDate: "", dog_id: userDogs.length === 1 ? userDogs[0].id : prev.dog_id }));
-    setQuickPenSubmitted(false);
-    setIsQuickPenBookOpen(true);
-  };
-
-  const handleQuickPenSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    if (!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate) return;
-    if (hasSecondDog && !quickPenForm.dog2_id) return;
-
-    setQuickPenSubmitting(true);
-    try {
-      const finalDogName = hasSecondDog ? `${quickPenForm.dogName} & ${quickPenForm.dog2Name}` : quickPenForm.dogName;
-      const finalDogBreed = hasSecondDog ? `${quickPenForm.dogBreed} - ${quickPenForm.dog2Breed}` : quickPenForm.dogBreed;
-
-      const { error } = await supabase.from("pension_bookings").insert([{
-        user_id: currentUser.id, dog_id: quickPenForm.dog_id || null,
-        client_name: currentUser.user_metadata?.full_name || "Client", client_email: currentUser.email,
-        client_phone: clientPhone, dog_name: finalDogName, dog_breed: finalDogBreed,
-        start_date: quickPenForm.startDate, end_date: quickPenForm.endDate,
-        special_needs: quickPenForm.specialNeeds, status: "en_attente",
-      }]);
-
-      if (error) throw error;
-      setQuickPenSubmitted(true);
-      fetchUserServices(); 
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de la réservation de la pension.");
-    } finally {
-      setQuickPenSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -346,7 +312,6 @@ export default function ClientDashboardHub() {
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
-                  {/* Utilisation de la nouvelle pastille */}
                   {eduBadgeCount > 0 && (
                     <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700 shrink-0 shadow-sm">
                       {eduBadgeCount}
@@ -437,7 +402,6 @@ export default function ClientDashboardHub() {
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   </button>
-                  {/* Utilisation de la nouvelle pastille */}
                   {pensionBadgeCount > 0 && (
                     <div className="h-10 w-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-black text-xs text-emerald-700 shrink-0 shadow-sm">
                       {pensionBadgeCount}
@@ -502,7 +466,6 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full">Élevage</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Candidature Chiot</h3>
                 </div>
-                {/* Utilisation de la nouvelle pastille */}
                 {adoptionBadgeCount > 0 && (
                   <div className="h-10 w-10 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center font-black text-xs text-orange-700">
                     {adoptionBadgeCount}
@@ -560,7 +523,6 @@ export default function ClientDashboardHub() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Sellerie</span>
                   <h3 className="text-xl font-black text-stone-900 mt-1.5">Commandes Atelier</h3>
                 </div>
-                {/* Utilisation de la nouvelle pastille */}
                 {sellerieBadgeCount > 0 && (
                   <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center font-black text-xs text-amber-700">
                     {sellerieBadgeCount}
@@ -611,7 +573,9 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
-      {/* ... MODALE ANNULATION ... */}
+      {/* ========================================================================= */}
+      {/* MODALE ANNULATION */}
+      {/* ========================================================================= */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -812,8 +776,64 @@ export default function ClientDashboardHub() {
                   Fermer
                 </button>
               </div>
+            ) : showPayment ? (
+              // --- COMPOSANT DE PAIEMENT POUR LA PENSION RAPIDE ---
+              <PaymentSimulation 
+                amount={
+                  (() => {
+                    const start = new Date(quickPenForm.startDate);
+                    const end = new Date(quickPenForm.endDate);
+                    const nights = Math.max(1, Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+                    let total = 0;
+                    let current = new Date(start);
+                    for (let i = 0; i < nights; i++) {
+                      const isHighSeason = [6, 7, 11].includes(current.getMonth());
+                      total += isHighSeason ? 40 : 30;
+                      if (hasSecondDog) total += isHighSeason ? 20 : 15;
+                      current.setDate(current.getDate() + 1);
+                    }
+                    return total;
+                  })()
+                } 
+                serviceName={hasSecondDog ? "Séjour en Pension (2 chiens)" : "Séjour en Pension"}
+                onSuccess={async (stripeId) => {
+                  setQuickPenSubmitting(true);
+                  try {
+                    const finalDogName = hasSecondDog ? `${quickPenForm.dogName} & ${quickPenForm.dog2Name}` : quickPenForm.dogName;
+                    const finalDogBreed = hasSecondDog ? `${quickPenForm.dogBreed} - ${quickPenForm.dog2Breed}` : quickPenForm.dogBreed;
+
+                    const { error } = await supabase.from("pension_bookings").insert([{
+                      user_id: currentUser.id, dog_id: quickPenForm.dog_id || null,
+                      client_name: currentUser.user_metadata?.full_name || "Client", client_email: currentUser.email,
+                      client_phone: clientPhone, dog_name: finalDogName, dog_breed: finalDogBreed,
+                      start_date: quickPenForm.startDate, end_date: quickPenForm.endDate,
+                      special_needs: quickPenForm.specialNeeds, status: "en_attente",
+                      stripe_payment_id: stripeId // L'AJOUT EST ICI
+                    }]);
+
+                    if (error) throw error;
+                    setQuickPenSubmitted(true);
+                    fetchUserServices(); 
+                  } catch (err) {
+                    console.error(err);
+                    alert("Erreur lors de la réservation de la pension.");
+                  } finally {
+                    setQuickPenSubmitting(false);
+                  }
+                }}
+                onCancel={() => setShowPayment(false)}
+              />
             ) : (
-              <form onSubmit={handleQuickPenSubmit} className="space-y-6">
+              <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!currentUser) return;
+                  if (!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate) return;
+                  if (hasSecondDog && !quickPenForm.dog2_id) return;
+                  // Au lieu de soumettre directement, on affiche le paiement
+                  setShowPayment(true);
+                }} 
+                className="space-y-6"
+              >
                 <div>
                   <h3 className="text-xl font-black text-stone-900">Réserver un séjour</h3>
                   <p className="text-xs text-stone-500 mt-1">Bloquez vos dates en pension.</p>
@@ -888,29 +908,36 @@ export default function ClientDashboardHub() {
                     </div>
                   )}
 
-                  <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
-                    <PensionCalendar 
-                      startDate={quickPenForm.startDate}
-                      endDate={quickPenForm.endDate}
-                      onChange={(start, end) => setQuickPenForm({ ...quickPenForm, startDate: start, endDate: end })}
-                    />
-                  </div>
+                  {/* WRAPPER QUI GRISE LE RESTE DU FORMULAIRE */}
+                  <div className={`space-y-5 transition-all duration-300 ${!quickPenForm.dog_id ? "opacity-30 pointer-events-none grayscale" : "mt-2"}`}>
+                    
+                    <div className="bg-stone-50 p-4 rounded-[2rem] border border-stone-200">
+                      <PensionCalendar 
+                        startDate={quickPenForm.startDate}
+                        endDate={quickPenForm.endDate}
+                        selectedDogId={quickPenForm.dog_id}
+                        selectedDog2Id={hasSecondDog ? quickPenForm.dog2_id : undefined}
+                        onChange={(start, end) => setQuickPenForm({ ...quickPenForm, startDate: start, endDate: end })}
+                      />
+                    </div>
 
-                  <div className="w-full min-w-0">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Besoins spécifiques</label>
-                    <textarea 
-                      rows={2} 
-                      placeholder="Précisez le type de croquettes, traitements..."
-                      value={quickPenForm.specialNeeds} 
-                      onChange={(e) => setQuickPenForm({ ...quickPenForm, specialNeeds: e.target.value })} 
-                      className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-emerald-500 shadow-sm" 
-                    />
-                  </div>
+                    <div className="w-full min-w-0">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Besoins spécifiques</label>
+                      <textarea 
+                        rows={2} 
+                        placeholder="Précisez le type de croquettes, traitements..."
+                        value={quickPenForm.specialNeeds} 
+                        onChange={(e) => setQuickPenForm({ ...quickPenForm, specialNeeds: e.target.value })} 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-emerald-500 shadow-sm" 
+                      />
+                    </div>
 
-                  <div className="pt-2 border-t border-stone-100">
-                    <button type="submit" disabled={quickPenSubmitting || !quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate || (hasSecondDog && !quickPenForm.dog2_id)} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
-                      {quickPenSubmitting ? "Envoi en cours..." : "Réserver ce séjour"}
-                    </button>
+                    <div className="pt-2 border-t border-stone-100">
+                      <button type="submit" disabled={!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate || (hasSecondDog && !quickPenForm.dog2_id)} className="w-full py-3.5 bg-stone-900 text-white font-black text-xs uppercase tracking-wider rounded-full cursor-pointer shadow-md disabled:opacity-50 hover:scale-105 transition-all">
+                        Aller au paiement sécurisé
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               </form>
