@@ -130,7 +130,7 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Variables Hexadécimales pour le dessin SVG
+  // Variables Hexadécimales pour le dessin SVG / Mask
   const hardwareHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524"; 
   const ropeHexMap: Record<string, string> = {
     "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Personnalisé (Préciser en note)": "#a8a29e"
@@ -220,7 +220,7 @@ export default function SelleriePage() {
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL (NOUVEAU DESIGN VECTORIEL) */}
+                {/* COLONNE GAUCHE : APERÇU VISUEL (3 CALQUES CSS) */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
                   <div className="p-6 shrink-0 z-10">
                     <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
@@ -264,31 +264,43 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU RÉALISTE : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div className="relative aspect-square w-full max-w-[320px] rounded-2xl flex items-center justify-center overflow-hidden drop-shadow-2xl">
+                      <div className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl">
                         
-                        {/* COUCHE 1 : La Couleur de la sangle (Découpée par le MASK) */}
+                        {/* COUCHE 1 : La Couleur de la sangle (Découpée par l'image de la sangle pure) */}
                         <div 
                           className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
                           style={{
                             backgroundColor: ropeHex, 
-                            // ON UTILISE ICI LE NOUVEAU MASQUE SANS LA BOUCLERIE
-                            WebkitMaskImage: `url('/collier-mask.png')`,
+                            WebkitMaskImage: `url('/collier-sangle.png')`,
                             WebkitMaskSize: "contain",
                             WebkitMaskPosition: "center",
                             WebkitMaskRepeat: "no-repeat",
-                            maskImage: `url('/collier-mask.png')`,
+                            maskImage: `url('/collier-sangle.png')`,
                             maskSize: "contain",
                             maskPosition: "center",
                             maskRepeat: "no-repeat",
                           }}
                         />
                         
-                        {/* COUCHE 2 : L'image originale avec les ombres et LA BOUCLERIE */}
+                        {/* COUCHE 2 : L'image de la sangle originale pour récupérer la texture et les ombres (Multiply) */}
                         <img 
-                          src="/collier-base.png" 
-                          alt="Base Collier" 
+                          src="/collier-sangle.png" 
+                          alt="Base Sangle" 
                           className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90"
                         />
+
+                        {/* COUCHE 3 : La bouclerie préservée, posée par-dessus sans être teintée ! */}
+                        {/* BONUS : On assombrit et désature la boucle si l'option Acier Noir est sélectionnée */}
+                        <img 
+                          src="/collier-bouclerie.png" 
+                          alt="Bouclerie" 
+                          className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none"
+                          style={{
+                            filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none",
+                            transition: "filter 0.4s ease-in-out"
+                          }}
+                        />
+
                       </div>
                     )}
 
