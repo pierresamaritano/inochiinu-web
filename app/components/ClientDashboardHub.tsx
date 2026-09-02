@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import DogProfileManager from "../components/DogProfileManager";
-import ClientDogSelector from "../components/ClientDogSelector";
-import EducationCalendar from "../components/EducationCalendar";
-import MiniEducationCalendar from "../components/MiniEducationCalendar";
-import PensionCalendar from "../components/PensionCalendar"; 
-import MiniPensionCalendar from "../components/MiniPensionCalendar"; 
-import PaymentSimulation from "../components/PaymentSimulation"; 
+import DogProfileManager from "./DogProfileManager";
+import ClientDogSelector from "./ClientDogSelector";
+import EducationCalendar from "./EducationCalendar";
+import MiniEducationCalendar from "./MiniEducationCalendar";
+import PensionCalendar from "./PensionCalendar"; 
+import MiniPensionCalendar from "./MiniPensionCalendar"; 
+import PaymentSimulation from "./PaymentSimulation"; 
 
 interface CancelTarget {
   table: string;
@@ -136,7 +136,6 @@ export default function ClientDashboardHub() {
       if (error) throw error;
       
       // OPTIONNEL : Si c'est annulé côté client, on libère aussi l'empreinte bancaire
-      // (Vous pouvez décommenter ça plus tard si vous voulez automatiser l'annulation côté client)
       // if (["pension_bookings", "education_requests"].includes(cancelModal.table)) {
       //   const { data: record } = await supabase.from(cancelModal.table).select('stripe_payment_id').eq("id", cancelModal.id).single();
       //   if (record?.stripe_payment_id) {
@@ -197,6 +196,7 @@ export default function ClientDashboardHub() {
     setShowPayment(true);
   };
 
+  // MODIFIÉ : Accepte l'ID Stripe en paramètre
   const handleFinalSubmit = async (stripePaymentId: string) => {
     setQuickSubmitting(true);
     try {
@@ -207,7 +207,7 @@ export default function ClientDashboardHub() {
         issues: [], scheduled_date: quickForm.scheduledDate, preferred_slot: quickForm.timeSlot,
         session_type: "suivi", location_preference: quickForm.location,
         price_estimate: quickForm.location === "domicile" ? 65 : 45, status: "en_attente",
-        stripe_payment_id: stripePaymentId, // L'AJOUT EST ICI
+        stripe_payment_id: stripePaymentId, // L'ID Stripe est inséré ici
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
@@ -248,6 +248,7 @@ export default function ClientDashboardHub() {
       dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
     }));
     setQuickPenSubmitted(false);
+    setShowPayment(false); // Réinitialiser le paiement
     setIsQuickPenBookOpen(true);
   };
 
@@ -579,7 +580,9 @@ export default function ClientDashboardHub() {
         </div>
       )}
 
-      {/* ... MODALE ANNULATION ... */}
+      {/* ========================================================================= */}
+      {/* MODALE ANNULATION */}
+      {/* ========================================================================= */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div 
@@ -781,10 +784,8 @@ export default function ClientDashboardHub() {
                 </button>
               </div>
             ) : showPayment ? (
-              // --- COMPOSANT DE PAIEMENT POUR LA PENSION RAPIDE ---
               <PaymentSimulation 
                 amount={
-                  // Calcul rapide des nuits x (30€ basse saison, 40€ haute, +15/+20€ 2e chien)
                   (() => {
                     const start = new Date(quickPenForm.startDate);
                     const end = new Date(quickPenForm.endDate);
@@ -813,7 +814,7 @@ export default function ClientDashboardHub() {
                       client_phone: clientPhone, dog_name: finalDogName, dog_breed: finalDogBreed,
                       start_date: quickPenForm.startDate, end_date: quickPenForm.endDate,
                       special_needs: quickPenForm.specialNeeds, status: "en_attente",
-                      stripe_payment_id: stripeId // L'AJOUT EST ICI
+                      stripe_payment_id: stripeId
                     }]);
 
                     if (error) throw error;
@@ -834,7 +835,6 @@ export default function ClientDashboardHub() {
                   if (!currentUser) return;
                   if (!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate) return;
                   if (hasSecondDog && !quickPenForm.dog2_id) return;
-                  // Au lieu de soumettre directement, on affiche le paiement
                   setShowPayment(true);
                 }} 
                 className="space-y-6"
