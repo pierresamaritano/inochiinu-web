@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import DogProfileManager from "./DogProfileManager";
-import ClientDogSelector from "./ClientDogSelector";
-import EducationCalendar from "./EducationCalendar";
-import MiniEducationCalendar from "./MiniEducationCalendar";
-import PensionCalendar from "./PensionCalendar"; 
-import MiniPensionCalendar from "./MiniPensionCalendar"; 
-import PaymentSimulation from "./PaymentSimulation"; 
+import DogProfileManager from "../components/DogProfileManager";
+import ClientDogSelector from "../components/ClientDogSelector";
+import EducationCalendar from "../components/EducationCalendar";
+import MiniEducationCalendar from "../components/MiniEducationCalendar";
+import PensionCalendar from "../components/PensionCalendar"; 
+import MiniPensionCalendar from "../components/MiniPensionCalendar"; 
+import PaymentSimulation from "../components/PaymentSimulation"; 
 
 interface CancelTarget {
   table: string;
@@ -26,7 +26,7 @@ export default function ClientDashboardHub() {
   const [sellerieOrders, setSellerieOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- NOUVEAU : État de l'arrêt d'urgence ---
+  // --- État de l'arrêt d'urgence ---
   const [isEmergencyStopActive, setIsEmergencyStopActive] = useState(false);
 
   const [period, setPeriod] = useState<PeriodOption>("1m");
@@ -74,14 +74,11 @@ export default function ClientDashboardHub() {
     if (!user) return;
     setCurrentUser(user);
 
-    // --- Vérification de l'arrêt d'urgence ---
     try {
       const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "emergency_stop").single();
       if (setting && setting.value === "true") setIsEmergencyStopActive(true);
       else setIsEmergencyStopActive(false);
-    } catch (e) {
-      // Ignore si la table n'existe pas encore
-    }
+    } catch (e) {}
 
     const { data: profile } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
     if (profile && profile.phone) setClientPhone(profile.phone);
@@ -124,7 +121,6 @@ export default function ClientDashboardHub() {
   const filteredAdoption = useMemo(() => filterByPeriod(adoptionRequests), [adoptionRequests, period]);
   const filteredSellerie = useMemo(() => filterByPeriod(sellerieOrders), [sellerieOrders, period]);
 
-  // --- NOUVEAU : Calculs des badges (Pastilles) sans les terminés/annulés ---
   const eduBadgeCount = filteredEdu.filter(item => ['en_attente', 'confirmé'].includes(item.status)).length;
   const pensionBadgeCount = filteredPension.filter(item => ['en_attente', 'confirmé'].includes(item.status)).length;
   const adoptionBadgeCount = filteredAdoption.filter(item => ['en_attente', 'liste_attente', 'accepté'].includes(item.status)).length;
@@ -173,7 +169,22 @@ export default function ClientDashboardHub() {
   // GESTIONNAIRES ÉDUCATION
   // ---------------------------------------------------------------------------
   const handleMiniCalClick = (dateStr: string, dogId?: string) => {
-    setQuickForm(prev => ({ ...prev, scheduledDate: dateStr, timeSlot: "", dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) }));
+    // Auto-sélection intelligente
+    let selectedDog = userDogs.find(d => d.id === dogId);
+    if (!selectedDog && userDogs.length === 1) {
+      selectedDog = userDogs[0];
+    }
+
+    setQuickForm(prev => ({ 
+      ...prev, 
+      scheduledDate: dateStr, 
+      timeSlot: "", 
+      dog_id: selectedDog ? selectedDog.id : (dogId ? "" : prev.dog_id),
+      dogName: selectedDog ? selectedDog.name : (dogId ? "" : prev.dogName),
+      dogBreed: selectedDog ? selectedDog.breed : (dogId ? "" : prev.dogBreed),
+      dogAge: selectedDog ? calculateDogAge(selectedDog.birth_date || "") : (dogId ? "" : prev.dogAge)
+    }));
+    
     setQuickSubmitted(false);
     setShowPayment(false);
     setIsQuickBookOpen(true);
@@ -199,7 +210,7 @@ export default function ClientDashboardHub() {
         issues: [], scheduled_date: quickForm.scheduledDate, preferred_slot: quickForm.timeSlot,
         session_type: "suivi", location_preference: quickForm.location,
         price_estimate: quickForm.location === "domicile" ? 65 : 45, status: "en_attente",
-        stripe_payment_id: stripePaymentId
+        stripe_payment_id: stripePaymentId,
       }]);
       if (error) throw error;
       setQuickSubmitted(true);
@@ -229,17 +240,25 @@ export default function ClientDashboardHub() {
     return { isValid: false, isPending: false, needsNew: true };
   }, [quickForm.dog_id, eduRequests]);
 
-
   // ---------------------------------------------------------------------------
   // GESTIONNAIRES PENSION
   // ---------------------------------------------------------------------------
   const handleMiniPenCalClick = (dateStr: string, dogId?: string) => {
+    // Auto-sélection intelligente
+    let selectedDog = userDogs.find(d => d.id === dogId);
+    if (!selectedDog && userDogs.length === 1) {
+      selectedDog = userDogs[0];
+    }
+
     setQuickPenForm(prev => ({ 
       ...prev, 
       startDate: dateStr, 
       endDate: "", 
-      dog_id: dogId || (userDogs.length === 1 ? userDogs[0].id : prev.dog_id) 
+      dog_id: selectedDog ? selectedDog.id : (dogId ? "" : prev.dog_id),
+      dogName: selectedDog ? selectedDog.name : (dogId ? "" : prev.dogName),
+      dogBreed: selectedDog ? selectedDog.breed : (dogId ? "" : prev.dogBreed)
     }));
+
     setQuickPenSubmitted(false);
     setShowPayment(false);
     setIsQuickPenBookOpen(true);
@@ -653,24 +672,31 @@ export default function ClientDashboardHub() {
                   {currentUser && (
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Chien concerné *</label>
-                      <select 
-                        required
-                        value={quickForm.dog_id} 
-                        onChange={(e) => {
-                          const dog = userDogs.find(d => d.id === e.target.value);
-                          setQuickForm({
-                            ...quickForm, 
-                            dog_id: e.target.value, 
-                            dogName: dog?.name || "", 
-                            dogBreed: dog?.breed || "", 
-                            dogAge: calculateDogAge(dog?.birth_date || "") 
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
-                      >
-                        <option value="">Sélectionnez un chien...</option>
-                        {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
+                      
+                      {userDogs.length === 1 ? (
+                        <div className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-900 shadow-sm flex items-center gap-2">
+                          <span className="text-orange-500">🐕</span> {userDogs[0].name}
+                        </div>
+                      ) : (
+                        <select 
+                          required
+                          value={quickForm.dog_id} 
+                          onChange={(e) => {
+                            const dog = userDogs.find(d => d.id === e.target.value);
+                            setQuickForm({
+                              ...quickForm, 
+                              dog_id: e.target.value, 
+                              dogName: dog?.name || "", 
+                              dogBreed: dog?.breed || "", 
+                              dogAge: calculateDogAge(dog?.birth_date || "") 
+                            });
+                          }}
+                          className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
+                        >
+                          <option value="">Sélectionnez un chien...</option>
+                          {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      )}
                     </div>
                   )}
 
@@ -777,7 +803,6 @@ export default function ClientDashboardHub() {
                 </button>
               </div>
             ) : showPayment ? (
-              // --- COMPOSANT DE PAIEMENT POUR LA PENSION RAPIDE ---
               <PaymentSimulation 
                 amount={
                   (() => {
@@ -808,7 +833,7 @@ export default function ClientDashboardHub() {
                       client_phone: clientPhone, dog_name: finalDogName, dog_breed: finalDogBreed,
                       start_date: quickPenForm.startDate, end_date: quickPenForm.endDate,
                       special_needs: quickPenForm.specialNeeds, status: "en_attente",
-                      stripe_payment_id: stripeId // L'AJOUT EST ICI
+                      stripe_payment_id: stripeId
                     }]);
 
                     if (error) throw error;
@@ -829,7 +854,6 @@ export default function ClientDashboardHub() {
                   if (!currentUser) return;
                   if (!quickPenForm.dog_id || !quickPenForm.startDate || !quickPenForm.endDate) return;
                   if (hasSecondDog && !quickPenForm.dog2_id) return;
-                  // Au lieu de soumettre directement, on affiche le paiement
                   setShowPayment(true);
                 }} 
                 className="space-y-6"
@@ -845,66 +869,75 @@ export default function ClientDashboardHub() {
                   {currentUser && (
                     <div className="w-full min-w-0">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pensionnaire(s) *</label>
-                      <select 
-                        required
-                        value={quickPenForm.dog_id} 
-                        onChange={(e) => {
-                          const dog = userDogs.find(d => d.id === e.target.value);
-                          setQuickPenForm({
-                            ...quickPenForm, 
-                            dog_id: e.target.value, 
-                            dogName: dog?.name || "", 
-                            dogBreed: dog?.breed || "", 
-                          });
-                        }}
-                        className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-orange-500 cursor-pointer shadow-sm"
-                      >
-                        <option value="">Sélectionnez un premier chien...</option>
-                        {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
+                      
+                      {userDogs.length === 1 ? (
+                        <div className="w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-bold text-stone-900 shadow-sm flex items-center gap-2">
+                          <span className="text-emerald-500">🐕</span> {userDogs[0].name}
+                        </div>
+                      ) : (
+                        <select 
+                          required
+                          value={quickPenForm.dog_id} 
+                          onChange={(e) => {
+                            const dog = userDogs.find(d => d.id === e.target.value);
+                            setQuickPenForm({
+                              ...quickPenForm, 
+                              dog_id: e.target.value, 
+                              dogName: dog?.name || "", 
+                              dogBreed: dog?.breed || "", 
+                            });
+                          }}
+                          className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer shadow-sm"
+                        >
+                          <option value="">Sélectionnez un premier chien...</option>
+                          {userDogs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      )}
 
-                      <div className="mt-2">
-                        {!hasSecondDog ? (
-                          <button
-                            type="button"
-                            onClick={() => setHasSecondDog(true)}
-                            className="text-[11px] font-black text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1"
-                          >
-                            + Ajouter un deuxième chien (même box)
-                          </button>
-                        ) : (
-                          <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 relative mt-3 shadow-sm">
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                setHasSecondDog(false);
-                                setQuickPenForm(prev => ({ ...prev, dog2_id: "", dog2Name: "", dog2Breed: "" }));
-                              }}
-                              className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
+                      {userDogs.length > 1 && (
+                        <div className="mt-2">
+                          {!hasSecondDog ? (
+                            <button
+                              type="button"
+                              onClick={() => setHasSecondDog(true)}
+                              className="text-[11px] font-black text-emerald-600 hover:text-emerald-700 cursor-pointer flex items-center gap-1"
                             >
-                              ✕ Retirer
+                              + Ajouter un deuxième chien (même box)
                             </button>
-                            <p className="text-[10px] font-black uppercase text-emerald-700 mb-2">Deuxième pensionnaire</p>
-                            <select 
-                              required={hasSecondDog}
-                              value={quickPenForm.dog2_id} 
-                              onChange={(e) => {
-                                const dog = userDogs.find(d => d.id === e.target.value);
-                                setQuickPenForm({
-                                  ...quickPenForm, 
-                                  dog2_id: e.target.value, 
-                                  dog2Name: dog?.name || "", 
-                                  dog2Breed: dog?.breed || "", 
-                                });
-                              }}
-                              className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer shadow-sm"
-                            >
-                              <option value="">Sélectionnez le second chien...</option>
-                              {userDogs.filter(d => d.id !== quickPenForm.dog_id).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 relative mt-3 shadow-sm">
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  setHasSecondDog(false);
+                                  setQuickPenForm(prev => ({ ...prev, dog2_id: "", dog2Name: "", dog2Breed: "" }));
+                                }}
+                                className="absolute top-3 right-3 text-[10px] font-bold text-stone-400 hover:text-red-500 cursor-pointer"
+                              >
+                                ✕ Retirer
+                              </button>
+                              <p className="text-[10px] font-black uppercase text-emerald-700 mb-2">Deuxième pensionnaire</p>
+                              <select 
+                                required={hasSecondDog}
+                                value={quickPenForm.dog2_id} 
+                                onChange={(e) => {
+                                  const dog = userDogs.find(d => d.id === e.target.value);
+                                  setQuickPenForm({
+                                    ...quickPenForm, 
+                                    dog2_id: e.target.value, 
+                                    dog2Name: dog?.name || "", 
+                                    dog2Breed: dog?.breed || "", 
+                                  });
+                                }}
+                                className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-emerald-500 cursor-pointer shadow-sm"
+                              >
+                                <option value="">Sélectionnez le second chien...</option>
+                                {userDogs.filter(d => d.id !== quickPenForm.dog_id).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
