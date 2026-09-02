@@ -7,15 +7,22 @@ interface EducationCalendarProps {
   location: "terrain" | "domicile";
   selectedDate: string;
   selectedTime: string;
-  selectedDogId: string; // INDISPENSABLE : Le chien en cours de réservation
+  selectedDogId: string; 
   onChange: (date: string, time: string) => void;
 }
 
+interface ServiceClosure {
+  id: string;
+  start: string;
+  end: string;
+  services: string[]; 
+}
+
 export default function EducationCalendar({ location, selectedDate, selectedTime, selectedDogId, onChange }: EducationCalendarProps) {
-  // Le calendrier s'ouvre sur le mois de la date pré-cliquée
   const initialDate = selectedDate ? new Date(selectedDate) : new Date();
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [reservations, setReservations] = useState<any[]>([]);
+  const [closures, setClosures] = useState<ServiceClosure[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
@@ -42,23 +49,36 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
       const userId = sessionData.session?.user?.id || null;
       setCurrentUser(userId);
 
-      const { data } = await supabase
+      const { data: resData } = await supabase
         .from("education_requests")
         .select("user_id, dog_id, scheduled_date, preferred_slot, location_preference, status")
         .in("status", ["en_attente", "confirmé", "terminé"]); 
-      
-      setReservations(data || []);
+      setReservations(resData || []);
+
+      const { data: settingsData } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "service_closures")
+        .single();
+        
+      if (settingsData && settingsData.value) {
+        try { setClosures(JSON.parse(settingsData.value)); } 
+        catch (e) { console.error(e); }
+      }
     };
     fetchData();
   }, [month, year, supabase]);
 
-  const getMyStatus = (dateStr: string) => {
+  const getDayInfo = (dateStr: string) => {
+    const isClosed = closures.some(c => dateStr >= c.start && dateStr <= c.end && c.services.includes("education"));
+
     const myRes = reservations.find(r => 
       r.scheduled_date === dateStr && 
       r.user_id === currentUser && 
-      r.dog_id === selectedDogId // <-- Ne bloque que si CE chien a déjà une séance
+      r.dog_id === selectedDogId
     );
-    return myRes ? myRes.status : null;
+
+    return { myPersonalStatus: myRes ? myRes.status : null, isClosed };
   };
 
   const getAvailableSlotsForDay = (dateStr: string) => {
@@ -108,12 +128,10 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
     const clickedDate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     const today = new Date().toISOString().split("T")[0];
     
-    // Bloque le clic sur aujourd'hui et les dates passées
     if (clickedDate <= today) return; 
 
-    // Bloque uniquement si CE chien a déjà une séance
-    const myPersonalStatus = getMyStatus(clickedDate);
-    if (myPersonalStatus) return;
+    const { myPersonalStatus, isClosed } = getDayInfo(clickedDate);
+    if (myPersonalStatus || isClosed) return;
 
     const { isFull } = getAvailableSlotsForDay(clickedDate);
     if (isFull) return;
@@ -122,38 +140,6 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
   };
 
   const currentDaySlots = selectedDate ? getAvailableSlotsForDay(selectedDate).slots : [];
-
-  const getLegendText = () => {
-    const hasMyPending = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "en_attente");
-    const hasMyConfirmed = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "confirmé");
-    const hasMyTerminated = reservations.some(r => r.user_id === currentUser && r.dog_id === selectedDogId && r.status === "terminé");
-
-    if (!hasMyPending && !hasMyConfirmed && !hasMyTerminated) return null;
-
-    return (
-      <div className="mt-4 p-4 rounded-2xl bg-white border border-stone-200 text-xs text-stone-600 space-y-2 shadow-sm">
-        <p className="font-black text-stone-900 uppercase text-[10px] tracking-wider mb-2">Séances du chien sélectionné</p>
-        {hasMyPending && (
-          <div className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0 mt-0.5 shadow-sm ring-1 ring-amber-200"></span>
-            <p><strong>En attente :</strong> Demande en cours de traitement.</p>
-          </div>
-        )}
-        {hasMyConfirmed && (
-          <div className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-0.5 shadow-sm ring-1 ring-emerald-200"></span>
-            <p><strong>Validée :</strong> La séance est confirmée.</p>
-          </div>
-        )}
-        {hasMyTerminated && (
-          <div className="flex items-start gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-stone-600 shrink-0 mt-0.5 shadow-sm ring-1 ring-stone-300"></span>
-            <p><strong>Terminée :</strong> Cette séance a déjà eu lieu.</p>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="w-full">
@@ -181,33 +167,38 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
           const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
           
-          const isPast = currentISODate <= today; // Vérification stricte
-          const myPersonalStatus = getMyStatus(currentISODate);
+          const isPast = currentISODate <= today; 
+          const { myPersonalStatus, isClosed } = getDayInfo(currentISODate);
           const { isFull } = getAvailableSlotsForDay(currentISODate);
           
           const isSelected = selectedDate === currentISODate;
           const isMyDay = !!myPersonalStatus;
-          const isDisabled = isPast || isMyDay || isFull;
+          const isDisabled = isPast || isMyDay || isFull || isClosed;
 
           let bgClass = "bg-white border border-stone-200 hover:border-orange-400";
           let textClass = "text-stone-700 font-medium";
           let badgeColor = "";
 
-          if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
-          if (myPersonalStatus === "confirmé") badgeColor = "bg-emerald-500 shadow-sm ring-1 ring-emerald-200";
-          if (myPersonalStatus === "terminé") badgeColor = "bg-stone-600 shadow-sm ring-1 ring-stone-300";
+          if (isClosed) {
+            bgClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_4px,#ffffff_4px,#ffffff_8px)] border-red-200 opacity-80 cursor-not-allowed";
+            textClass = "text-red-500 font-bold";
+          } else {
+            if (myPersonalStatus === "en_attente") badgeColor = "bg-amber-400 shadow-sm ring-1 ring-amber-200";
+            if (myPersonalStatus === "confirmé") badgeColor = "bg-emerald-500 shadow-sm ring-1 ring-emerald-200";
+            if (myPersonalStatus === "terminé") badgeColor = "bg-stone-600 shadow-sm ring-1 ring-stone-300";
 
-          if (isDisabled) {
-            if (isMyDay) {
-              bgClass = "bg-stone-50 border border-stone-200 opacity-60 cursor-not-allowed";
-              textClass = "text-stone-500 font-bold";
-            } else {
-              bgClass = "bg-stone-50 border border-stone-100 opacity-50 cursor-not-allowed";
-              textClass = "text-stone-400 line-through";
+            if (isDisabled) {
+              if (isMyDay) {
+                bgClass = "bg-stone-50 border border-stone-200 opacity-60 cursor-not-allowed";
+                textClass = "text-stone-500 font-bold";
+              } else {
+                bgClass = "bg-stone-50 border border-stone-100 opacity-50 cursor-not-allowed";
+                textClass = "text-stone-400 line-through";
+              }
+            } else if (isSelected) {
+              bgClass = "bg-orange-600 border border-orange-600 shadow-md";
+              textClass = "text-white font-black";
             }
-          } else if (isSelected) {
-            bgClass = "bg-orange-600 border border-orange-600 shadow-md";
-            textClass = "text-white font-black";
           }
 
           return (
@@ -217,18 +208,18 @@ export default function EducationCalendar({ location, selectedDate, selectedTime
               disabled={isDisabled}
               onClick={() => handleDayClick(day)}
               className={`relative h-12 w-full rounded-xl flex flex-col items-center justify-center transition-all ${!isDisabled && "cursor-pointer"} ${bgClass}`}
+              title={isClosed ? "Fermé" : ""}
             >
               <span className={`text-xs ${textClass}`}>{day}</span>
               {badgeColor && <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${badgeColor}`}></span>}
               {isSelected && !badgeColor && <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-white"></span>}
+              {isClosed && <span className="absolute bottom-1 text-[7px] font-black text-red-600 uppercase tracking-tighter">Fermé</span>}
             </button>
           );
         })}
       </div>
 
-      {getLegendText()}
-
-      {selectedDate && (
+      {selectedDate && !closures.some(c => selectedDate >= c.start && selectedDate <= c.end && c.services.includes("education")) && (
         <div className="mt-6 animate-in slide-in-from-top-2">
           <label className="block text-[10px] font-black uppercase text-stone-400 mb-3 tracking-wider text-center border-t border-stone-100 pt-4">
             Créneaux disponibles le {new Date(selectedDate).toLocaleDateString('fr-FR')}
