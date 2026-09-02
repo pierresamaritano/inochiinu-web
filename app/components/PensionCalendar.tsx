@@ -67,7 +67,6 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
   }, [month, year, supabase]);
 
   const isDateDisabled = (isoDate: string) => {
-    // NOUVEAU : Bloque immédiatement si fermé
     if (closures.some(c => isoDate >= c.start && isoDate <= c.end && c.services.includes("pension"))) return true;
 
     let boxesOccupes = 0;
@@ -112,10 +111,12 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
 
     if (isDateDisabled(clickedDate)) return;
 
-    if (!startDate || (startDate && endDate)) {
+    if (!startDate) {
+      // 1er clic : Définit la date de début (et reset la date de fin)
       onChange(clickedDate, "");
-    } else {
-      if (clickedDate > startDate) {
+    } else if (startDate && !endDate) {
+      // 2ème clic 
+      if (clickedDate >= startDate) { // MODIFIÉ : >= au lieu de > pour autoriser la même journée
         let hasOverlap = false;
         let current = new Date(startDate + "T00:00:00Z");
         const end = new Date(clickedDate + "T00:00:00Z");
@@ -136,8 +137,12 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
           onChange(startDate, clickedDate);
         }
       } else {
+        // Clic avant la date de début : reset la date de début
         onChange(clickedDate, ""); 
       }
+    } else {
+      // 3ème clic (les deux dates étaient déjà remplies) : on recommence à zéro
+      onChange(clickedDate, "");
     }
   };
 

@@ -47,7 +47,7 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
         .neq("status", "annulé"); 
       setReservations(resData || []);
 
-      // NOUVEAU : Récupération des fermetures
+      // Récupération des fermetures
       const { data: settingsData } = await supabase
         .from("site_settings")
         .select("value")
@@ -65,7 +65,7 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
   const getAvailability = (day: number) => {
     const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
     
-    // NOUVEAU : Vérification si la pension est fermée ce jour-là
+    // Vérification si la pension est fermée ce jour-là
     const isClosed = closures.some(c => currentISODate >= c.start && currentISODate <= c.end && c.services.includes("pension"));
 
     let boxesOccupes = 0;
@@ -87,7 +87,7 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
     if (available === 0) status = "complet";
     else if (available <= 3) status = "haute";
 
-    return { available, status, myPersonalStatus, isClosed }; // Ajout de isClosed
+    return { available, status, myPersonalStatus, isClosed }; 
   };
 
   return (
@@ -133,13 +133,13 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
 
-          const { status, myPersonalStatus, isClosed } = getAvailability(day); // Récupération de isClosed
+          const { status, myPersonalStatus, isClosed } = getAvailability(day); 
           
           const isPast = dateStr <= today; 
           const isComplet = status === "complet";
           const isMyDay = !!myPersonalStatus;
 
-          const isDisabled = isPast || isComplet || isMyDay || isClosed; // isClosed bloque le clic
+          const isDisabled = isPast || isComplet || isMyDay || isClosed; 
 
           let bgClass = "bg-white border border-stone-200 hover:border-emerald-400 text-stone-700 cursor-pointer shadow-sm";
           let badgeColor = "";

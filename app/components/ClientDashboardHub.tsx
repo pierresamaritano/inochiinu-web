@@ -789,7 +789,7 @@ export default function ClientDashboardHub() {
                   (() => {
                     const start = new Date(quickPenForm.startDate);
                     const end = new Date(quickPenForm.endDate);
-                    const nights = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                    const nights = Math.max(1, Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
                     let total = 0;
                     let current = new Date(start);
                     for (let i = 0; i < nights; i++) {
