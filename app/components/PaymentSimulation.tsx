@@ -11,7 +11,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 interface PaymentSimulationProps {
   amount: number;
   serviceName: string;
-  onSuccess: () => void;
+  onSuccess: (paymentIntentId: string) => void; // MODIFICATION: On passe l'ID Stripe !
   onCancel: () => void;
   clientEmail?: string;
   dogName?: string;
@@ -20,7 +20,7 @@ interface PaymentSimulationProps {
 // ============================================================================
 // 1. LE FORMULAIRE DE SAISIE (Composant interne)
 // ============================================================================
-function CheckoutForm({ amount, onSuccess, onCancel }: { amount: number, onSuccess: () => void, onCancel: () => void }) {
+function CheckoutForm({ amount, paymentIntentId, onSuccess, onCancel }: { amount: number, paymentIntentId: string, onSuccess: (id: string) => void, onCancel: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +47,8 @@ function CheckoutForm({ amount, onSuccess, onCancel }: { amount: number, onSucce
       setIsLoading(false);
     } else if (paymentIntent && (paymentIntent.status === "succeeded" || paymentIntent.status === "requires_capture")) {
       // requires_capture est le statut normal puisque nous sommes en "manual" !
-      onSuccess();
+      // MODIFICATION : On transmet l'ID secret Stripe au parent
+      onSuccess(paymentIntentId);
     } else {
       setError("Le statut de la transaction est inattendu.");
       setIsLoading(false);
@@ -90,10 +91,10 @@ function CheckoutForm({ amount, onSuccess, onCancel }: { amount: number, onSucce
 // ============================================================================
 export default function PaymentSimulation({ amount, serviceName, onSuccess, onCancel, clientEmail, dogName }: PaymentSimulationProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null); // NOUVEAU
   const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Appel à notre toute nouvelle route API pour créer l'empreinte "manual"
     fetch("/api/stripe/create-intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,8 +102,9 @@ export default function PaymentSimulation({ amount, serviceName, onSuccess, onCa
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.clientSecret) {
+        if (data.clientSecret && data.paymentIntentId) {
           setClientSecret(data.clientSecret);
+          setPaymentIntentId(data.paymentIntentId); // NOUVEAU : On stocke l'ID
         } else {
           setInitError(data.error || "Erreur d'initialisation Stripe.");
         }
@@ -140,14 +142,13 @@ export default function PaymentSimulation({ amount, serviceName, onSuccess, onCa
         </div>
       )}
 
-      {clientSecret && (
-        // Le wrapper Elements applique un thème CSS aux champs Stripe
+      {clientSecret && paymentIntentId && (
         <Elements stripe={stripePromise} options={{ 
           clientSecret, 
           appearance: { 
             theme: 'stripe',
             variables: {
-              colorPrimary: '#ea580c', // Couleur orange-600 de votre charte
+              colorPrimary: '#ea580c', 
               colorBackground: '#ffffff',
               colorText: '#1c1917',
               colorDanger: '#ef4444',
@@ -156,7 +157,7 @@ export default function PaymentSimulation({ amount, serviceName, onSuccess, onCa
             }
           } 
         }}>
-          <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onCancel} />
+          <CheckoutForm amount={amount} paymentIntentId={paymentIntentId} onSuccess={onSuccess} onCancel={onCancel} />
         </Elements>
       )}
     </div>
