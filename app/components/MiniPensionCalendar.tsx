@@ -4,16 +4,23 @@ import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
 interface MiniPensionCalendarProps {
-  userDogs?: any[]; // NOUVEAU : Import des chiens du client
+  userDogs?: any[]; 
   onDayClick: (dateStr: string, dogId?: string) => void;
+}
+
+interface ServiceClosure {
+  id: string;
+  start: string;
+  end: string;
+  services: string[]; 
 }
 
 export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniPensionCalendarProps) {
   const [miniCalDate, setMiniCalDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
+  const [closures, setClosures] = useState<ServiceClosure[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
-  // NOUVEAU : État pour le filtre du chien
   const [selectedDogId, setSelectedDogId] = useState<string>("all");
 
   const supabase = createBrowserClient(
@@ -33,27 +40,40 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
       const userId = sessionData.session?.user?.id || null;
       setCurrentUser(userId);
 
-      const { data } = await supabase
+      // Récupération des réservations
+      const { data: resData } = await supabase
         .from("pension_bookings")
-        // On récupère le dog_id pour pouvoir filtrer
         .select("user_id, dog_id, start_date, end_date, status")
         .neq("status", "annulé"); 
+      setReservations(resData || []);
 
-      setReservations(data || []);
+      // Récupération des fermetures
+      const { data: settingsData } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "service_closures")
+        .single();
+        
+      if (settingsData && settingsData.value) {
+        try { setClosures(JSON.parse(settingsData.value)); } 
+        catch (e) { console.error(e); }
+      }
     };
     fetchData();
   }, [month, year, supabase]);
 
   const getAvailability = (day: number) => {
     const currentISODate = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
+    
+    // Vérification si la pension est fermée ce jour-là
+    const isClosed = closures.some(c => currentISODate >= c.start && currentISODate <= c.end && c.services.includes("pension"));
+
     let boxesOccupes = 0;
     let myPersonalStatus = null;
 
     reservations.forEach((res) => {
       if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
         if (res.status === "confirmé") boxesOccupes++;
-        
-        // Si c'est mon séjour ET qu'il correspond au filtre chien (ou "Tous")
         if (res.user_id === currentUser) {
           if (selectedDogId === "all" || res.dog_id === selectedDogId) {
             myPersonalStatus = res.status; 
@@ -67,13 +87,12 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
     if (available === 0) status = "complet";
     else if (available <= 3) status = "haute";
 
-    return { available, status, myPersonalStatus };
+    return { available, status, myPersonalStatus, isClosed }; 
   };
 
   return (
     <div className="mt-4 p-5 rounded-3xl bg-stone-50/50 border border-stone-100">
       
-      {/* NOUVEAU : FILTRE PAR CHIEN (S'affiche uniquement si > 1 chien) */}
       {userDogs.length > 1 && (
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
           <button 
@@ -114,36 +133,36 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
           const dateStr = new Date(Date.UTC(year, month, day)).toISOString().split("T")[0];
           const today = new Date().toISOString().split("T")[0];
 
-          const { status, myPersonalStatus } = getAvailability(day);
+          const { status, myPersonalStatus, isClosed } = getAvailability(day); 
           
-          // Bloquer les dates passées
           const isPast = dateStr <= today; 
           const isComplet = status === "complet";
           const isMyDay = !!myPersonalStatus;
 
-          const isDisabled = isPast || isComplet || isMyDay;
+          const isDisabled = isPast || isComplet || isMyDay || isClosed; 
 
           let bgClass = "bg-white border border-stone-200 hover:border-emerald-400 text-stone-700 cursor-pointer shadow-sm";
           let badgeColor = "";
 
-          // Couleurs de disponibilité
-          if (status === "haute" && !isMyDay) bgClass = "bg-orange-50 border-orange-200 text-orange-900 hover:border-orange-400 cursor-pointer";
-          if (isComplet && !isMyDay) bgClass = "bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed opacity-60 line-through";
+          // Design Fermeture Globale (A la priorité)
+          if (isClosed) {
+             bgClass = "bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_3px,#ffffff_3px,#ffffff_6px)] border-red-200 opacity-70 text-red-500 cursor-not-allowed";
+          } else {
+            if (status === "haute" && !isMyDay) bgClass = "bg-orange-50 border-orange-200 text-orange-900 hover:border-orange-400 cursor-pointer";
+            if (isComplet && !isMyDay) bgClass = "bg-stone-100 border-stone-100 text-stone-400 cursor-not-allowed opacity-60 line-through";
 
-          // Pastilles personnelles
-          if (myPersonalStatus === "confirmé") {
-            bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
-            badgeColor = "bg-blue-500 shadow-sm";
-          } else if (myPersonalStatus === "en_attente") {
-            bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
-            badgeColor = "bg-amber-400 shadow-sm";
-          } else if (myPersonalStatus === "terminé") {
-            bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
-            badgeColor = "bg-stone-600 shadow-sm";
-          }
+            if (myPersonalStatus === "confirmé") {
+              bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
+              badgeColor = "bg-blue-500 shadow-sm";
+            } else if (myPersonalStatus === "en_attente") {
+              bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
+              badgeColor = "bg-amber-400 shadow-sm";
+            } else if (myPersonalStatus === "terminé") {
+              bgClass = "bg-stone-50 border-stone-200 opacity-60 cursor-not-allowed";
+              badgeColor = "bg-stone-600 shadow-sm";
+            }
 
-          if (isPast) {
-            bgClass = "bg-transparent border border-transparent text-stone-300 cursor-not-allowed";
+            if (isPast) bgClass = "bg-transparent border border-transparent text-stone-300 cursor-not-allowed";
           }
 
           return (
@@ -151,10 +170,9 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
               key={day}
               type="button"
               disabled={isDisabled}
-              // On transmet l'ID du chien filtré !
               onClick={() => onDayClick(dateStr, selectedDogId === "all" ? undefined : selectedDogId)}
               className={`relative h-8 w-full rounded-lg flex flex-col items-center justify-center text-xs transition-all ${bgClass}`}
-              title={isDisabled ? "Indisponible" : "Cliquez pour réserver"}
+              title={isClosed ? "Pension fermée" : isDisabled ? "Indisponible" : "Cliquez pour réserver"}
             >
               <span>{day}</span>
               {badgeColor && <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${badgeColor}`}></span>}
@@ -170,7 +188,7 @@ export default function MiniPensionCalendar({ userDogs = [], onDayClick }: MiniP
         </div>
         <div className="flex justify-center gap-4 flex-wrap mt-1">
           <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-orange-100 border border-orange-200"></div> Forte demande</span>
-          <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-stone-200 border border-stone-300"></div> Complet</span>
+          <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded bg-[repeating-linear-gradient(45deg,#f5f5f4,#f5f5f4_2px,#ffffff_2px,#ffffff_4px)] border border-red-200"></div> Fermé</span>
         </div>
       </div>
     </div>

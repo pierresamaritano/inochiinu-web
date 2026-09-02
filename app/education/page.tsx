@@ -6,7 +6,7 @@ import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import EducationCalendar from "../components/EducationCalendar";
 import PaymentSimulation from "../components/PaymentSimulation";
-
+ 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
@@ -218,7 +218,8 @@ export default function EducationPage() {
     setStep(4);
   };
 
-  const handleFinalSubmit = async () => {
+  // MODIFICATION : On reçoit l'ID Stripe en paramètre
+  const handleFinalSubmit = async (stripePaymentId: string) => {
     setSubmitting(true);
     try {
       const { error } = await supabase.from("education_requests").insert([
@@ -239,6 +240,7 @@ export default function EducationPage() {
           location_preference: formData.location,
           price_estimate: getEstimatedPrice(),
           status: "en_attente",
+          stripe_payment_id: stripePaymentId, // NOUVEAU : Enregistrement de l'ID en base
         },
       ]);
       if (error) throw error;
@@ -477,7 +479,7 @@ export default function EducationPage() {
               <PaymentSimulation 
                 amount={getEstimatedPrice()} 
                 serviceName={formData.sessionType === "bilan" ? "Bilan Initial" : "Séance de Suivi"}
-                onSuccess={handleFinalSubmit}
+                onSuccess={(stripeId) => handleFinalSubmit(stripeId)} // MODIFICATION ICI
                 onCancel={() => setStep(3)}
               />
             ) : (
