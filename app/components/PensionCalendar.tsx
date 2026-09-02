@@ -6,6 +6,8 @@ import { createBrowserClient } from "@supabase/ssr";
 interface PensionCalendarProps {
   startDate: string;
   endDate: string;
+  selectedDogId?: string;   // NOUVEAU : Chien 1
+  selectedDog2Id?: string;  // NOUVEAU : Chien 2
   onChange: (start: string, end: string) => void;
 }
 
@@ -16,7 +18,7 @@ interface ServiceClosure {
   services: string[]; 
 }
 
-export default function PensionCalendar({ startDate, endDate, onChange }: PensionCalendarProps) {
+export default function PensionCalendar({ startDate, endDate, selectedDogId, selectedDog2Id, onChange }: PensionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<any[]>([]);
   const [closures, setClosures] = useState<ServiceClosure[]>([]);
@@ -48,7 +50,7 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
 
       const { data: resData } = await supabase
         .from("pension_bookings")
-        .select("user_id, start_date, end_date, status")
+        .select("user_id, dog_id, start_date, end_date, status")
         .neq("status", "annulé"); 
       setReservations(resData || []);
 
@@ -75,7 +77,10 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     reservations.forEach((res) => {
       if (isoDate >= res.start_date && isoDate <= res.end_date) {
         if (res.status === "confirmé") boxesOccupes++;
-        if (res.user_id === currentUser) hasPersonal = true;
+        if (res.user_id === currentUser) {
+           const matchesDog = !selectedDogId || res.dog_id === selectedDogId || (selectedDog2Id && res.dog_id === selectedDog2Id);
+           if (matchesDog) hasPersonal = true;
+        }
       }
     });
     
@@ -93,7 +98,10 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     reservations.forEach((res) => {
       if (currentISODate >= res.start_date && currentISODate <= res.end_date) {
         if (res.status === "confirmé") boxesOccupes++;
-        if (res.user_id === currentUser) myPersonalStatus = res.status; 
+        if (res.user_id === currentUser) {
+           const matchesDog = !selectedDogId || res.dog_id === selectedDogId || (selectedDog2Id && res.dog_id === selectedDog2Id);
+           if (matchesDog) myPersonalStatus = res.status; 
+        }
       }
     });
 
@@ -112,11 +120,9 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
     if (isDateDisabled(clickedDate)) return;
 
     if (!startDate) {
-      // 1er clic : Définit la date de début (et reset la date de fin)
       onChange(clickedDate, "");
     } else if (startDate && !endDate) {
-      // 2ème clic 
-      if (clickedDate >= startDate) { // MODIFIÉ : >= au lieu de > pour autoriser la même journée
+      if (clickedDate >= startDate) { 
         let hasOverlap = false;
         let current = new Date(startDate + "T00:00:00Z");
         const end = new Date(clickedDate + "T00:00:00Z");
@@ -131,17 +137,15 @@ export default function PensionCalendar({ startDate, endDate, onChange }: Pensio
         }
 
         if (hasOverlap) {
-          alert("Votre sélection chevauche des dates indisponibles, fermées ou que vous avez déjà réservées.");
+          alert("Votre sélection chevauche des dates indisponibles, fermées ou que vous avez déjà réservées pour ce chien.");
           onChange(clickedDate, ""); 
         } else {
           onChange(startDate, clickedDate);
         }
       } else {
-        // Clic avant la date de début : reset la date de début
         onChange(clickedDate, ""); 
       }
     } else {
-      // 3ème clic (les deux dates étaient déjà remplies) : on recommence à zéro
       onChange(clickedDate, "");
     }
   };
