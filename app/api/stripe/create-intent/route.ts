@@ -1,24 +1,26 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-// On initialise Stripe avec votre clé secrète (invisible pour les clients)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-02-24.acacia", // <-- La correction est ici !
-});
-
 export async function POST(req: Request) {
   try {
+    // L'initialisation se fait ICI, à l'intérieur de la fonction
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+      apiVersion: "2025-02-24.acacia", 
+    });
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("Clé Stripe manquante dans l'environnement.");
+    }
+
     const body = await req.json();
     const { amount, serviceName, clientEmail, dogName } = body;
 
-    // Sécurité : Stripe gère toujours les montants en centimes (ex: 45€ = 4500)
     const amountInCents = Math.round(amount * 100);
 
-    // On crée l'intention de paiement (l'empreinte)
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: "eur",
-      capture_method: "manual", // MAGIE : Demande une empreinte, pas un débit
+      capture_method: "manual", 
       receipt_email: clientEmail || undefined,
       description: serviceName,
       metadata: {
@@ -27,7 +29,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // On renvoie le sésame (client_secret) au navigateur pour afficher le formulaire de carte
     return NextResponse.json({ 
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id 
