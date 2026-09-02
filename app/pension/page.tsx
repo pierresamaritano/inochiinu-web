@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import PensionCalendar from "../components/PensionCalendar";
+import PaymentSimulation from "../components/PaymentSimulation"; // AJOUT DU PAIEMENT
 
 // IMPORTS DES COMPOSANTS MAÎTRES 
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -23,6 +24,8 @@ export default function PensionPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  
+  // ÉTAPES DU FORMULAIRE
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -132,7 +135,7 @@ export default function PensionPage() {
   };
 
   const handleActionClick = () => {
-    if (user) { setIsFormOpen(true); } else { setIsAuthOpen(true); }
+    if (user) { setIsFormOpen(true); setStep(1); } else { setIsAuthOpen(true); }
   };
 
   const handleGoogleLogin = async () => {
@@ -163,6 +166,7 @@ export default function PensionPage() {
         if (error) throw error;
         setIsAuthOpen(false);
         setIsFormOpen(true);
+        setStep(1);
       }
     } catch (err: any) {
       console.error(err);
@@ -172,17 +176,63 @@ export default function PensionPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // --- LOGIQUE DE PRIX ---
+  const calculateNights = () => {
+    if (!formData.startDate || !formData.endDate) return 0;
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const calculatePrice = () => {
+    if (!formData.startDate || !formData.endDate) return 0;
+    const start = new Date(formData.startDate);
+    const nights = calculateNights();
+    
+    if (nights <= 0) return 0;
+
+    let total = 0;
+    let current = new Date(start);
+
+    for (let i = 0; i < nights; i++) {
+      const month = current.getMonth();
+      // Haute saison : Juillet (6), Août (7), Décembre (11)
+      const isHighSeason = [6, 7, 11].includes(month);
+      
+      // Tarif de base par nuit
+      let nightPrice = isHighSeason ? 40 : 30;
+      
+      // Supplément deuxième chien
+      if (hasSecondDog) {
+        nightPrice += isHighSeason ? 20 : 15;
+      }
+
+      total += nightPrice;
+      current.setDate(current.getDate() + 1); // Nuit suivante
+    }
+
+    return total;
+  };
+
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!formData.dog_id) { alert("Veuillez sélectionner au moins un premier chien."); return; }
-    if (hasSecondDog && !formData.dog2_id) { alert("Veuillez sélectionner le deuxième chien, ou décochez l'option."); return; }
+    if (!formData.clientPhone) {
+      alert("Votre numéro de téléphone est requis.");
+      return;
+    }
+    setStep(3); // On passe à l'écran de paiement
+  };
 
+  const handleFinalSubmit = async () => {
     setSubmitting(true);
     try {
       const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
       const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
 
+      // On n'insère pas le prix dans la DB s'il n'y a pas de colonne, 
+      // mais le paiement Stripe a bien été validé à l'étape précédente.
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
         dog_id: formData.dog_id || null,
@@ -205,10 +255,7 @@ export default function PensionPage() {
       }
 
       if (formData.clientPhone) {
-        await supabase
-          .from("profiles")
-          .update({ phone: formData.clientPhone })
-          .eq("id", user.id);
+        await supabase.from("profiles").update({ phone: formData.clientPhone }).eq("id", user.id);
       }
 
       setSubmitted(true);
@@ -296,10 +343,9 @@ export default function PensionPage() {
       <section className="relative z-10 max-w-4xl mx-auto px-6 mb-16">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 sm:p-8 rounded-[2rem] bg-white/80 backdrop-blur-xl border border-stone-200/80 shadow-sm">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-stone-900">Demander un rendez-vous</h2>
-            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Bilan comportemental initial ou séance de suivi personnalisée.</p>
+            <h2 className="text-xl font-black tracking-tight text-stone-900">Pré-réserver un séjour</h2>
+            <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">Bloquez vos dates en ligne. Le paiement de l'acompte se fait à la confirmation.</p>
           </div>
-          {/* BOUTON BLOQUÉ SI ARRÊT D'URGENCE */}
           <button 
             onClick={handleInitialClick} 
             disabled={isEmergencyStopActive}
@@ -367,7 +413,11 @@ export default function PensionPage() {
                 <li>Chien identifié (puce ou tatouage).</li>
                 <li>Traitement antiparasitaire de moins d'un mois.</li>
               </ul>
-              <p className="text-xs text-stone-500 italic">Un justificatif vous sera demandé à votre arrivée.</p>
+              <p className="text-xs text-stone-500 italic mt-3">
+                <strong>Tarifs indicatifs :</strong><br/>
+                Basse saison : 30€/nuit (15€ pour le 2ème chien)<br/>
+                Haute saison (Juil, Août, Déc) : 40€/nuit (20€ pour le 2ème chien)
+              </p>
             </div>
             <label className="mt-6 flex items-center gap-3 p-3 rounded-2xl bg-stone-100 border border-stone-200 cursor-pointer hover:bg-stone-200/50 transition-colors">
               <input type="checkbox" checked={dontShowAgain} onChange={(e) => setDontShowAgain(e.target.checked)} className="h-4 w-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" />
@@ -395,40 +445,18 @@ export default function PensionPage() {
 
             <form onSubmit={handleEmailAuth} className="mt-6 space-y-4">
               <div>
-                <input 
-                  type="email" 
-                  required 
-                  placeholder="Votre adresse e-mail" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                />
+                <input type="email" required placeholder="Votre adresse e-mail" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
               </div>
               <div>
-                <input 
-                  type="password" 
-                  required 
-                  placeholder="Votre mot de passe" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
-                />
+                <input type="password" required placeholder="Votre mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-white border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" />
               </div>
-              <button 
-                type="submit" 
-                disabled={authLoading} 
-                className="w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md disabled:opacity-50"
-              >
+              <button type="submit" disabled={authLoading} className="w-full py-3.5 bg-stone-900 text-white font-bold text-xs uppercase tracking-wider rounded-full hover:bg-stone-800 transition-all cursor-pointer shadow-md disabled:opacity-50">
                 {authLoading ? "Chargement..." : (isSignUp ? "Créer mon compte" : "Se connecter par e-mail")}
               </button>
             </form>
 
             <div className="mt-4 text-center">
-              <button 
-                type="button" 
-                onClick={() => setIsSignUp(!isSignUp)} 
-                className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer underline underline-offset-2"
-              >
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer underline underline-offset-2">
                 {isSignUp ? "Déjà un compte ? Connectez-vous" : "Pas de compte ? Inscrivez-vous"}
               </button>
             </div>
@@ -439,11 +467,7 @@ export default function PensionPage() {
               <div className="flex-1 h-px bg-stone-200"></div>
             </div>
 
-            <button 
-              onClick={handleGoogleLogin} 
-              disabled={authLoading} 
-              className="flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50"
-            >
+            <button onClick={handleGoogleLogin} disabled={authLoading} className="flex h-13 w-full items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 font-bold text-stone-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50">
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
               <span>Continuer avec Google</span>
             </button>
@@ -454,8 +478,10 @@ export default function PensionPage() {
       {isFormOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
-            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
+          {/* AJOUT DES CLASSES scrollbar-hide POUR CACHER LA BARRE MOCHE */}
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
+            <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer z-50">✕</button>
+            
             {submitted ? (
               <div className="text-center py-8">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mx-auto mb-4">✓</div>
@@ -463,17 +489,25 @@ export default function PensionPage() {
                 <p className="text-xs text-stone-500 mt-2">Nous vérifions le planning des 6 boxs et validons votre demande rapidement.</p>
                 <a href="/espace-membre" className="mt-6 inline-block px-6 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-full cursor-pointer">Aller sur Mon Espace</a>
               </div>
+            ) : step === 3 ? (
+              // --- ÉTAPE 3 : PAIEMENT (ACOMPTE) ---
+              <PaymentSimulation 
+                amount={calculatePrice()} 
+                serviceName={hasSecondDog ? "Séjour en Pension (2 chiens)" : "Séjour en Pension"}
+                onSuccess={handleFinalSubmit}
+                onCancel={() => setStep(2)}
+              />
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={step === 2 ? handleProceedToPayment : undefined} className="space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-stone-100">
                   <div>
-                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 2</span>
+                    <span className="text-[10px] font-black uppercase text-orange-600">Étape {step} sur 3</span>
                     <h3 className="text-lg font-black text-stone-900">{step === 1 ? "Dates & Chien(s)" : "Besoins & Contact"}</h3>
                   </div>
                 </div>
 
                 {step === 1 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 animate-in fade-in">
                     <div className="mb-6">
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-3">Sélectionnez vos dates *</label>
                       <PensionCalendar 
@@ -532,7 +566,7 @@ export default function PensionPage() {
                         type="button" 
                         disabled={!formData.startDate || !formData.endDate || !formData.dog_id || (hasSecondDog && !formData.dog2_id)} 
                         onClick={() => setStep(2)} 
-                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer transition-opacity"
+                        className="px-6 py-3 bg-stone-900 text-white font-bold text-xs rounded-full disabled:opacity-40 cursor-pointer transition-opacity shadow-md hover:bg-stone-800"
                       >
                         Suivant ➔
                       </button>
@@ -541,7 +575,24 @@ export default function PensionPage() {
                 )}
 
                 {step === 2 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 animate-in fade-in">
+                    
+                    {/* RÉSUMÉ DU SÉJOUR AVEC TARIF */}
+                    <div className="bg-stone-900 text-white p-6 rounded-[2rem] shadow-md flex items-center justify-between mb-6">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider">Montant indicatif</span>
+                        <div className="text-3xl font-black mt-1">
+                          {calculatePrice()}€
+                        </div>
+                        <p className="text-[10px] text-stone-400 mt-1">
+                          {calculateNights()} nuit(s) • {hasSecondDog ? "2 Chiens" : "1 Chien"}
+                        </p>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-xl">
+                        💳
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-xs font-bold uppercase text-stone-600 mb-1">Téléphone de contact *</label>
                       <input 
@@ -550,7 +601,7 @@ export default function PensionPage() {
                         placeholder="06 12 34 56 78" 
                         value={formData.clientPhone} 
                         onChange={(e) => setFormData(prev => ({ ...prev, clientPhone: e.target.value }))} 
-                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-3 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
                       />
                     </div>
                     <div>
@@ -560,13 +611,15 @@ export default function PensionPage() {
                         placeholder="Précisez le type de croquettes, allergies, compatibilité congénères..." 
                         value={formData.specialNeeds} 
                         onChange={(e) => setFormData(prev => ({ ...prev, specialNeeds: e.target.value }))} 
-                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500" 
+                        className="w-full max-w-full px-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs font-medium focus:outline-none focus:border-orange-500 shadow-sm" 
                       />
                     </div>
 
-                    <div className="pt-4 flex justify-between items-center">
+                    <div className="pt-4 flex justify-between items-center border-t border-stone-100 mt-4">
                       <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 cursor-pointer hover:text-stone-900">← Retour</button>
-                      <button type="submit" disabled={submitting} className="px-6 py-3 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-md disabled:opacity-50 transition-all">{submitting ? "Envoi..." : "Envoyer ma demande"}</button>
+                      <button type="submit" disabled={!formData.clientPhone} className="px-8 py-3.5 bg-gradient-to-tr from-orange-600 to-orange-500 text-white font-black text-xs uppercase rounded-full cursor-pointer shadow-lg disabled:opacity-50 transition-all hover:scale-105 disabled:hover:scale-100">
+                        Payer l'acompte
+                      </button>
                     </div>
                   </div>
                 )}
