@@ -6,7 +6,7 @@ import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
 import EducationCalendar from "../components/EducationCalendar";
 import PaymentSimulation from "../components/PaymentSimulation";
-
+ 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
