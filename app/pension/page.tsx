@@ -225,14 +225,12 @@ export default function PensionPage() {
     setStep(3); // On passe à l'écran de paiement
   };
 
-  const handleFinalSubmit = async () => {
+const handleFinalSubmit = async (stripePaymentId: string) => {
     setSubmitting(true);
     try {
       const finalDogName = hasSecondDog ? `${formData.dogName} & ${formData.dog2Name}` : formData.dogName;
       const finalDogBreed = hasSecondDog ? `${formData.dogBreed} - ${formData.dog2Breed}` : formData.dogBreed;
 
-      // On n'insère pas le prix dans la DB s'il n'y a pas de colonne, 
-      // mais le paiement Stripe a bien été validé à l'étape précédente.
       const { error } = await supabase.from("pension_bookings").insert([{
         user_id: user.id,
         dog_id: formData.dog_id || null,
@@ -245,6 +243,7 @@ export default function PensionPage() {
         end_date: formData.endDate,
         special_needs: formData.specialNeeds,
         status: "en_attente",
+        stripe_payment_id: stripePaymentId // L'AJOUT EST ICI
       }]);
 
       if (error) {
@@ -494,7 +493,7 @@ export default function PensionPage() {
               <PaymentSimulation 
                 amount={calculatePrice()} 
                 serviceName={hasSecondDog ? "Séjour en Pension (2 chiens)" : "Séjour en Pension"}
-                onSuccess={handleFinalSubmit}
+                onSuccess={(stripeId) => handleFinalSubmit(stripeId)} // CHANGEMENT ICI
                 onCancel={() => setStep(2)}
               />
             ) : (

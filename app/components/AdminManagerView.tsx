@@ -14,7 +14,6 @@ interface ActionTarget {
 }
 
 type PeriodOption = "1m" | "6m" | "1y";
-
 type StatusGroup = "en_attente" | "valide" | "termine" | "annule" | "tous";
 
 interface Dog {
@@ -209,10 +208,43 @@ export default function AdminManagerView() {
     setNoteText(currentNote || "");
   };
 
+  // =========================================================================
+  // LOGIQUE DE CONFIRMATION AVEC PAIEMENT STRIPE INTEGRE
+  // =========================================================================
   const handleConfirmAction = async () => {
     if (!actionModal) return;
     setUpdating(true);
     try {
+      
+      // 1. --- LOGIQUE DE PAIEMENT STRIPE ---
+      // Si on modifie une éducation ou une pension, on vérifie s'il y a un paiement en attente
+      if (["pension_bookings", "education_requests"].includes(actionModal.table)) {
+        const { data: record } = await supabase.from(actionModal.table).select('stripe_payment_id').eq("id", actionModal.id).single();
+        
+        if (record && record.stripe_payment_id) {
+          if (actionModal.newStatus === "confirmé") {
+            // Le client est accepté : On ENCAISSE l'argent !
+            const res = await fetch("/api/stripe/capture", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentIntentId: record.stripe_payment_id })
+            });
+            const resData = await res.json();
+            if (!res.ok) throw new Error(resData.error || "Échec de l'encaissement Stripe. Le client n'a peut-être pas les fonds.");
+          
+          } else if (["annulé", "refusé"].includes(actionModal.newStatus)) {
+            // Le client est refusé : On LIBÈRE l'argent !
+            await fetch("/api/stripe/cancel", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentIntentId: record.stripe_payment_id })
+            });
+            // Si l'annulation échoue (ex: déjà annulée), ce n'est pas grave, on continue.
+          }
+        }
+      }
+
+      // 2. --- MISE A JOUR SUPABASE ---
       const { error } = await supabase.from(actionModal.table).update({ status: actionModal.newStatus, admin_notes: noteText.trim() || null }).eq("id", actionModal.id);
       if (error) throw error;
 
@@ -226,6 +258,7 @@ export default function AdminManagerView() {
           }
         }
       }
+      
       await fetchAll();
       setActionModal(null);
     } catch (err: any) {
@@ -474,7 +507,6 @@ export default function AdminManagerView() {
   return (
     <div className="mt-8 space-y-6">
 
-      {/* 0. NOUVEAU CONTRÔLE GLOBAL (Boutons d'accès rapide) */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-5 rounded-[2.5rem] border border-stone-200/90 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-stone-900">Vue d'ensemble</h2>
@@ -497,7 +529,6 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 1. BARRE DE FILTRAGE PAR CLIENT/CHIEN */}
       <div className="p-5 rounded-[2rem] bg-white border border-stone-200/90 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-1/2">
@@ -527,7 +558,6 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 2. ONGLETS DE SERVICES ET SOUS-FILTRES DE STATUT */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="w-full md:w-auto">
@@ -589,7 +619,6 @@ export default function AdminManagerView() {
         </div>
       </div>
 
-      {/* 3. CONTENU : ÉDUCATION */}
       {tab === "education" && (
         <div className="space-y-4">
           {filteredEdu.length === 0 ? (
@@ -687,7 +716,6 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 4. CONTENU : PENSION */}
       {tab === "pension" && (
         <div className="space-y-4">
            {filteredPension.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune demande trouvée avec ces filtres.</div> : filteredPension.map((item) => (
@@ -720,7 +748,6 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 5. CONTENU : ÉLEVAGE */}
       {tab === "elevage" && (
         <div className="space-y-6 animate-in fade-in duration-300">
           {!showLitterForm && (
@@ -868,7 +895,6 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 6. CONTENU : SELLERIE */}
       {tab === "sellerie" && (
         <div className="space-y-4">
           {filteredSellerie.length === 0 ? <div className="p-8 rounded-3xl bg-stone-50 text-center text-xs font-bold text-stone-400 border border-stone-100">Aucune commande trouvée avec ces filtres.</div> : filteredSellerie.map((item) => (
@@ -897,7 +923,6 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 7. MODALE ADMINISTRATIVE D'ACTION */}
       {actionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => !updating && setActionModal(null)} />
@@ -920,7 +945,7 @@ export default function AdminManagerView() {
         </div>
       )}
 
-      {/* 8. MODALE DU CALENDRIER GLOBAL */}
+      {/* MODALE CALENDRIER (Le code du calendrier original suit ici) */}
       {showAdminCalendar && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowAdminCalendar(false)} />
