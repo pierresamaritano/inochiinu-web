@@ -26,7 +26,7 @@ export default function SelleriePage() {
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1); // Utilisation de 'step' pour éviter la boucle
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
@@ -126,7 +126,7 @@ export default function SelleriePage() {
     }
   };
 
-  // MODIFICATION PAIEMENT : On passe à l'étape 2 (Paiement)
+  // On passe à l'étape 2 (Paiement) au lieu de soumettre directement
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dog_id && selectedProduct.type === "Collier") {
@@ -136,7 +136,7 @@ export default function SelleriePage() {
     setStep(2);
   };
 
-  // MODIFICATION PAIEMENT : La vraie soumission se fait après
+  // La vraie soumission se fait après le paiement Stripe
   const handleFinalOrder = async (stripePaymentId: string) => {
     setSubmitting(true);
     const colorFinishString = selectedProduct.type === "Laisse Frog"
@@ -153,12 +153,14 @@ export default function SelleriePage() {
         item_type: selectedProduct.name,
         color_finish: colorFinishString,
         dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
-        status: "en_attente", // <-- SEULE MODIFICATION ICI : Remis sur "en_attente" pour que la base de données l'accepte
+        status: "en_attente", 
+        stripe_payment_id: stripePaymentId, 
       }]);
       if (error) throw error;
       setSubmitted(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert("Erreur de sauvegarde Supabase : " + (err?.message || "La base de données a rejeté la commande."));
     } finally {
       setSubmitting(false);
     }
@@ -168,6 +170,7 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
+  // Conservation exacte de tes réglages
   const ropeHexMap: Record<string, string> = {
     "Noir": "#2b2b2b", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
@@ -390,7 +393,7 @@ export default function SelleriePage() {
                 {/* COLONNE DROITE : FORMULAIRE ET PAIEMENT */}
                 <div className="w-full md:w-1/2 flex flex-col h-full overflow-y-auto">
                   
-                  {/* === MODIFICATION : L'ÉTAT STEP REMPLACE L'ANCIEN SYSTÈME QUI BOUCLAIT === */}
+                  {/* === L'ÉTAT STEP REMPLACE L'ANCIEN SYSTÈME QUI BOUCLAIT === */}
                   {step === 2 ? (
                     <div className="p-6 sm:p-10 flex-1 flex flex-col justify-center animate-in slide-in-from-right-4">
                       <div className="mb-6">
