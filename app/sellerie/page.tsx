@@ -32,9 +32,9 @@ export default function SelleriePage() {
     dog_id: "",
     dogName: "",
     dogBreed: "",
-    color: "",               // Pour les produits monocolores
-    mainColor: "",           // Sangle principale (Laisse Frog)
-    attachmentColor: "",     // Attaches (Laisse Frog)
+    color: "",               
+    mainColor: "",           
+    attachmentColor: "",     
     hardware: "Laiton Doré",
     neckSize: "",
     clientPhone: "",
@@ -110,7 +110,6 @@ export default function SelleriePage() {
 
     setSubmitting(true);
     
-    // Formatage des couleurs selon le type de produit
     const colorFinishString = selectedProduct.type === "Laisse Frog"
       ? `Base: ${formData.mainColor} | Attaches: ${formData.attachmentColor} | Rivets: ${formData.hardware}`
       : `${formData.color} - Mousquetons: ${formData.hardware}`;
@@ -141,15 +140,22 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Variables Hexadécimales pour le dessin SVG / Mask
-  const hardwareHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524"; 
+  // Variables Hexadécimales pour le dessin SVG / Mask (BIOTHANE)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
+    // Le Noir n'est plus pur (#000000) mais Gris Foncé. Avec le produit (multiply), 
+    // ça va donner un noir profond tout en conservant les reflets blancs !
+    "Noir": "#525252", 
+    "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#1c1917";
-  const mainHex = ropeHexMap[formData.mainColor] || "#1c1917";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#1c1917";
+  const ropeHex = ropeHexMap[formData.color] || "#525252";
+  const mainHex = ropeHexMap[formData.mainColor] || "#525252";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#525252";
+
+  // Variables Hexadécimales pour la BOUCLERIE (OVERLAY METAL)
+  // On utilise un jaune très saturé pour le laiton, et noir pur pour l'acier
+  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#000000"; 
+  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
@@ -241,40 +247,33 @@ export default function SelleriePage() {
                     <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
                   </div>
 
-                  <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px]">
+                  {/* OVERFLOW-HIDDEN ici empêche le zoom de déborder sur le texte */}
+                  <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px] overflow-hidden">
                     
                     {/* --- APERÇU : LAISSE FROG (BICOLORE) --- */}
                     {selectedProduct.type === "Laisse Frog" && (
-                      <div className="relative w-full max-w-[700px] h-[250px] sm:h-[350px] lg:h-[450px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto">
+                      <div className="relative w-full max-w-[700px] h-[300px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 md:scale-150 lg:scale-[1.75] transition-transform duration-700 origin-center">
                         
-                        {/* COUCHE 1 : Sangle Principale */}
-                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
-                          style={{
-                            backgroundColor: mainHex, 
-                            WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat",
-                            maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat"
-                          }}
-                        />
-                        <img src="/laisse-frog-sangle.png" alt="Sangle Principale" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+                        {/* COUCHE 1 : Sangle Principale (Multiply) */}
+                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                        <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
 
-                        {/* COUCHE 2 : Sangle Attaches (Secondaire) */}
-                        <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out"
-                          style={{
-                            backgroundColor: attachmentHex, 
-                            WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat",
-                            maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat"
-                          }}
-                        />
+                        {/* COUCHE 2 : Attaches (Multiply) */}
+                        <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
                         <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90" />
 
                         {/* COUCHE 3 : Clip Frog (Non modifiable) */}
                         <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
-                        {/* COUCHE 4 : Rivets (Modifiables via Filtre CSS) */}
-                        <img src="/laisse-frog-rivets.png" alt="Rivets" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none"
+                        {/* COUCHE 4 : Base des Rivets Grisés */}
+                        <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
+
+                        {/* COUCHE 5 : Effet Métal sur les Rivets (Overlay) */}
+                        <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                           style={{
-                            filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none",
-                            transition: "filter 0.4s ease-in-out"
+                            backgroundColor: hardwareOverlayHex,
+                            maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                            WebkitMaskImage: `url('/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
                           }}
                         />
                       </div>
@@ -282,19 +281,19 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : LAISSE MULTIPOSITIONS --- */}
                     {selectedProduct.type === "Laisse" && (
-                      <div className="w-full max-w-sm flex items-center justify-center">
+                      <div className="w-full max-w-sm flex items-center justify-center scale-110 lg:scale-125 transition-transform duration-700">
                         <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500">
                           <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
-                          <circle cx="125" cy="107" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          <circle cx="200" cy="75" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          <circle cx="275" cy="42" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          <circle cx="125" cy="107" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          <circle cx="200" cy="75" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
+                          <circle cx="275" cy="42" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <g transform="translate(15, 65)">
-                            <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
-                            <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
+                            <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareSvgHex} className="transition-colors duration-300" />
+                            <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareSvgHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           </g>
                           <g transform="translate(345, 65)">
-                            <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
-                            <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
+                            <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareSvgHex} className="transition-colors duration-300" />
+                            <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareSvgHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           </g>
                         </svg>
                       </div>
@@ -302,10 +301,25 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl">
+                      <div className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 lg:scale-[1.6] transition-transform duration-700 origin-center">
+                        
+                        {/* COUCHE 1 : Couleur Sangle */}
                         <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                        
+                        {/* COUCHE 2 : Volume / Texture Sangle (Multiply) */}
                         <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
-                        <img src="/collier-bouclerie.png" alt="Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" style={{ filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none", transition: "filter 0.4s ease-in-out" }} />
+                        
+                        {/* COUCHE 3 : Base Métal Grisé */}
+                        <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
+                        
+                        {/* COUCHE 4 : Effet Métal sur la bouclerie (Overlay) */}
+                        <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
+                          style={{
+                            backgroundColor: hardwareOverlayHex,
+                            maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                            WebkitMaskImage: `url('/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                          }}
+                        />
                       </div>
                     )}
 
@@ -316,7 +330,7 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200">
+                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50">
                       {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
                   </div>
