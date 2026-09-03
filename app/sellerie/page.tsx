@@ -58,12 +58,17 @@ export default function SelleriePage() {
     fetchUser();
   }, [supabase]);
 
-  // FONCTION DE CALCUL DU ZOOM (Style Amazon)
+  // FONCTION DE CALCUL DU ZOOM (Style Amazon - Tactile activé)
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    // On ignore le code si l'utilisateur est sur écran tactile (iPad/iPhone)
-    if (e.pointerType !== "mouse" || !imageContainerRef.current) return;
+    if (!imageContainerRef.current) return;
     
-    // On calcule la position exacte de la souris dans le cadre fixe
+    // Empêcher le scroll de la page si on bouge le doigt sur l'image
+    if (e.pointerType === "touch" && isZooming) {
+        // e.preventDefault() ne marche pas directement sur onPointerMove en React,
+        // on utilise touch-action: none dans le CSS (ajouté aux conteneurs)
+    }
+    
+    // On calcule la position exacte de la souris ou du doigt dans le cadre fixe
     const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - top) / height) * 100));
@@ -78,12 +83,20 @@ export default function SelleriePage() {
   // On crée un pack d'événements à appliquer au conteneur sélectionné
   const zoomEvents = {
     ref: imageContainerRef,
-    onPointerEnter: (e: React.PointerEvent) => e.pointerType === "mouse" && setIsZooming(true),
+    // Activation tactile et souris
+    onPointerEnter: () => setIsZooming(true),
+    // Pour le tactile, on veut parfois que le premier toucher active direct le zoom au bon endroit
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+        setIsZooming(true);
+        handlePointerMove(e);
+    },
     onPointerMove: handlePointerMove,
-    onPointerLeave: (e: React.PointerEvent) => {
-      if (e.pointerType === "mouse") {
+    onPointerLeave: () => {
         setIsZooming(false);
-      }
+    },
+    onPointerUp: () => {
+        // Optionnel : relâcher le doigt arrête le zoom
+        setIsZooming(false);
     }
   };
 
@@ -268,7 +281,8 @@ export default function SelleriePage() {
                     {selectedProduct.type === "Laisse Frog" && (
                       <div 
                         {...zoomEvents} // Activation des événements de survol !
-                        className="relative w-full max-w-[700px] h-[300px] mx-auto cursor-crosshair touch-pan-y z-20"
+                        // touch-none empêche la page de scroller quand on "frotte" l'image sur iPad
+                        className="relative w-full max-w-[700px] h-[300px] mx-auto cursor-crosshair touch-none z-20"
                       >
                         {/* Le conteneur interne qui réagit au zoom sans changer de taille réelle */}
                         <div 
@@ -294,7 +308,7 @@ export default function SelleriePage() {
                             <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
 
                             {/* COUCHE 2 : Attaches */}
-                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90 pointer-events-none" />
 
                             {/* COUCHE 3 : Clip Frog et Rivets */}
@@ -318,7 +332,7 @@ export default function SelleriePage() {
                     {selectedProduct.type === "Collier" && (
                       <div 
                         {...zoomEvents}
-                        className="relative aspect-square w-full max-w-[320px] mx-auto cursor-crosshair touch-pan-y z-20"
+                        className="relative aspect-square w-full max-w-[320px] mx-auto cursor-crosshair touch-none z-20"
                       >
                         <div 
                           className="absolute inset-0 w-full h-full pointer-events-none"
@@ -332,10 +346,20 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
+                            {/* COUCHE -1 : L'Ombre portée */}
+                            <img src="/collier-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
+
+                            {/* COUCHE 0 : La Base Noire */}
+                            <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
+
+                            {/* COUCHE 1 : Couleur Sangle */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
+                            
+                            {/* COUCHE 2 : Bouclerie */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
+                            {/* COUCHE 3 : Effet Métal sur la bouclerie */}
                             <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
