@@ -79,7 +79,6 @@ export default function SelleriePage() {
     ref: imageContainerRef,
     // Activation tactile et souris
     onPointerEnter: () => setIsZooming(true),
-    // Pour le tactile, on veut parfois que le premier toucher active direct le zoom au bon endroit
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
         setIsZooming(true);
         handlePointerMove(e);
@@ -89,7 +88,6 @@ export default function SelleriePage() {
         setIsZooming(false);
     },
     onPointerUp: () => {
-        // Optionnel : relâcher le doigt arrête le zoom
         setIsZooming(false);
     }
   };
@@ -164,15 +162,15 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Noir réglé sur #2b2b2b (Charbon) pour garder la profondeur ET les reflets
+  // NOUVEAU NOIR : #111111 (Très profond, les reflets seront ajoutés par la couche Screen)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#2b2b2b", 
+    "Noir": "#111111", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#2b2b2b";
-  const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
+  const ropeHex = ropeHexMap[formData.color] || "#111111";
+  const mainHex = ropeHexMap[formData.mainColor] || "#111111";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#111111";
 
   // Acier réglé sur un vrai Gris métallisé
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
@@ -296,19 +294,20 @@ export default function SelleriePage() {
                             {/* COUCHE 0 : La Base Noire (Bouche les micro-trous) */}
                             <img src="/laisse-frog-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* COUCHE 1 : Sangle Principale */}
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
+                            {/* SANGLE PRINCIPALE : SANDWICH 3 COUCHES */}
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/laisse-frog-sangle.png" alt="Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-50 pointer-events-none" />
 
-                            {/* COUCHE 2 : Attaches (CORRECTION DU DOUBLON ICI) */}
-                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90 pointer-events-none" />
+                            {/* SANGLE ATTACHES : SANDWICH 3 COUCHES */}
+                            <div className="absolute inset-0 w-full h-full z-20 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/laisse-frog-attaches.png" alt="Attaches Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-50 pointer-events-none" />
 
-                            {/* COUCHE 3 : Clip Frog et Rivets */}
+                            {/* CLI FROG ET RIVETS */}
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
                             <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
-                            {/* COUCHE 4 : Effet Métal sur les Rivets */}
                             <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
@@ -345,14 +344,14 @@ export default function SelleriePage() {
                             {/* COUCHE 0 : La Base Noire */}
                             <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* COUCHE 1 : Couleur Sangle */}
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
+                            {/* COLLIER : SANDWICH 3 COUCHES */}
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/collier-sangle.png" alt="Base Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-50 pointer-events-none" />
                             
-                            {/* COUCHE 2 : Bouclerie */}
+                            {/* BOUCLERIE */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
-                            {/* COUCHE 3 : Effet Métal sur la bouclerie */}
                             <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
