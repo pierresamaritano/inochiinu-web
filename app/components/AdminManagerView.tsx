@@ -209,7 +209,7 @@ export default function AdminManagerView() {
   };
 
   // =========================================================================
-  // LOGIQUE DE CONFIRMATION AVEC PAIEMENT STRIPE INTEGRE
+  // LOGIQUE DE CONFIRMATION AVEC PAIEMENT STRIPE INTEGRE (MODIFIÉE ICI)
   // =========================================================================
   const handleConfirmAction = async () => {
     if (!actionModal) return;
@@ -217,23 +217,34 @@ export default function AdminManagerView() {
     try {
       
       // 1. --- LOGIQUE DE PAIEMENT STRIPE ---
-      // Si on modifie une éducation ou une pension, on vérifie s'il y a un paiement en attente
-      if (["pension_bookings", "education_requests"].includes(actionModal.table)) {
+      // On vérifie désormais aussi les commandes de sellerie
+      if (["pension_bookings", "education_requests", "sellerie_orders"].includes(actionModal.table)) {
         const { data: record } = await supabase.from(actionModal.table).select('stripe_payment_id').eq("id", actionModal.id).single();
         
         if (record && record.stripe_payment_id) {
-          if (actionModal.newStatus === "confirmé") {
-            // Le client est accepté : On ENCAISSE l'argent !
+          
+          // Vérifie si on doit capturer le paiement (Confirmé pour l'éducation/pension, ou Expédié pour la sellerie)
+          const isCaptureAction = 
+            (actionModal.table === "sellerie_orders" && actionModal.newStatus === "expédié") ||
+            (actionModal.table !== "sellerie_orders" && actionModal.newStatus === "confirmé");
+
+          const isCancelAction = ["annulé", "refusé"].includes(actionModal.newStatus);
+
+          if (isCaptureAction) {
+            // Le client est accepté ou expédié : On ENCAISSE l'argent !
             const res = await fetch("/api/stripe/capture", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ paymentIntentId: record.stripe_payment_id })
+              body: JSON.stringify({ 
+                paymentIntentId: record.stripe_payment_id,
+                sendInvoice: true // Indicateur pour que ton backend sache qu'il doit envoyer le reçu/facture Stripe
+              })
             });
             const resData = await res.json();
             if (!res.ok) throw new Error(resData.error || "Échec de l'encaissement Stripe. Le client n'a peut-être pas les fonds.");
           
-          } else if (["annulé", "refusé"].includes(actionModal.newStatus)) {
-            // Le client est refusé : On LIBÈRE l'argent !
+          } else if (isCancelAction) {
+            // Le client est refusé / annulé : On LIBÈRE l'argent !
             await fetch("/api/stripe/cancel", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
