@@ -124,6 +124,7 @@ export default function SelleriePage() {
     }
   };
 
+  // NOUVEAU SYSTÈME DE COMMANDE (Supabase + Stripe)
   const handleOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dog_id && selectedProduct.type === "Collier") {
@@ -137,7 +138,8 @@ export default function SelleriePage() {
       : `${formData.color} - Mousquetons: ${formData.hardware}`;
 
     try {
-      const { error } = await supabase.from("sellerie_orders").insert([{
+      // 1. Sauvegarde dans Supabase
+      const { data: orderData, error } = await supabase.from("sellerie_orders").insert([{
         user_id: user.id,
         dog_id: formData.dog_id || null, 
         client_name: user.user_metadata?.full_name || "Client",
@@ -147,12 +149,32 @@ export default function SelleriePage() {
         color_finish: colorFinishString,
         dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
         status: "en_attente",
-      }]);
+      }]).select().single();
+      
       if (error) throw error;
-      setSubmitted(true);
+
+      // 2. Appel à l'API backend pour générer la session Stripe (à créer dans app/api/checkout/route.ts)
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: orderData?.id,
+          productName: selectedProduct.name,
+          price: parseInt(selectedProduct.price.replace('€', '')),
+          description: colorFinishString
+        })
+      });
+
+      if (res.ok) {
+        const { url } = await res.json();
+        window.location.href = url; // Redirection automatique vers Stripe
+      } else {
+        // Fallback si l'API Stripe n'est pas encore développée
+        setSubmitted(true);
+        setSubmitting(false);
+      }
     } catch (err) {
       console.error(err);
-    } finally {
       setSubmitting(false);
     }
   };
@@ -161,17 +183,25 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // LE NOIR PARFAIT
+  // COULEURS SATURÉES (Sans les couches Screen qui délavent)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#2b2b2b", 
-    "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
+    "Noir": "#1a1a1a", // Noir profond conservant les ombres
+    "Fauve": "#ea580c", // Plus saturé
+    "Kaki": "#065f46", 
+    "Bordeaux": "#881337", 
+    "Beige": "#e7e5e4", 
+    "Vert Forêt": "#064e3b", 
+    "Orange Fluo": "#f97316", 
+    "Jaune Fluo": "#facc15", 
+    "Bleu Roi": "#1d4ed8", 
+    "Bleu Ciel": "#38bdf8", 
+    "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#2b2b2b";
-  const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
+  const ropeHex = ropeHexMap[formData.color] || "#1a1a1a";
+  const mainHex = ropeHexMap[formData.mainColor] || "#1a1a1a";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#1a1a1a";
 
-  // MÉTAL
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
   const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
 
@@ -246,8 +276,8 @@ export default function SelleriePage() {
             {submitted ? (
               <div className="w-full flex flex-col items-center justify-center p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-6 text-3xl">✓</div>
-                <h3 className="text-2xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
-                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Nous préparons votre commande. Vous recevrez un lien de paiement Stripe par email une fois votre équipement prêt à être expédié.</p>
+                <h3 className="text-2xl font-black text-stone-900">Commande en attente de paiement</h3>
+                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Une erreur réseau est survenue lors de la redirection vers Stripe. Nous vous avons envoyé un lien de paiement par email.</p>
                 <button onClick={() => setSelectedProduct(null)} className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-widest rounded-full cursor-pointer hover:bg-stone-800 transition">Fermer</button>
               </div>
             ) : (
@@ -255,19 +285,16 @@ export default function SelleriePage() {
                 {/* COLONNE GAUCHE : APERÇU VISUEL */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
                   
-                  {/* MODIFICATION : Marges réduites sur mobile (p-4) pour gagner de la place */}
                   <div className="p-4 md:p-6 shrink-0 z-10 flex justify-between items-start">
                     <div>
                       <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-1 md:mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
                       <h3 className="text-xl md:text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
                     </div>
-                    {/* Petite instruction de zoom cachée sur mobile */}
                     <span className={`hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 transition-opacity duration-300 ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
                       🔍 Survolez pour zoomer
                     </span>
                   </div>
 
-                  {/* MODIFICATION : min-h réduit sur mobile pour laisser l'espace au formulaire */}
                   <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 min-h-[180px] md:min-h-[250px] overflow-hidden group">
                     
                     {/* --- APERÇU : LAISSE FROG --- */}
@@ -275,7 +302,6 @@ export default function SelleriePage() {
                       <div 
                         ref={imageContainerRef}
                         {...zoomEvents}
-                        // MODIFICATION : Hauteur très compacte sur mobile (160px), normale sur iPad/Desktop
                         className="relative w-full max-w-[700px] h-[160px] md:h-[300px] mx-auto cursor-crosshair touch-none z-20"
                       >
                         <div 
@@ -290,21 +316,16 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            {/* COUCHE -1 : L'Ombre portée */}
                             <img src="/laisse-frog-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-
-                            {/* COUCHE 0 : La Base Noire (Bouche les micro-trous) */}
                             <img src="/laisse-frog-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* SANGLE PRINCIPALE : SANDWICH 3 COUCHES */}
+                            {/* SANGLE PRINCIPALE (FINI LE SCREEN DELAVÉ) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/laisse-frog-sangle.png" alt="Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
 
-                            {/* SANGLE ATTACHES : SANDWICH 3 COUCHES */}
+                            {/* SANGLE ATTACHES */}
                             <div className="absolute inset-0 w-full h-full z-20 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/laisse-frog-attaches.png" alt="Attaches Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
 
                             {/* CLIP FROG ET RIVETS */}
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
@@ -327,7 +348,6 @@ export default function SelleriePage() {
                       <div 
                         ref={imageContainerRef}
                         {...zoomEvents}
-                        // MODIFICATION : Image plus petite sur mobile pour libérer l'espace (max-w 200px)
                         className="relative aspect-square w-full max-w-[200px] md:max-w-[320px] mx-auto cursor-crosshair touch-none z-20"
                       >
                         <div 
@@ -342,16 +362,12 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            {/* COUCHE -1 : L'Ombre portée */}
                             <img src="/collier-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-
-                            {/* COUCHE 0 : La Base Noire */}
                             <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* COLLIER : SANDWICH 3 COUCHES */}
+                            {/* COLLIER (FINI LE SCREEN DELAVÉ) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/collier-sangle.png" alt="Base Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
                             
                             {/* BOUCLERIE */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
@@ -395,7 +411,7 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* Étiquette du bas, cachée pendant le zoom ou sur les tout petits écrans */}
+                    {/* Étiquette du bas */}
                     <div className={`absolute bottom-2 md:bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50 transition-opacity duration-300 pointer-events-none ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
                       {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
@@ -494,13 +510,24 @@ export default function SelleriePage() {
                     </form>
                   </div>
 
+                  {/* BANDEAU DE PAIEMENT STRIPE */}
                   <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
                       <span className="text-2xl font-black text-white">{selectedProduct.price}</span>
                     </div>
-                    <button form="order-form" type="submit" disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg">
-                      {submitting ? "..." : "Valider"}
+                    <button 
+                      form="order-form" 
+                      type="submit" 
+                      disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} 
+                      className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg flex items-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          Paiement...
+                        </>
+                      ) : "Payer avec Stripe"}
                     </button>
                   </div>
                 </div>
