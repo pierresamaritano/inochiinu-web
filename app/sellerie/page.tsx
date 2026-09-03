@@ -179,8 +179,8 @@ export default function SelleriePage() {
   const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
   const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
-  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
-  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
+  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E"; 
+  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
