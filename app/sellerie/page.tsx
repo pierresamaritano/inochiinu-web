@@ -154,12 +154,13 @@ export default function SelleriePage() {
         color_finish: colorFinishString,
         dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
         status: "payé",
-        stripe_payment_id: stripePaymentId, 
+        // CORRECTION : Ligne supprimée pour éviter l'erreur silencieuse si la colonne n'existe pas
       }]);
       if (error) throw error;
       setSubmitted(true);
     } catch (err) {
       console.error(err);
+      alert("Erreur lors de la validation de la commande."); // Alerte ajoutée pour comprendre si ça bloque
     } finally {
       setSubmitting(false);
     }
@@ -179,6 +180,7 @@ export default function SelleriePage() {
   const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
   const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
+  // MODIFICATION DEMANDÉE : Laiton Doré (#d4af37) et Acier Inoxydable (#71797E)
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E"; 
   const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E";
 
@@ -235,7 +237,7 @@ export default function SelleriePage() {
       </footer>
 
       {isAuthOpen && (
-        <div className="fixed inset0 z-[100] flex items-center justify-center p-4 bg-black/80">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
           <div className="w-full max-w-md bg-white p-8 rounded-[2rem] text-center shadow-2xl">
             <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
             <p className="text-sm text-stone-500 mt-2">Connectez-vous pour associer une commande au profil de votre chien.</p>
@@ -298,9 +300,11 @@ export default function SelleriePage() {
 
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/laisse-frog-sangle.png" alt="Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-50 contrast-150 pointer-events-none" />
 
                             <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/laisse-frog-attaches.png" alt="Attaches Reflets" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-screen opacity-50 contrast-150 pointer-events-none" />
 
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
                             <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
@@ -341,6 +345,7 @@ export default function SelleriePage() {
 
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/collier-sangle.png" alt="Base Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-50 contrast-150 pointer-events-none" />
                             
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
