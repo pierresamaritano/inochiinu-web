@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
+import PaymentSimulation from "../components/PaymentSimulation";
 
 // IMPORTS DES COMPOSANTS MAÎTRES
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
@@ -25,6 +26,7 @@ export default function SelleriePage() {
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [showPayment, setShowPayment] = useState(false); // NOUVEAU : État pour afficher le paiement
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
@@ -77,7 +79,6 @@ export default function SelleriePage() {
     setZoomStyle({ transformOrigin: `${x}% ${y}%`, transform: "scale(2.5)" });
   };
 
-  // LES ÉVÉNEMENTS COMPLETS (Souris + Tactile)
   const zoomEvents = {
     onMouseEnter: () => setIsZooming(true),
     onMouseMove: handleMouseMove,
@@ -111,6 +112,7 @@ export default function SelleriePage() {
       hardware: "Laiton Doré"
     }));
     setSubmitted(false);
+    setShowPayment(false); // On réinitialise l'état de paiement
   };
 
   const handleGoogleLogin = async () => {
@@ -124,22 +126,25 @@ export default function SelleriePage() {
     }
   };
 
-  // NOUVEAU SYSTÈME DE COMMANDE (Supabase + Stripe)
-  const handleOrder = async (e: React.FormEvent) => {
+  // 1. Fonction pour valider le formulaire et passer au paiement
+  const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dog_id && selectedProduct.type === "Collier") {
       alert("Veuillez sélectionner un chien pour associer les mensurations.");
       return;
     }
+    setShowPayment(true);
+  };
 
+  // 2. Fonction finale appelée par PaymentSimulation après succès
+  const handleFinalOrder = async (stripePaymentId: string) => {
     setSubmitting(true);
     const colorFinishString = selectedProduct.type === "Laisse Frog"
       ? `Base: ${formData.mainColor} | Attaches: ${formData.attachmentColor} | Rivets: ${formData.hardware}`
       : `${formData.color} - Mousquetons: ${formData.hardware}`;
 
     try {
-      // 1. Sauvegarde dans Supabase
-      const { data: orderData, error } = await supabase.from("sellerie_orders").insert([{
+      const { error } = await supabase.from("sellerie_orders").insert([{
         user_id: user.id,
         dog_id: formData.dog_id || null, 
         client_name: user.user_metadata?.full_name || "Client",
@@ -148,33 +153,15 @@ export default function SelleriePage() {
         item_type: selectedProduct.name,
         color_finish: colorFinishString,
         dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
-        status: "en_attente",
-      }]).select().single();
-      
+        status: "payé",
+        stripe_payment_id: stripePaymentId, // Enregistrement de l'ID Stripe
+      }]);
       if (error) throw error;
-
-      // 2. Appel à l'API backend pour générer la session Stripe (à créer dans app/api/checkout/route.ts)
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: orderData?.id,
-          productName: selectedProduct.name,
-          price: parseInt(selectedProduct.price.replace('€', '')),
-          description: colorFinishString
-        })
-      });
-
-      if (res.ok) {
-        const { url } = await res.json();
-        window.location.href = url; // Redirection automatique vers Stripe
-      } else {
-        // Fallback si l'API Stripe n'est pas encore développée
-        setSubmitted(true);
-        setSubmitting(false);
-      }
+      setSubmitted(true);
+      setShowPayment(false);
     } catch (err) {
       console.error(err);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -183,10 +170,10 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // COULEURS SATURÉES (Sans les couches Screen qui délavent)
+  // COULEURS SATURÉES (Le Multiply à 100% va les assombrir naturellement)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#1a1a1a", // Noir profond conservant les ombres
-    "Fauve": "#ea580c", // Plus saturé
+    "Noir": "#2a2a2a", 
+    "Fauve": "#ea580c", 
     "Kaki": "#065f46", 
     "Bordeaux": "#881337", 
     "Beige": "#e7e5e4", 
@@ -198,9 +185,9 @@ export default function SelleriePage() {
     "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#1a1a1a";
-  const mainHex = ropeHexMap[formData.mainColor] || "#1a1a1a";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#1a1a1a";
+  const ropeHex = ropeHexMap[formData.color] || "#2a2a2a";
+  const mainHex = ropeHexMap[formData.mainColor] || "#2a2a2a";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2a2a2a";
 
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
   const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
@@ -276,8 +263,8 @@ export default function SelleriePage() {
             {submitted ? (
               <div className="w-full flex flex-col items-center justify-center p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-6 text-3xl">✓</div>
-                <h3 className="text-2xl font-black text-stone-900">Commande en attente de paiement</h3>
-                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Une erreur réseau est survenue lors de la redirection vers Stripe. Nous vous avons envoyé un lien de paiement par email.</p>
+                <h3 className="text-2xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
+                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Nous préparons votre commande. Vous recevrez très bientôt un email de confirmation avec le récapitulatif.</p>
                 <button onClick={() => setSelectedProduct(null)} className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-widest rounded-full cursor-pointer hover:bg-stone-800 transition">Fermer</button>
               </div>
             ) : (
@@ -319,19 +306,19 @@ export default function SelleriePage() {
                             <img src="/laisse-frog-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
                             <img src="/laisse-frog-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* SANGLE PRINCIPALE (FINI LE SCREEN DELAVÉ) */}
+                            {/* SANGLE PRINCIPALE (RETOUR AU RÉALISME : 100% MULTIPLY SANS SCREEN) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* SANGLE ATTACHES */}
-                            <div className="absolute inset-0 w-full h-full z-20 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            {/* SANGLE ATTACHES (RETOUR AU RÉALISME) */}
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* CLIP FROG ET RIVETS */}
+                            {/* CLI FROG ET RIVETS */}
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
                             <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-color pointer-events-none"
+                            <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
                                 maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
@@ -365,14 +352,14 @@ export default function SelleriePage() {
                             <img src="/collier-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
                             <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* COLLIER (FINI LE SCREEN DELAVÉ) */}
+                            {/* COLLIER (RETOUR AU RÉALISME : 100% MULTIPLY) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
                             {/* BOUCLERIE */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
-                            <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-color pointer-events-none"
+                            <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
                                 maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
@@ -411,125 +398,137 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* Étiquette du bas */}
                     <div className={`absolute bottom-2 md:bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50 transition-opacity duration-300 pointer-events-none ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
                       {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
                   </div>
                 </div>
 
-                {/* COLONNE DROITE : FORMULAIRE DE COMMANDE */}
+                {/* COLONNE DROITE : FORMULAIRE ET PAIEMENT */}
                 <div className="w-full md:w-1/2 flex flex-col h-full overflow-y-auto">
-                  <div className="p-6 sm:p-8 flex-1">
-                    <form id="order-form" onSubmit={handleOrder} className="space-y-8">
+                  
+                  {/* AFFICHAGE CONDITIONNEL : FORMULAIRE OU MODULE DE PAIEMENT */}
+                  {showPayment ? (
+                    <div className="p-6 sm:p-10 flex-1 flex flex-col justify-center animate-in slide-in-from-right-4">
+                      <div className="mb-6">
+                        <button onClick={() => setShowPayment(false)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer mb-4 inline-block">← Modifier ma configuration</button>
+                        <h3 className="text-2xl font-black text-stone-900 tracking-tight">Finaliser la commande</h3>
+                        <p className="text-sm text-stone-500 mt-1">Équipement fait main en France.</p>
+                      </div>
                       
-                      {selectedProduct.type === "Laisse Frog" ? (
-                        <>
-                          <div>
-                            <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale (Sangle)</label>
-                            <div className="flex flex-wrap gap-3">
-                              {selectedProduct.colors.map((c: string) => (
-                                <button key={`main-${c}`} type="button" onClick={() => setFormData({ ...formData, mainColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.mainColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
-                                  <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
-                                  <span className={`text-xs font-bold ${formData.mainColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Couleur Secondaire (Attaches)</label>
-                            <div className="flex flex-wrap gap-3">
-                              {selectedProduct.colors.map((c: string) => (
-                                <button key={`attach-${c}`} type="button" onClick={() => setFormData({ ...formData, attachmentColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.attachmentColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
-                                  <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
-                                  <span className={`text-xs font-bold ${formData.attachmentColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div>
-                          <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
-                          <div className="flex flex-wrap gap-3">
-                            {selectedProduct.colors.map((c: string) => (
-                              <button key={c} type="button" onClick={() => setFormData({ ...formData, color: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
-                                <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
-                                <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">
-                          {selectedProduct.type === "Laisse Frog" ? "3. Finition des Rivets" : "2. Finition de la bouclerie"}
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}>
-                            <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
-                            <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
-                          </button>
-                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Acier Gris" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Gris" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}>
-                            <span className="font-black text-sm text-stone-900 block">Acier Inoxydable</span>
-                            <span className="text-[10px] font-bold text-stone-500">Finition Grise (+0€)</span>
-                          </button>
-                        </div>
-                        {selectedProduct.type === "Laisse Frog" && (
-                          <p className="text-[10px] text-stone-500 mt-2 font-medium">L'attache Frog reste en finition noire mate tactique de série.</p>
-                        )}
+                      <div className="bg-white rounded-3xl p-1">
+                        <PaymentSimulation 
+                          amount={parseInt(selectedProduct.price.replace('€', ''))} 
+                          serviceName={selectedProduct.name}
+                          onSuccess={(stripeId) => handleFinalOrder(stripeId)} 
+                          onCancel={() => setShowPayment(false)}
+                        />
                       </div>
-
-                      <div className="border-t border-stone-200 pt-6 space-y-5">
-                        <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">
-                          {selectedProduct.type === "Laisse Frog" ? "4. Sizing & Contact" : "3. Mensurations & Contact"}
-                        </label>
-                        
-                        {selectedProduct.type === "Collier" ? (
-                           <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                            <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
-                            <div className="mt-4">
-                              <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Tour de cou exact (cm) *</label>
-                              <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
-                            </div>
-                           </div>
-                        ) : (
-                          <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 text-xs text-stone-500 font-medium">
-                            <span className="block mb-2">🐕 Ce produit taille de manière standard. Vous pouvez néanmoins associer la commande à un de vos chiens si vous le souhaitez (optionnel).</span>
-                            <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Téléphone de contact *</label>
-                          <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
-                        </div>
-                      </div>
-                    </form>
-                  </div>
-
-                  {/* BANDEAU DE PAIEMENT STRIPE */}
-                  <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
-                      <span className="text-2xl font-black text-white">{selectedProduct.price}</span>
                     </div>
-                    <button 
-                      form="order-form" 
-                      type="submit" 
-                      disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} 
-                      className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg flex items-center gap-2"
-                    >
-                      {submitting ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          Paiement...
-                        </>
-                      ) : "Payer avec Stripe"}
-                    </button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="p-6 sm:p-8 flex-1">
+                        <form id="order-form" onSubmit={handleProceedToPayment} className="space-y-8">
+                          
+                          {selectedProduct.type === "Laisse Frog" ? (
+                            <>
+                              <div>
+                                <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale (Sangle)</label>
+                                <div className="flex flex-wrap gap-3">
+                                  {selectedProduct.colors.map((c: string) => (
+                                    <button key={`main-${c}`} type="button" onClick={() => setFormData({ ...formData, mainColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.mainColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                      <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
+                                      <span className={`text-xs font-bold ${formData.mainColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Couleur Secondaire (Attaches)</label>
+                                <div className="flex flex-wrap gap-3">
+                                  {selectedProduct.colors.map((c: string) => (
+                                    <button key={`attach-${c}`} type="button" onClick={() => setFormData({ ...formData, attachmentColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.attachmentColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                      <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
+                                      <span className={`text-xs font-bold ${formData.attachmentColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div>
+                              <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
+                              <div className="flex flex-wrap gap-3">
+                                {selectedProduct.colors.map((c: string) => (
+                                  <button key={c} type="button" onClick={() => setFormData({ ...formData, color: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                    <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
+                                    <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">
+                              {selectedProduct.type === "Laisse Frog" ? "3. Finition des Rivets" : "2. Finition de la bouclerie"}
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button type="button" onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}>
+                                <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
+                                <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
+                              </button>
+                              <button type="button" onClick={() => setFormData({ ...formData, hardware: "Acier Gris" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Gris" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+                                <span className="font-black text-sm text-stone-900 block">Acier Inoxydable</span>
+                                <span className="text-[10px] font-bold text-stone-500">Finition Grise (+0€)</span>
+                              </button>
+                            </div>
+                            {selectedProduct.type === "Laisse Frog" && (
+                              <p className="text-[10px] text-stone-500 mt-2 font-medium">L'attache Frog reste en finition noire mate tactique de série.</p>
+                            )}
+                          </div>
+
+                          <div className="border-t border-stone-200 pt-6 space-y-5">
+                            <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">
+                              {selectedProduct.type === "Laisse Frog" ? "4. Sizing & Contact" : "3. Mensurations & Contact"}
+                            </label>
+                            
+                            {selectedProduct.type === "Collier" ? (
+                               <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                                <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
+                                <div className="mt-4">
+                                  <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Tour de cou exact (cm) *</label>
+                                  <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                                </div>
+                               </div>
+                            ) : (
+                              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 text-xs text-stone-500 font-medium">
+                                <span className="block mb-2">🐕 Ce produit taille de manière standard. Vous pouvez néanmoins associer la commande à un de vos chiens si vous le souhaitez (optionnel).</span>
+                                <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
+                              </div>
+                            )}
+
+                            <div>
+                              <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Téléphone de contact *</label>
+                              <input required type="tel" placeholder="06 12 34 56 78" value={formData.clientPhone} onChange={(e) => setFormData({...formData, clientPhone: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+
+                      {/* BANDEAU DE VALIDATION AVANT PAIEMENT */}
+                      <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
+                          <span className="text-2xl font-black text-white">{selectedProduct.price}</span>
+                        </div>
+                        <button form="order-form" type="submit" disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg">
+                          Valider
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
