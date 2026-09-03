@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import LiquidNavbar from "../components/LiquidNavbar";
 import ClientDogSelector from "../components/ClientDogSelector";
@@ -28,6 +28,11 @@ export default function SelleriePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
+  // NOUVEAUX ÉTATS POUR LE ZOOM TYPE AMAZON
+  const [zoomStyle, setZoomStyle] = useState({});
+  const [isZooming, setIsZooming] = useState(false);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  
   const [formData, setFormData] = useState({
     dog_id: "",
     dogName: "",
@@ -53,25 +58,37 @@ export default function SelleriePage() {
     fetchUser();
   }, [supabase]);
 
+  // FONCTION DE CALCUL DU ZOOM
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imageContainerRef.current) return;
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    
+    // Calcul de la position relative de la souris (en pourcentage)
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+
+    // L'échelle du zoom (2.5 = zoom de 250%)
+    setZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: "scale(2.5)",
+      transition: "transform 0.1s ease-out" // Transition très courte pour la fluidité, mais douce au déclenchement
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setIsZooming(false);
+    // Retour fluide à l'échelle normale avec l'origine au centre
+    setZoomStyle({
+      transformOrigin: "center center",
+      transform: "scale(1)",
+      transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)" 
+    });
+  };
+
   const sellerieCarouselSlides: CarouselSlide[] = [
-    {
-      src: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1080&auto=format&fit=crop",
-      alt: "Matériel de sellerie",
-      tag: "Fabrication Artisanale",
-      caption: "Du matériel robuste et pensé pour durer en extérieur.",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?q=80&w=1080&auto=format&fit=crop",
-      alt: "Chien avec harnais",
-      tag: "Confort & Maintien",
-      caption: "Des coupes ergonomiques adaptées à la morphologie des chiens.",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1080&auto=format&fit=crop",
-      alt: "Promenade en pleine nature",
-      tag: "Sur-Mesure",
-      caption: "Conçu pour résister aux balades les plus sportives.",
-    }
+    { src: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1080&auto=format&fit=crop", alt: "Matériel de sellerie", tag: "Fabrication Artisanale", caption: "Du matériel robuste et pensé pour durer en extérieur." },
+    { src: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?q=80&w=1080&auto=format&fit=crop", alt: "Chien avec harnais", tag: "Confort & Maintien", caption: "Des coupes ergonomiques adaptées à la morphologie des chiens." },
+    { src: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1080&auto=format&fit=crop", alt: "Promenade en pleine nature", tag: "Sur-Mesure", caption: "Conçu pour résister aux balades les plus sportives." }
   ];
 
   const handleOpenProduct = (product: any) => {
@@ -109,7 +126,6 @@ export default function SelleriePage() {
     }
 
     setSubmitting(true);
-    
     const colorFinishString = selectedProduct.type === "Laisse Frog"
       ? `Base: ${formData.mainColor} | Attaches: ${formData.attachmentColor} | Rivets: ${formData.hardware}`
       : `${formData.color} - Mousquetons: ${formData.hardware}`;
@@ -135,14 +151,11 @@ export default function SelleriePage() {
     }
   };
 
-  // --- Dictionnaire Couleurs HTML vs SVG Hex ---
   const colorMap: Record<string, string> = {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Variables Hexadécimales pour le dessin SVG / Mask (BIOTHANE)
   const ropeHexMap: Record<string, string> = {
-    // Équilibre parfait pour le Noir : Assez foncé pour être noir, assez clair pour la brillance
     "Noir": "#2b2b2b", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
@@ -151,14 +164,11 @@ export default function SelleriePage() {
   const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
   const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
-  // Variables Hexadécimales pour la BOUCLERIE (OVERLAY METAL)
-  // Ajout de l'Acier Gris (#94a3b8) au lieu du Noir absolu
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
   const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
-      
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -194,11 +204,7 @@ export default function SelleriePage() {
                 </div>
                 <p className="text-xs text-stone-500 mt-2 leading-relaxed">{product.desc}</p>
               </div>
-              
-              <button 
-                onClick={() => handleOpenProduct(product)}
-                className="mt-6 w-full py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-amber-600 transition-colors cursor-pointer"
-              >
+              <button onClick={() => handleOpenProduct(product)} className="mt-6 w-full py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-amber-600 transition-colors cursor-pointer">
                 Personnaliser
               </button>
             </div>
@@ -212,7 +218,6 @@ export default function SelleriePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* MODALE CONNEXION */}
       {isAuthOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
           <div className="w-full max-w-md bg-white p-8 rounded-[2rem] text-center shadow-2xl">
@@ -224,7 +229,6 @@ export default function SelleriePage() {
         </div>
       )}
 
-      {/* MODALE CONFIGURATEUR DE COMMANDE */}
       {selectedProduct && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-sm">
           <div className="relative w-full max-w-5xl h-[90vh] flex flex-col md:flex-row bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
@@ -239,34 +243,40 @@ export default function SelleriePage() {
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL */}
+                {/* COLONNE GAUCHE : APERÇU VISUEL AVEC ZOOM */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
-                  <div className="p-6 shrink-0 z-10">
-                    <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
-                    <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
+                  <div className="p-6 shrink-0 z-10 flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
+                      <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
+                    </div>
+                    <span className="hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 bg-white px-2 py-1 rounded-full border border-stone-200">
+                      🔍 Survolez pour zoomer
+                    </span>
                   </div>
 
-                  <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px] overflow-hidden">
+                  <div 
+                    className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px] overflow-hidden cursor-crosshair group"
+                    ref={imageContainerRef}
+                    onMouseEnter={() => setIsZooming(true)}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                  >
                     
                     {/* --- APERÇU : LAISSE FROG (BICOLORE) --- */}
                     {selectedProduct.type === "Laisse Frog" && (
-                      <div className="relative w-full max-w-[700px] h-[300px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 md:scale-150 lg:scale-[1.75] transition-transform duration-700 origin-center">
-                        
-                        {/* COUCHE 1 : Sangle Principale (Multiply) */}
+                      <div 
+                        className="relative w-full max-w-[700px] h-[300px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 md:scale-150 lg:scale-[1.75]"
+                        style={isZooming ? zoomStyle : { transform: "scale(1.75)", transition: "transform 0.4s ease-out" }} // Échelle par défaut si pas de zoom
+                      >
                         <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+                        <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
 
-                        {/* COUCHE 2 : Attaches (Multiply) */}
                         <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90" />
+                        <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90 pointer-events-none" />
 
-                        {/* COUCHE 3 : Clip Frog (Non modifiable) */}
                         <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
-                        {/* COUCHE 4 : Base des Rivets Grisés */}
-                        <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
-
-                        {/* COUCHE 5 : Effet Métal sur les Rivets (Overlay) */}
                         <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                           style={{
                             backgroundColor: hardwareOverlayHex,
@@ -279,8 +289,11 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : LAISSE MULTIPOSITIONS --- */}
                     {selectedProduct.type === "Laisse" && (
-                      <div className="w-full max-w-sm flex items-center justify-center scale-110 lg:scale-125 transition-transform duration-700">
-                        <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500">
+                      <div 
+                        className="w-full max-w-sm flex items-center justify-center scale-110 lg:scale-125"
+                        style={isZooming ? zoomStyle : { transform: "scale(1.25)", transition: "transform 0.4s ease-out" }}
+                      >
+                        <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500 pointer-events-none">
                           <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           <circle cx="125" cy="107" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <circle cx="200" cy="75" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
@@ -299,18 +312,14 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 lg:scale-[1.6] transition-transform duration-700 origin-center">
-                        
-                        {/* COUCHE 1 : Couleur Sangle */}
+                      <div 
+                        className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 lg:scale-[1.6]"
+                        style={isZooming ? zoomStyle : { transform: "scale(1.6)", transition: "transform 0.4s ease-out" }}
+                      >
                         <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        
-                        {/* COUCHE 2 : Volume / Texture Sangle (Multiply) */}
-                        <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
-                        
-                        {/* COUCHE 3 : Base Métal Grisé */}
+                        <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
                         <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                         
-                        {/* COUCHE 4 : Effet Métal sur la bouclerie (Overlay) */}
                         <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                           style={{
                             backgroundColor: hardwareOverlayHex,
@@ -323,12 +332,13 @@ export default function SelleriePage() {
 
                     {/* --- AUTRES PRODUITS --- */}
                     {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && selectedProduct.type !== "Laisse Frog" && (
-                      <div className="text-center w-full max-w-sm">
+                      <div className="text-center w-full max-w-sm pointer-events-none">
                         <div className={`w-32 h-32 mx-auto rounded-[2rem] ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-300 flex items-center justify-center text-4xl`}>📦</div>
                       </div>
                     )}
 
-                    <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50">
+                    {/* Instruction visible uniquement quand on ne zoome pas */}
+                    <div className={`absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50 transition-opacity duration-300 ${isZooming ? "opacity-0" : "opacity-100"}`}>
                       {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
                   </div>
@@ -339,10 +349,8 @@ export default function SelleriePage() {
                   <div className="p-6 sm:p-8 flex-1">
                     <form id="order-form" onSubmit={handleOrder} className="space-y-8">
                       
-                      {/* GESTION CONDITIONNELLE DES COULEURS */}
                       {selectedProduct.type === "Laisse Frog" ? (
                         <>
-                          {/* Sangle Principale */}
                           <div>
                             <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale (Sangle)</label>
                             <div className="flex flex-wrap gap-3">
@@ -355,7 +363,6 @@ export default function SelleriePage() {
                             </div>
                           </div>
                           
-                          {/* Sangle Attaches */}
                           <div>
                             <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Couleur Secondaire (Attaches)</label>
                             <div className="flex flex-wrap gap-3">
@@ -369,7 +376,6 @@ export default function SelleriePage() {
                           </div>
                         </>
                       ) : (
-                        /* Produits Monocolores classiques */
                         <div>
                           <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
                           <div className="flex flex-wrap gap-3">
@@ -383,7 +389,6 @@ export default function SelleriePage() {
                         </div>
                       )}
 
-                      {/* Choix de la Bouclerie / Rivets */}
                       <div>
                         <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">
                           {selectedProduct.type === "Laisse Frog" ? "3. Finition des Rivets" : "2. Finition de la bouclerie"}
@@ -403,7 +408,6 @@ export default function SelleriePage() {
                         )}
                       </div>
 
-                      {/* Mensurations & Contact */}
                       <div className="border-t border-stone-200 pt-6 space-y-5">
                         <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">
                           {selectedProduct.type === "Laisse Frog" ? "4. Sizing & Contact" : "3. Mensurations & Contact"}
@@ -432,7 +436,6 @@ export default function SelleriePage() {
                     </form>
                   </div>
 
-                  {/* BANDEAU DE VALIDATION */}
                   <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
