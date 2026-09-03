@@ -28,9 +28,9 @@ export default function SelleriePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
-  // NOUVEAUX ÉTATS POUR LE ZOOM TYPE AMAZON
-  const [zoomStyle, setZoomStyle] = useState({});
+  // ÉTATS DU ZOOM INTERACTIF
   const [isZooming, setIsZooming] = useState(false);
+  const [zoomStyle, setZoomStyle] = useState({ transformOrigin: "center center", transform: "scale(1)" });
   const imageContainerRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
@@ -58,31 +58,33 @@ export default function SelleriePage() {
     fetchUser();
   }, [supabase]);
 
-  // FONCTION DE CALCUL DU ZOOM
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageContainerRef.current) return;
-    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+  // FONCTION DE CALCUL DU ZOOM (Style Amazon)
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // On ignore le code si l'utilisateur est sur écran tactile (iPad/iPhone)
+    if (e.pointerType !== "mouse" || !imageContainerRef.current) return;
     
-    // Calcul de la position relative de la souris (en pourcentage)
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
+    // On calcule la position exacte de la souris dans le cadre fixe
+    const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - top) / height) * 100));
 
-    // L'échelle du zoom (2.5 = zoom de 250%)
+    // On déplace l'origine du zoom pour suivre le curseur
     setZoomStyle({
       transformOrigin: `${x}% ${y}%`,
-      transform: "scale(2.5)",
-      transition: "transform 0.1s ease-out" // Transition très courte pour la fluidité, mais douce au déclenchement
+      transform: "scale(2.5)" // Puissance du zoom
     });
   };
 
-  const handleMouseLeave = () => {
-    setIsZooming(false);
-    // Retour fluide à l'échelle normale avec l'origine au centre
-    setZoomStyle({
-      transformOrigin: "center center",
-      transform: "scale(1)",
-      transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)" 
-    });
+  // On crée un pack d'événements à appliquer au conteneur sélectionné
+  const zoomEvents = {
+    ref: imageContainerRef,
+    onPointerEnter: (e: React.PointerEvent) => e.pointerType === "mouse" && setIsZooming(true),
+    onPointerMove: handlePointerMove,
+    onPointerLeave: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse") {
+        setIsZooming(false);
+      }
+    }
   };
 
   const sellerieCarouselSlides: CarouselSlide[] = [
@@ -155,6 +157,7 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
+  // Noir réglé sur #2b2b2b (Charbon) pour garder la profondeur ET les reflets
   const ropeHexMap: Record<string, string> = {
     "Noir": "#2b2b2b", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
@@ -164,11 +167,13 @@ export default function SelleriePage() {
   const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
   const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
+  // Acier réglé sur un vrai Gris métallisé
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
   const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
+      
       <div className="absolute top-0 inset-x-0 h-[100vh] overflow-hidden pointer-events-none z-0 transform-gpu">
         <div className="absolute top-[10%] left-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
         <div className="absolute top-[40%] right-[-20%] w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(234,88,12,0.12) 0%, rgba(234,88,12,0) 70%)' }} />
@@ -243,56 +248,99 @@ export default function SelleriePage() {
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL AVEC ZOOM */}
+                {/* COLONNE GAUCHE : APERÇU VISUEL */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
+                  
                   <div className="p-6 shrink-0 z-10 flex justify-between items-start">
                     <div>
                       <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
                       <h3 className="text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
                     </div>
-                    <span className="hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 bg-white px-2 py-1 rounded-full border border-stone-200">
+                    {/* Petite instruction de zoom cachée sur mobile */}
+                    <span className={`hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 transition-opacity duration-300 ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
                       🔍 Survolez pour zoomer
                     </span>
                   </div>
 
-                  <div 
-                    className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px] overflow-hidden cursor-crosshair group"
-                    ref={imageContainerRef}
-                    onMouseEnter={() => setIsZooming(true)}
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                  >
+                  <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px] overflow-hidden group">
                     
-                    {/* --- APERÇU : LAISSE FROG (BICOLORE) --- */}
+                    {/* --- APERÇU : LAISSE FROG --- */}
                     {selectedProduct.type === "Laisse Frog" && (
                       <div 
-                        className="relative w-full max-w-[700px] h-[300px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 md:scale-150 lg:scale-[1.75]"
-                        style={isZooming ? zoomStyle : { transform: "scale(1.75)", transition: "transform 0.4s ease-out" }} // Échelle par défaut si pas de zoom
+                        {...zoomEvents} // Activation des événements de survol !
+                        className="relative w-full max-w-[700px] h-[300px] mx-auto cursor-crosshair touch-pan-y z-20"
                       >
-                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
-
-                        <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90 pointer-events-none" />
-
-                        <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
-
-                        <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
-                          style={{
-                            backgroundColor: hardwareOverlayHex,
-                            maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                            WebkitMaskImage: `url('/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                        {/* Le conteneur interne qui réagit au zoom sans changer de taille réelle */}
+                        <div 
+                          className="absolute inset-0 w-full h-full pointer-events-none"
+                          style={isZooming ? {
+                            transformOrigin: zoomStyle.transformOrigin,
+                            transform: zoomStyle.transform,
+                            transition: "transform 0.1s linear"
+                          } : {
+                            transformOrigin: "center center",
+                            transition: "transform 0.4s ease-out"
                           }}
-                        />
+                        >
+                          <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90" />
+
+                            <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm" />
+                            <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm" />
+
+                            <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay"
+                              style={{
+                                backgroundColor: hardwareOverlayHex,
+                                maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* --- APERÇU : COLLIER --- */}
+                    {selectedProduct.type === "Collier" && (
+                      <div 
+                        {...zoomEvents}
+                        className="relative aspect-square w-full max-w-[320px] mx-auto cursor-crosshair touch-pan-y z-20"
+                      >
+                        <div 
+                          className="absolute inset-0 w-full h-full pointer-events-none"
+                          style={isZooming ? {
+                            transformOrigin: zoomStyle.transformOrigin,
+                            transform: zoomStyle.transform,
+                            transition: "transform 0.1s linear"
+                          } : {
+                            transformOrigin: "center center",
+                            transition: "transform 0.4s ease-out"
+                          }}
+                        >
+                          <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+                            <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm" />
+                            
+                            <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay"
+                              style={{
+                                backgroundColor: hardwareOverlayHex,
+                                maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     )}
 
                     {/* --- APERÇU : LAISSE MULTIPOSITIONS --- */}
                     {selectedProduct.type === "Laisse" && (
-                      <div 
-                        className="w-full max-w-sm flex items-center justify-center scale-110 lg:scale-125"
-                        style={isZooming ? zoomStyle : { transform: "scale(1.25)", transition: "transform 0.4s ease-out" }}
-                      >
+                      <div className="w-full max-w-sm flex items-center justify-center scale-110 lg:scale-125 transition-transform duration-700">
                         <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500 pointer-events-none">
                           <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           <circle cx="125" cy="107" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
@@ -310,26 +358,6 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* --- APERÇU : COLLIER --- */}
-                    {selectedProduct.type === "Collier" && (
-                      <div 
-                        className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto scale-125 lg:scale-[1.6]"
-                        style={isZooming ? zoomStyle : { transform: "scale(1.6)", transition: "transform 0.4s ease-out" }}
-                      >
-                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
-                        <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
-                        <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
-                        
-                        <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
-                          style={{
-                            backgroundColor: hardwareOverlayHex,
-                            maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                            WebkitMaskImage: `url('/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
-                          }}
-                        />
-                      </div>
-                    )}
-
                     {/* --- AUTRES PRODUITS --- */}
                     {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && selectedProduct.type !== "Laisse Frog" && (
                       <div className="text-center w-full max-w-sm pointer-events-none">
@@ -337,8 +365,8 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* Instruction visible uniquement quand on ne zoome pas */}
-                    <div className={`absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50 transition-opacity duration-300 ${isZooming ? "opacity-0" : "opacity-100"}`}>
+                    {/* Étiquette du bas, disparaît pendant le zoom pour ne pas gêner la vue */}
+                    <div className={`absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200 shadow-sm z-50 transition-opacity duration-300 pointer-events-none ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
                       {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
                   </div>
