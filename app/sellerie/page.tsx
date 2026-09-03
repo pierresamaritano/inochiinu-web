@@ -62,12 +62,6 @@ export default function SelleriePage() {
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!imageContainerRef.current) return;
     
-    // Empêcher le scroll de la page si on bouge le doigt sur l'image
-    if (e.pointerType === "touch" && isZooming) {
-        // e.preventDefault() ne marche pas directement sur onPointerMove en React,
-        // on utilise touch-action: none dans le CSS (ajouté aux conteneurs)
-    }
-    
     // On calcule la position exacte de la souris ou du doigt dans le cadre fixe
     const { left, top, width, height } = imageContainerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - left) / width) * 100));
@@ -280,11 +274,10 @@ export default function SelleriePage() {
                     {/* --- APERÇU : LAISSE FROG --- */}
                     {selectedProduct.type === "Laisse Frog" && (
                       <div 
-                        {...zoomEvents} // Activation des événements de survol !
+                        {...zoomEvents}
                         // touch-none empêche la page de scroller quand on "frotte" l'image sur iPad
                         className="relative w-full max-w-[700px] h-[300px] mx-auto cursor-crosshair touch-none z-20"
                       >
-                        {/* Le conteneur interne qui réagit au zoom sans changer de taille réelle */}
                         <div 
                           className="absolute inset-0 w-full h-full pointer-events-none"
                           style={isZooming ? {
@@ -297,7 +290,7 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            {/* COUCHE -1 : L'Ombre portée (Optionnelle mais recommandée) */}
+                            {/* COUCHE -1 : L'Ombre portée */}
                             <img src="/laisse-frog-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
 
                             {/* COUCHE 0 : La Base Noire (Bouche les micro-trous) */}
@@ -307,8 +300,8 @@ export default function SelleriePage() {
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-sangle.png" alt="Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90 pointer-events-none" />
 
-                            {/* COUCHE 2 : Attaches */}
-                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat" }} />
+                            {/* COUCHE 2 : Attaches (CORRECTION DU DOUBLON ICI) */}
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90 pointer-events-none" />
 
                             {/* COUCHE 3 : Clip Frog et Rivets */}
