@@ -245,7 +245,7 @@ export default function SelleriePage() {
                     
                     {/* --- APERÇU : LAISSE FROG (BICOLORE) --- */}
                     {selectedProduct.type === "Laisse Frog" && (
-                      <div className="relative w-full max-w-[400px] aspect-video flex items-center justify-center overflow-visible drop-shadow-2xl">
+                      <div className="relative w-full max-w-[700px] h-[250px] sm:h-[350px] lg:h-[450px] flex items-center justify-center overflow-visible drop-shadow-2xl mx-auto">
                         
                         {/* COUCHE 1 : Sangle Principale */}
                         <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
