@@ -26,7 +26,7 @@ export default function SelleriePage() {
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [showPayment, setShowPayment] = useState(false); // NOUVEAU : État pour afficher le paiement
+  const [step, setStep] = useState(1); 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
@@ -112,7 +112,7 @@ export default function SelleriePage() {
       hardware: "Laiton Doré"
     }));
     setSubmitted(false);
-    setShowPayment(false); // On réinitialise l'état de paiement
+    setStep(1); 
   };
 
   const handleGoogleLogin = async () => {
@@ -126,17 +126,17 @@ export default function SelleriePage() {
     }
   };
 
-  // 1. Fonction pour valider le formulaire et passer au paiement
+  // MODIFICATION PAIEMENT : On passe à l'étape 2 (Paiement)
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dog_id && selectedProduct.type === "Collier") {
       alert("Veuillez sélectionner un chien pour associer les mensurations.");
       return;
     }
-    setShowPayment(true);
+    setStep(2);
   };
 
-  // 2. Fonction finale appelée par PaymentSimulation après succès
+  // MODIFICATION PAIEMENT : La vraie soumission se fait après
   const handleFinalOrder = async (stripePaymentId: string) => {
     setSubmitting(true);
     const colorFinishString = selectedProduct.type === "Laisse Frog"
@@ -153,12 +153,10 @@ export default function SelleriePage() {
         item_type: selectedProduct.name,
         color_finish: colorFinishString,
         dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
-        status: "payé",
-        stripe_payment_id: stripePaymentId, // Enregistrement de l'ID Stripe
+        status: "en_attente", // <-- SEULE MODIFICATION ICI : Remis sur "en_attente" pour que la base de données l'accepte
       }]);
       if (error) throw error;
       setSubmitted(true);
-      setShowPayment(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -170,27 +168,17 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // COULEURS SATURÉES (Le Multiply à 100% va les assombrir naturellement)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#2a2a2a", 
-    "Fauve": "#ea580c", 
-    "Kaki": "#065f46", 
-    "Bordeaux": "#881337", 
-    "Beige": "#e7e5e4", 
-    "Vert Forêt": "#064e3b", 
-    "Orange Fluo": "#f97316", 
-    "Jaune Fluo": "#facc15", 
-    "Bleu Roi": "#1d4ed8", 
-    "Bleu Ciel": "#38bdf8", 
-    "Personnalisé (Préciser en note)": "#a8a29e"
+    "Noir": "#2b2b2b", 
+    "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#2a2a2a";
-  const mainHex = ropeHexMap[formData.mainColor] || "#2a2a2a";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2a2a2a";
+  const ropeHex = ropeHexMap[formData.color] || "#2b2b2b";
+  const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
-  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E";  
-  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E"; 
+  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E"; 
+  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
@@ -306,15 +294,12 @@ export default function SelleriePage() {
                             <img src="/laisse-frog-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
                             <img src="/laisse-frog-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* SANGLE PRINCIPALE (RETOUR AU RÉALISME : 100% MULTIPLY SANS SCREEN) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* SANGLE ATTACHES (RETOUR AU RÉALISME) */}
                             <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* CLI FROG ET RIVETS */}
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
                             <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
@@ -352,11 +337,9 @@ export default function SelleriePage() {
                             <img src="/collier-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
                             <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            {/* COLLIER (RETOUR AU RÉALISME : 100% MULTIPLY) */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
-                            {/* BOUCLERIE */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
                             <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
@@ -407,11 +390,11 @@ export default function SelleriePage() {
                 {/* COLONNE DROITE : FORMULAIRE ET PAIEMENT */}
                 <div className="w-full md:w-1/2 flex flex-col h-full overflow-y-auto">
                   
-                  {/* AFFICHAGE CONDITIONNEL : FORMULAIRE OU MODULE DE PAIEMENT */}
-                  {showPayment ? (
+                  {/* === MODIFICATION : L'ÉTAT STEP REMPLACE L'ANCIEN SYSTÈME QUI BOUCLAIT === */}
+                  {step === 2 ? (
                     <div className="p-6 sm:p-10 flex-1 flex flex-col justify-center animate-in slide-in-from-right-4">
                       <div className="mb-6">
-                        <button onClick={() => setShowPayment(false)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer mb-4 inline-block">← Modifier ma configuration</button>
+                        <button onClick={() => setStep(1)} className="text-xs font-bold text-stone-500 hover:text-stone-900 cursor-pointer mb-4 inline-block">← Modifier ma configuration</button>
                         <h3 className="text-2xl font-black text-stone-900 tracking-tight">Finaliser la commande</h3>
                         <p className="text-sm text-stone-500 mt-1">Équipement fait main en France.</p>
                       </div>
@@ -421,7 +404,7 @@ export default function SelleriePage() {
                           amount={parseInt(selectedProduct.price.replace('€', ''))} 
                           serviceName={selectedProduct.name}
                           onSuccess={(stripeId) => handleFinalOrder(stripeId)} 
-                          onCancel={() => setShowPayment(false)}
+                          onCancel={() => setStep(1)}
                         />
                       </div>
                     </div>
@@ -517,7 +500,6 @@ export default function SelleriePage() {
                         </form>
                       </div>
 
-                      {/* BANDEAU DE VALIDATION AVANT PAIEMENT */}
                       <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
                         <div>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
