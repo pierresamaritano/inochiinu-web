@@ -37,9 +37,9 @@ export default function SelleriePage() {
     dog_id: "",
     dogName: "",
     dogBreed: "",
-    color: "",               
-    mainColor: "",           
-    attachmentColor: "",     
+    color: "",              
+    mainColor: "",          
+    attachmentColor: "",    
     hardware: "Laiton Doré",
     neckSize: "",
     clientPhone: "",
@@ -297,18 +297,21 @@ export default function SelleriePage() {
                             {/* SANGLE PRINCIPALE : SANDWICH 3 COUCHES */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/laisse-frog-sangle.png" alt="Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-50 pointer-events-none" />
+                            {/* CORRECTION : opacity réduite à 30 et ajout de contrast-125 pour ne pas délaver la couleur */}
+                            <img src="/laisse-frog-sangle.png" alt="Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
 
                             {/* SANGLE ATTACHES : SANDWICH 3 COUCHES */}
                             <div className="absolute inset-0 w-full h-full z-20 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/laisse-frog-attaches.png" alt="Attaches Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-50 pointer-events-none" />
+                            {/* CORRECTION : opacity réduite à 30 et contrast-125 */}
+                            <img src="/laisse-frog-attaches.png" alt="Attaches Reflets" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
 
-                            {/* CLI FROG ET RIVETS */}
+                            {/* CLIP FROG ET RIVETS */}
                             <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
                             <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
+                            {/* CORRECTION : mix-blend-color à la place de overlay pour le métal (évite le rendu terne) */}
+                            <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-color pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
                                 maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
@@ -347,12 +350,14 @@ export default function SelleriePage() {
                             {/* COLLIER : SANDWICH 3 COUCHES */}
                             <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-multiply opacity-100 pointer-events-none" />
-                            <img src="/collier-sangle.png" alt="Base Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-50 pointer-events-none" />
+                            {/* CORRECTION : opacity-30 et contrast-125 pour garder la saturation de la couleur */}
+                            <img src="/collier-sangle.png" alt="Base Sangle Reflets" className="absolute inset-0 w-full h-full object-contain z-10 mix-blend-screen opacity-30 contrast-125 pointer-events-none" />
                             
                             {/* BOUCLERIE */}
                             <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
-                            <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
+                            {/* CORRECTION : mix-blend-color pour ne pas brûler la couleur du métal */}
+                            <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-color pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
                                 maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
