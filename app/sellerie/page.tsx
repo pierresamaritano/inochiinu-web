@@ -140,22 +140,21 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // --- MODIFICATION 1 : Le noir fait gris ---
-  // Remplacement de "#525252" par "#1a1716" pour un rendu Noir profond tout en gardant l'effet Multiply
+  // Variables Hexadécimales pour le dessin SVG / Mask (BIOTHANE)
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#1a1716", 
+    // Équilibre parfait pour le Noir : Assez foncé pour être noir, assez clair pour la brillance
+    "Noir": "#2b2b2b", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  const ropeHex = ropeHexMap[formData.color] || "#1a1716";
-  const mainHex = ropeHexMap[formData.mainColor] || "#1a1716";
-  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#1a1716";
+  const ropeHex = ropeHexMap[formData.color] || "#2b2b2b";
+  const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#2b2b2b";
 
-  // --- MODIFICATION 2 : Trop de brillance sur les métaux ---
-  // Remplacement du Laiton Jaune Fluo (#eab308) par un Doré Vieilli naturel (#9c7316) 
-  // Remplacement de l'Acier Noir absolu par un acier sombre mat (#111111)
-  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#9c7316" : "#111111"; 
-  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524";
+  // Variables Hexadécimales pour la BOUCLERIE (OVERLAY METAL)
+  // Ajout de l'Acier Gris (#94a3b8) au lieu du Noir absolu
+  const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#eab308" : "#94a3b8"; 
+  const hardwareSvgHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#94a3b8";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
@@ -394,9 +393,9 @@ export default function SelleriePage() {
                             <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
                             <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
                           </button>
-                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Acier Noir" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}>
-                            <span className="font-black text-sm text-stone-900 block">Acier Tactique</span>
-                            <span className="text-[10px] font-bold text-stone-500">Finition Mate Noir (+0€)</span>
+                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Acier Gris" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Gris" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+                            <span className="font-black text-sm text-stone-900 block">Acier Inoxydable</span>
+                            <span className="text-[10px] font-bold text-stone-500">Finition Grise (+0€)</span>
                           </button>
                         </div>
                         {selectedProduct.type === "Laisse Frog" && (
