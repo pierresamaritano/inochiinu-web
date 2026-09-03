@@ -12,6 +12,7 @@ import ContactSection from "../components/ContactSection";
 // CATALOGUE DE LA BOUTIQUE
 const PRODUCTS = [
   { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
+  { id: "lais-frog", name: "Laisse Bicolore Attache Frog", price: "55€", type: "Laisse Frog", desc: "Biothane bicolore et attache tactique Frog à libération rapide. Idéale pour les tractions fortes.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux", "Beige", "Bleu Roi", "Bleu Ciel"] },
   { id: "lais-multi", name: "Laisse Multipositions (2m)", price: "35€", type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
   { id: "harn-para", name: "Collier Paracorde Tressé", price: "30€", type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
   { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: "45€", type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
@@ -31,7 +32,9 @@ export default function SelleriePage() {
     dog_id: "",
     dogName: "",
     dogBreed: "",
-    color: "",
+    color: "",               // Pour les produits monocolores
+    mainColor: "",           // Sangle principale (Laisse Frog)
+    attachmentColor: "",     // Attaches (Laisse Frog)
     hardware: "Laiton Doré",
     neckSize: "",
     clientPhone: "",
@@ -80,6 +83,8 @@ export default function SelleriePage() {
     setFormData(prev => ({ 
       ...prev, 
       color: product.colors[0],
+      mainColor: product.colors[0],
+      attachmentColor: product.colors[1] || product.colors[0],
       hardware: "Laiton Doré"
     }));
     setSubmitted(false);
@@ -104,6 +109,12 @@ export default function SelleriePage() {
     }
 
     setSubmitting(true);
+    
+    // Formatage des couleurs selon le type de produit
+    const colorFinishString = selectedProduct.type === "Laisse Frog"
+      ? `Base: ${formData.mainColor} | Attaches: ${formData.attachmentColor} | Rivets: ${formData.hardware}`
+      : `${formData.color} - Mousquetons: ${formData.hardware}`;
+
     try {
       const { error } = await supabase.from("sellerie_orders").insert([{
         user_id: user.id,
@@ -112,8 +123,8 @@ export default function SelleriePage() {
         client_email: user.email,
         client_phone: formData.clientPhone,
         item_type: selectedProduct.name,
-        color_finish: `${formData.color} - Mousquetons: ${formData.hardware}`,
-        dog_size: formData.neckSize ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
+        color_finish: colorFinishString,
+        dog_size: formData.neckSize && selectedProduct.type === "Collier" ? `Tour de cou: ${formData.neckSize}cm` : "Standard",
         status: "en_attente",
       }]);
       if (error) throw error;
@@ -127,15 +138,18 @@ export default function SelleriePage() {
 
   // --- Dictionnaire Couleurs HTML vs SVG Hex ---
   const colorMap: Record<string, string> = {
-    "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
+    "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
   // Variables Hexadécimales pour le dessin SVG / Mask
   const hardwareHex = formData.hardware === "Laiton Doré" ? "#fbbf24" : "#292524"; 
   const ropeHexMap: Record<string, string> = {
-    "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Personnalisé (Préciser en note)": "#a8a29e"
+    "Noir": "#1c1917", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
+  
   const ropeHex = ropeHexMap[formData.color] || "#1c1917";
+  const mainHex = ropeHexMap[formData.mainColor] || "#1c1917";
+  const attachmentHex = ropeHexMap[formData.attachmentColor] || "#1c1917";
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-stone-800 antialiased selection:bg-amber-200 selection:text-stone-900">
@@ -167,7 +181,7 @@ export default function SelleriePage() {
             <div key={product.id} className="group bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
               <div>
                 <div className="h-40 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center text-4xl group-hover:scale-105 transition-transform duration-300">
-                  {product.type === "Collier" ? "🐕" : product.type === "Laisse" ? "🦮" : "🔗"}
+                  {product.type === "Collier" ? "🐕" : product.type === "Laisse" || product.type === "Laisse Frog" ? "🦮" : "🔗"}
                 </div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-black text-stone-900 text-lg leading-tight">{product.name}</h3>
@@ -215,12 +229,12 @@ export default function SelleriePage() {
               <div className="w-full flex flex-col items-center justify-center p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-6 text-3xl">✓</div>
                 <h3 className="text-2xl font-black text-stone-900">Commande envoyée à l'atelier !</h3>
-                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Nous préparons votre {selectedProduct.name} ({formData.color}). Vous recevrez un lien de paiement Stripe par email une fois votre équipement prêt à être expédié.</p>
+                <p className="text-sm text-stone-500 mt-3 max-w-md leading-relaxed">Nous préparons votre commande. Vous recevrez un lien de paiement Stripe par email une fois votre équipement prêt à être expédié.</p>
                 <button onClick={() => setSelectedProduct(null)} className="mt-8 px-8 py-3 bg-stone-900 text-white font-bold text-xs uppercase tracking-widest rounded-full cursor-pointer hover:bg-stone-800 transition">Fermer</button>
               </div>
             ) : (
               <>
-                {/* COLONNE GAUCHE : APERÇU VISUEL (3 CALQUES CSS) */}
+                {/* COLONNE GAUCHE : APERÇU VISUEL */}
                 <div className="w-full md:w-1/2 bg-stone-50/50 relative flex flex-col border-b md:border-b-0 md:border-r border-stone-200">
                   <div className="p-6 shrink-0 z-10">
                     <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
@@ -229,31 +243,55 @@ export default function SelleriePage() {
 
                   <div className="flex-1 relative flex flex-col items-center justify-center p-8 min-h-[250px]">
                     
-                    {/* --- SVG : LAISSE MULTIPOSITIONS --- */}
+                    {/* --- APERÇU : LAISSE FROG (BICOLORE) --- */}
+                    {selectedProduct.type === "Laisse Frog" && (
+                      <div className="relative w-full max-w-[400px] aspect-video flex items-center justify-center overflow-visible drop-shadow-2xl">
+                        
+                        {/* COUCHE 1 : Sangle Principale */}
+                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
+                          style={{
+                            backgroundColor: mainHex, 
+                            WebkitMaskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat",
+                            maskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat"
+                          }}
+                        />
+                        <img src="/laisse-frog-sangle.png" alt="Sangle Principale" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+
+                        {/* COUCHE 2 : Sangle Attaches (Secondaire) */}
+                        <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out"
+                          style={{
+                            backgroundColor: attachmentHex, 
+                            WebkitMaskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat",
+                            maskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat"
+                          }}
+                        />
+                        <img src="/laisse-frog-attaches.png" alt="Attaches" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-90" />
+
+                        {/* COUCHE 3 : Clip Frog (Non modifiable) */}
+                        <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
+
+                        {/* COUCHE 4 : Rivets (Modifiables via Filtre CSS) */}
+                        <img src="/laisse-frog-rivets.png" alt="Rivets" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none"
+                          style={{
+                            filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none",
+                            transition: "filter 0.4s ease-in-out"
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* --- APERÇU : LAISSE MULTIPOSITIONS --- */}
                     {selectedProduct.type === "Laisse" && (
                       <div className="w-full max-w-sm flex items-center justify-center">
                         <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500">
-                          {/* Corde ondulée */}
-                          <path 
-                            d="M 50,75 Q 125,140 200,75 T 350,75" 
-                            stroke={ropeHex} 
-                            strokeWidth="12" 
-                            fill="none" 
-                            strokeLinecap="round" 
-                            className="transition-colors duration-300"
-                          />
-                          {/* Anneaux de réglage */}
+                          <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           <circle cx="125" cy="107" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <circle cx="200" cy="75" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
                           <circle cx="275" cy="42" r="10" stroke={hardwareHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          
-                          {/* Mousqueton Gauche */}
                           <g transform="translate(15, 65)">
                             <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
                             <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
                           </g>
-                          
-                          {/* Mousqueton Droit */}
                           <g transform="translate(345, 65)">
                             <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareHex} className="transition-colors duration-300" />
                             <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
@@ -262,59 +300,24 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* --- APERÇU RÉALISTE : COLLIER --- */}
+                    {/* --- APERÇU : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
                       <div className="relative aspect-square w-full max-w-[320px] flex items-center justify-center overflow-visible drop-shadow-2xl">
-                        
-                        {/* COUCHE 1 : La Couleur de la sangle (Découpée par l'image de la sangle pure) */}
-                        <div 
-                          className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out"
-                          style={{
-                            backgroundColor: ropeHex, 
-                            WebkitMaskImage: `url('/collier-sangle.png')`,
-                            WebkitMaskSize: "contain",
-                            WebkitMaskPosition: "center",
-                            WebkitMaskRepeat: "no-repeat",
-                            maskImage: `url('/collier-sangle.png')`,
-                            maskSize: "contain",
-                            maskPosition: "center",
-                            maskRepeat: "no-repeat",
-                          }}
-                        />
-                        
-                        {/* COUCHE 2 : L'image de la sangle originale pour récupérer la texture et les ombres (Multiply) */}
-                        <img 
-                          src="/collier-sangle.png" 
-                          alt="Base Sangle" 
-                          className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90"
-                        />
-
-                        {/* COUCHE 3 : La bouclerie préservée, posée par-dessus sans être teintée ! */}
-                        {/* BONUS : On assombrit et désature la boucle si l'option Acier Noir est sélectionnée */}
-                        <img 
-                          src="/collier-bouclerie.png" 
-                          alt="Bouclerie" 
-                          className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none"
-                          style={{
-                            filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none",
-                            transition: "filter 0.4s ease-in-out"
-                          }}
-                        />
-
+                        <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat", WebkitMaskImage: `url('/collier-sangle.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat" }} />
+                        <img src="/collier-sangle.png" alt="Base Sangle" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-90" />
+                        <img src="/collier-bouclerie.png" alt="Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" style={{ filter: formData.hardware === "Acier Noir" ? "grayscale(100%) brightness(0.2) contrast(1.2)" : "none", transition: "filter 0.4s ease-in-out" }} />
                       </div>
                     )}
 
-                    {/* --- AUTRES PRODUITS (Longe, etc.) --- */}
-                    {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && (
+                    {/* --- AUTRES PRODUITS --- */}
+                    {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && selectedProduct.type !== "Laisse Frog" && (
                       <div className="text-center w-full max-w-sm">
-                        <div className={`w-32 h-32 mx-auto rounded-[2rem] ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-300 flex items-center justify-center text-4xl`}>
-                          📦
-                        </div>
+                        <div className={`w-32 h-32 mx-auto rounded-[2rem] ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-300 flex items-center justify-center text-4xl`}>📦</div>
                       </div>
                     )}
 
                     <div className="absolute bottom-6 inset-x-0 text-center text-[10px] font-bold text-stone-400 uppercase tracking-widest bg-white/50 backdrop-blur-sm mx-auto w-max px-4 py-1.5 rounded-full border border-stone-200">
-                      {formData.color} • {formData.hardware}
+                      {selectedProduct.type === "Laisse Frog" ? `${formData.mainColor} / ${formData.attachmentColor} • ${formData.hardware}` : `${formData.color} • ${formData.hardware}`}
                     </div>
                   </div>
                 </div>
@@ -324,57 +327,79 @@ export default function SelleriePage() {
                   <div className="p-6 sm:p-8 flex-1">
                     <form id="order-form" onSubmit={handleOrder} className="space-y-8">
                       
-                      {/* Choix des couleurs */}
-                      <div>
-                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
-                        <div className="flex flex-wrap gap-3">
-                          {selectedProduct.colors.map((c: string) => (
-                            <button
-                              key={c}
-                              type="button"
-                              onClick={() => setFormData({ ...formData, color: c })}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}
-                            >
-                              <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
-                              <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
-                            </button>
-                          ))}
+                      {/* GESTION CONDITIONNELLE DES COULEURS */}
+                      {selectedProduct.type === "Laisse Frog" ? (
+                        <>
+                          {/* Sangle Principale */}
+                          <div>
+                            <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale (Sangle)</label>
+                            <div className="flex flex-wrap gap-3">
+                              {selectedProduct.colors.map((c: string) => (
+                                <button key={`main-${c}`} type="button" onClick={() => setFormData({ ...formData, mainColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.mainColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                  <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
+                                  <span className={`text-xs font-bold ${formData.mainColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Sangle Attaches */}
+                          <div>
+                            <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Couleur Secondaire (Attaches)</label>
+                            <div className="flex flex-wrap gap-3">
+                              {selectedProduct.colors.map((c: string) => (
+                                <button key={`attach-${c}`} type="button" onClick={() => setFormData({ ...formData, attachmentColor: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.attachmentColor === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                  <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-stone-200'}`} />
+                                  <span className={`text-xs font-bold ${formData.attachmentColor === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        /* Produits Monocolores classiques */
+                        <div>
+                          <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">1. Couleur Principale</label>
+                          <div className="flex flex-wrap gap-3">
+                            {selectedProduct.colors.map((c: string) => (
+                              <button key={c} type="button" onClick={() => setFormData({ ...formData, color: c })} className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${formData.color === c ? "border-stone-900 bg-white shadow-sm" : "border-transparent bg-stone-100 hover:bg-stone-200"}`}>
+                                <div className={`w-4 h-4 rounded-full shadow-inner border border-black/10 ${colorMap[c] || 'bg-gradient-to-r from-orange-400 to-amber-400'}`} />
+                                <span className={`text-xs font-bold ${formData.color === c ? "text-stone-900" : "text-stone-600"}`}>{c}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Choix de la Bouclerie */}
+                      {/* Choix de la Bouclerie / Rivets */}
                       <div>
-                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">2. Finition de la bouclerie</label>
+                        <label className="block text-xs font-black uppercase text-stone-900 mb-3 tracking-wider">
+                          {selectedProduct.type === "Laisse Frog" ? "3. Finition des Rivets" : "2. Finition de la bouclerie"}
+                        </label>
                         <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })}
-                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}
-                          >
+                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Laiton Doré" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Laiton Doré" ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white hover:border-amber-200"}`}>
                             <span className="font-black text-sm text-stone-900 block">Laiton Inoxydable</span>
                             <span className="text-[10px] font-bold text-amber-600">Finition Dorée (+0€)</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, hardware: "Acier Noir" })}
-                            className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}
-                          >
+                          <button type="button" onClick={() => setFormData({ ...formData, hardware: "Acier Noir" })} className={`p-3 text-left rounded-xl border-2 transition-all cursor-pointer ${formData.hardware === "Acier Noir" ? "border-stone-900 bg-stone-100" : "border-stone-200 bg-white hover:border-stone-300"}`}>
                             <span className="font-black text-sm text-stone-900 block">Acier Tactique</span>
                             <span className="text-[10px] font-bold text-stone-500">Finition Mate Noir (+0€)</span>
                           </button>
                         </div>
+                        {selectedProduct.type === "Laisse Frog" && (
+                          <p className="text-[10px] text-stone-500 mt-2 font-medium">L'attache Frog reste en finition noire mate tactique de série.</p>
+                        )}
                       </div>
 
+                      {/* Mensurations & Contact */}
                       <div className="border-t border-stone-200 pt-6 space-y-5">
-                        <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">3. Mensurations & Contact</label>
+                        <label className="block text-xs font-black uppercase text-stone-900 tracking-wider">
+                          {selectedProduct.type === "Laisse Frog" ? "4. Sizing & Contact" : "3. Mensurations & Contact"}
+                        </label>
                         
                         {selectedProduct.type === "Collier" ? (
                            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                            <ClientDogSelector
-                              isAdmin={false}
-                              currentUserId={user?.id}
-                              onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
-                            />
+                            <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
                             <div className="mt-4">
                               <label className="block text-[10px] font-bold uppercase text-stone-500 mb-1">Tour de cou exact (cm) *</label>
                               <input required type="text" placeholder="Ex: 42" value={formData.neckSize} onChange={(e) => setFormData({...formData, neckSize: e.target.value})} className="w-full p-3 rounded-xl bg-white border border-stone-200 text-xs font-bold focus:outline-none focus:border-amber-500 transition-colors" />
@@ -383,11 +408,7 @@ export default function SelleriePage() {
                         ) : (
                           <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 text-xs text-stone-500 font-medium">
                             <span className="block mb-2">🐕 Ce produit taille de manière standard. Vous pouvez néanmoins associer la commande à un de vos chiens si vous le souhaitez (optionnel).</span>
-                            <ClientDogSelector
-                              isAdmin={false}
-                              currentUserId={user?.id}
-                              onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })}
-                            />
+                            <ClientDogSelector isAdmin={false} currentUserId={user?.id} onDogSelected={(dog) => setFormData({ ...formData, dog_id: dog.id, dogName: dog.name, dogBreed: dog.breed })} />
                           </div>
                         )}
 
@@ -399,18 +420,13 @@ export default function SelleriePage() {
                     </form>
                   </div>
 
-                  {/* BANDEAU DE VALIDATION EN BAS */}
+                  {/* BANDEAU DE VALIDATION */}
                   <div className="p-6 bg-stone-900 border-t border-stone-800 flex items-center justify-between shrink-0">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Total net</span>
                       <span className="text-2xl font-black text-white">{selectedProduct.price}</span>
                     </div>
-                    <button 
-                      form="order-form"
-                      type="submit" 
-                      disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} 
-                      className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg"
-                    >
+                    <button form="order-form" type="submit" disabled={submitting || (selectedProduct.type === "Collier" && (!formData.dog_id || !formData.neckSize))} className="px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-full hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer shadow-lg">
                       {submitting ? "..." : "Valider"}
                     </button>
                   </div>
