@@ -88,21 +88,25 @@ export default function PensionPage() {
     { title: "Journal de Bord Photo Quotidien", subtitle: "Recevez chaque jour des nouvelles et des clichés de votre chien directement sur votre Espace Membre.", tag: "Suivi Digital", gradient: "from-orange-950/90 via-stone-900/60 to-black/80" },
   ];
 
+  // LOGIQUE DE CARROUSEL MISE À JOUR AVEC LE BUCKET
   const pensionCarouselSlides: CarouselSlide[] = [
     {
-      src: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=2000&auto=format&fit=crop", 
+      src: `${BUCKET_URL}/pension/carrousel-1.jpeg`, 
+      type: "image",
       alt: "Chiens jouant dans les parcs",
       tag: "Jeux & Liberté",
       caption: "Détente en plein air et interactions dans nos parcs arborés.",
     },
     {
-      src: "https://images.unsplash.com/photo-1599839619722-39751411ea63?q=80&w=2000&auto=format&fit=crop", 
+      src: `${BUCKET_URL}/pension/carrousel-2.jpeg`, 
+      type: "image",
       alt: "Box confortable",
       tag: "Confort Premium",
       caption: "6 boxs spacieux, isolés et climatisés avec courette.",
     },
     {
-      src: "https://images.unsplash.com/photo-1558009250-d4d21628e717?q=80&w=2000&auto=format&fit=crop", 
+      src: `${BUCKET_URL}/pension/carrousel-3.jpeg`, 
+      type: "image",
       alt: "Surveillance",
       tag: "Sécurité 24/7",
       caption: "Surveillance vidéo continue pour une tranquillité absolue.",
@@ -390,7 +394,9 @@ const handleFinalSubmit = async (stripePaymentId: string) => {
         </div>
       </section>
 
-      <AppleCarousel slides={pensionCarouselSlides} />
+      <div className="relative w-full py-4 sm:py-6">
+        <AppleCarousel slides={pensionCarouselSlides} />
+      </div>
 
       <ContactSection />
 
@@ -399,7 +405,7 @@ const handleFinalSubmit = async (stripePaymentId: string) => {
       </footer>
 
       {showInfoModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowInfoModal(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setShowInfoModal(false)} className="absolute top-6 right-6 text-stone-400 hover:text-stone-800 cursor-pointer">✕</button>
@@ -430,7 +436,7 @@ const handleFinalSubmit = async (stripePaymentId: string) => {
       )}
 
       {isAuthOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setIsAuthOpen(false)} />
           <div className="relative w-full max-w-md rounded-[2.5rem] border border-white/80 bg-[#FDFCF8]/95 p-8 sm:p-10 shadow-2xl backdrop-blur-2xl">
             <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer">✕</button>
@@ -475,9 +481,8 @@ const handleFinalSubmit = async (stripePaymentId: string) => {
       )}
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsFormOpen(false)} />
-          {/* AJOUT DES CLASSES scrollbar-hide POUR CACHER LA BARRE MOCHE */}
           <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] rounded-[2.5rem] border border-white/80 bg-[#FDFCF8] p-6 sm:p-10 shadow-2xl">
             <button onClick={() => setIsFormOpen(false)} className="absolute top-6 right-6 text-stone-600 cursor-pointer z-50">✕</button>
             
@@ -493,7 +498,7 @@ const handleFinalSubmit = async (stripePaymentId: string) => {
               <PaymentSimulation 
                 amount={calculatePrice()} 
                 serviceName={hasSecondDog ? "Séjour en Pension (2 chiens)" : "Séjour en Pension"}
-                onSuccess={(stripeId) => handleFinalSubmit(stripeId)} // CHANGEMENT ICI
+                onSuccess={(stripeId) => handleFinalSubmit(stripeId)} 
                 onCancel={() => setStep(2)}
               />
             ) : (
