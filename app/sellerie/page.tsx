@@ -10,6 +10,8 @@ import PaymentSimulation from "../components/PaymentSimulation";
 import AppleCarousel, { CarouselSlide } from "../components/AppleCarousel";
 import ContactSection from "../components/ContactSection";
 
+const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
+
 // CATALOGUE DE LA BOUTIQUE
 const PRODUCTS = [
   { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
@@ -26,7 +28,7 @@ export default function SelleriePage() {
   
   // États de la boutique
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [step, setStep] = useState(1); // Utilisation de 'step' pour éviter la boucle
+  const [step, setStep] = useState(1); 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
@@ -92,10 +94,11 @@ export default function SelleriePage() {
     onTouchCancel: () => setIsZooming(false),
   };
 
+  // CARROUSEL POINTE DÉSORMAIS SUR LE BUCKET SUPABASE
   const sellerieCarouselSlides: CarouselSlide[] = [
-    { src: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=1080&auto=format&fit=crop", alt: "Matériel de sellerie", tag: "Fabrication Artisanale", caption: "Du matériel robuste et pensé pour durer en extérieur." },
-    { src: "https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?q=80&w=1080&auto=format&fit=crop", alt: "Chien avec harnais", tag: "Confort & Maintien", caption: "Des coupes ergonomiques adaptées à la morphologie des chiens." },
-    { src: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1080&auto=format&fit=crop", alt: "Promenade en pleine nature", tag: "Sur-Mesure", caption: "Conçu pour résister aux balades les plus sportives." }
+    { src: `${BUCKET_URL}/sellerie/carrousel-1.jpeg`, type: "image", alt: "Matériel de sellerie", tag: "Fabrication Artisanale", caption: "Du matériel robuste et pensé pour durer en extérieur." },
+    { src: `${BUCKET_URL}/sellerie/carrousel-2.jpeg`, type: "image", alt: "Chien avec harnais", tag: "Confort & Maintien", caption: "Des coupes ergonomiques adaptées à la morphologie des chiens." },
+    { src: `${BUCKET_URL}/sellerie/carrousel-3.jpeg`, type: "image", alt: "Promenade en pleine nature", tag: "Sur-Mesure", caption: "Conçu pour résister aux balades les plus sportives." }
   ];
 
   const handleOpenProduct = (product: any) => {
@@ -126,7 +129,6 @@ export default function SelleriePage() {
     }
   };
 
-  // On passe à l'étape 2 (Paiement) au lieu de soumettre directement
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.dog_id && selectedProduct.type === "Collier") {
@@ -136,7 +138,6 @@ export default function SelleriePage() {
     setStep(2);
   };
 
-  // La vraie soumission se fait après le paiement Stripe
   const handleFinalOrder = async (stripePaymentId: string) => {
     setSubmitting(true);
     const colorFinishString = selectedProduct.type === "Laisse Frog"
@@ -170,7 +171,6 @@ export default function SelleriePage() {
     "Noir": "bg-stone-900", "Fauve": "bg-amber-600", "Kaki": "bg-emerald-800", "Bordeaux": "bg-rose-900", "Beige": "bg-stone-200", "Vert Forêt": "bg-emerald-900", "Orange Fluo": "bg-orange-500", "Jaune Fluo": "bg-yellow-400", "Bleu Roi": "bg-blue-700", "Bleu Ciel": "bg-sky-300", "Personnalisé (Préciser en note)": "bg-gradient-to-r from-orange-400 to-amber-400"
   };
 
-  // Conservation exacte de tes réglages
   const ropeHexMap: Record<string, string> = {
     "Noir": "#2b2b2b", 
     "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
@@ -294,23 +294,23 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            <img src="/laisse-frog-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-                            <img src="/laisse-frog-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('/laisse-frog-sangle.png')`, WebkitMaskImage: `url('/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-sangle.png" alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png`} alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('/laisse-frog-attaches.png')`, WebkitMaskImage: `url('/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/laisse-frog-attaches.png" alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: attachmentHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png`} alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            <img src="/laisse-frog-clip.png" alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
-                            <img src="/laisse-frog-rivets.png" alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-clip.png`} alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png`} alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
 
                             <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
-                                maskImage: `url('/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                                WebkitMaskImage: `url('/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                                maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
                               }}
                             />
                           </div>
@@ -337,19 +337,19 @@ export default function SelleriePage() {
                           }}
                         >
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            <img src="/collier-ombre.png" alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-                            <img src="/collier-base.png" alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('/collier-sangle.png')`, WebkitMaskImage: `url('/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src="/collier-sangle.png" alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-sangle.png`} alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
-                            <img src="/collier-bouclerie.png" alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-bouclerie.png`} alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
                             
                             <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
-                                maskImage: `url('/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                                WebkitMaskImage: `url('/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                                maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
                               }}
                             />
                           </div>
