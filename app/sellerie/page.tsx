@@ -186,7 +186,6 @@ export default function SelleriePage() {
     "Noir": "#2b2b2b", "Fauve": "#d97706", "Kaki": "#065f46", "Bordeaux": "#881337", "Beige": "#e7e5e4", "Vert Forêt": "#064e3b", "Orange Fluo": "#f97316", "Jaune Fluo": "#facc15", "Bleu Roi": "#1d4ed8", "Bleu Ciel": "#7dd3fc", "Personnalisé (Préciser en note)": "#a8a29e"
   };
   
-  // VARIABLES DE COULEURS UNIFORMISÉES
   const mainHex = ropeHexMap[formData.mainColor] || "#2b2b2b";
   const secondaryHex = ropeHexMap[formData.secondaryColor] || "#2b2b2b";
   const hardwareOverlayHex = formData.hardware === "Laiton Doré" ? "#d4af37" : "#71797E"; 
@@ -220,8 +219,8 @@ export default function SelleriePage() {
           {PRODUCTS.map((product) => (
             <div key={product.id} className="group bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
               <div>
-                {/* MODIFICATION ICI : overflow-hidden et object-cover au lieu de object-contain */}
-                <div className="h-48 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                {/* FORMAT 3:2 ET OBJECT-COVER APPLIQUÉ À LA GRILLE */}
+                <div className="w-full aspect-[3/2] bg-stone-100 rounded-2xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">
                   <img src={`${BUCKET_URL}/sellerie/${product.imagePath}`} alt={product.name} className="w-full h-full object-cover mix-blend-multiply" />
                 </div>
                 <div className="flex justify-between items-start gap-2">
@@ -288,28 +287,26 @@ export default function SelleriePage() {
                     
                     {/* --- APERÇU : LAISSE FROG --- */}
                     {selectedProduct.type === "Laisse Frog" && (
-                      <div ref={imageContainerRef} {...zoomEvents} className="relative w-full max-w-[700px] h-[160px] md:h-[300px] mx-auto cursor-crosshair touch-none z-20">
+                      // FORMAT 3:2 POUR LE CONTENEUR INTERACTIF
+                      <div ref={imageContainerRef} {...zoomEvents} className="relative w-full max-w-[600px] aspect-[3/2] mx-auto cursor-crosshair touch-none z-20 overflow-hidden rounded-2xl">
                         <div className="absolute inset-0 w-full h-full pointer-events-none" style={isZooming ? { transformOrigin: zoomStyle.transformOrigin, transform: zoomStyle.transform, transition: "transform 0.1s linear" } : { transformOrigin: "center center", transition: "transform 0.4s ease-out" }}>
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-cover z-0 opacity-30 translate-y-2 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" />
 
-                            {/* COULEUR PRINCIPALE */}
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png`} alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png')`, maskSize: "cover", WebkitMaskSize: "cover", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-sangle.png`} alt="Sangle Ombres" className="absolute inset-0 w-full h-full object-cover z-20 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* COULEUR SECONDAIRE */}
-                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: secondaryHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png`} alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-contain z-40 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-30 transition-colors duration-300 ease-in-out" style={{ backgroundColor: secondaryHex, maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png')`, maskSize: "cover", WebkitMaskSize: "cover", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-attaches.png`} alt="Attaches Ombres" className="absolute inset-0 w-full h-full object-cover z-40 mix-blend-multiply opacity-100 pointer-events-none" />
 
-                            {/* QUINCAILLERIE */}
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-clip.png`} alt="Clip Frog" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
-                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png`} alt="Rivets Texture" className="absolute inset-0 w-full h-full object-contain z-50 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-clip.png`} alt="Clip Frog" className="absolute inset-0 w-full h-full object-cover z-50 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png`} alt="Rivets Texture" className="absolute inset-0 w-full h-full object-cover z-50 drop-shadow-sm pointer-events-none" />
                             <div className="absolute inset-0 w-full h-full z-50 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
-                                maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                                maskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, maskSize: "cover", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/laisse-frog/laisse-frog-rivets.png')`, WebkitMaskSize: "cover", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
                               }}
                             />
                           </div>
@@ -319,23 +316,22 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : COLLIER --- */}
                     {selectedProduct.type === "Collier" && (
-                      <div ref={imageContainerRef} {...zoomEvents} className="relative aspect-square w-full max-w-[200px] md:max-w-[320px] mx-auto cursor-crosshair touch-none z-20">
+                      // FORMAT 3:2 POUR LE CONTENEUR INTERACTIF
+                      <div ref={imageContainerRef} {...zoomEvents} className="relative w-full max-w-[500px] aspect-[3/2] mx-auto cursor-crosshair touch-none z-20 overflow-hidden rounded-2xl">
                         <div className="absolute inset-0 w-full h-full pointer-events-none" style={isZooming ? { transformOrigin: zoomStyle.transformOrigin, transform: zoomStyle.transform, transition: "transform 0.1s linear" } : { transformOrigin: "center center", transition: "transform 0.4s ease-out" }}>
                           <div className="absolute inset-0 w-full h-full scale-125 lg:scale-[1.5]">
-                            <img src={`${BUCKET_URL}/sellerie/collier/collier-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
-                            <img src={`${BUCKET_URL}/sellerie/collier/collier-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-cover z-0 opacity-30 translate-y-2 pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" />
 
-                            {/* COULEUR PRINCIPALE */}
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
-                            <img src={`${BUCKET_URL}/sellerie/collier/collier-sangle.png`} alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, maskSize: "cover", WebkitMaskSize: "cover", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-sangle.png`} alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-cover z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
-                            {/* QUINCAILLERIE */}
-                            <img src={`${BUCKET_URL}/sellerie/collier/collier-bouclerie.png`} alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
+                            <img src={`${BUCKET_URL}/sellerie/collier/collier-bouclerie.png`} alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-cover z-30 drop-shadow-sm pointer-events-none" />
                             <div className="absolute inset-0 w-full h-full z-40 transition-colors duration-500 ease-in-out mix-blend-overlay pointer-events-none"
                               style={{
                                 backgroundColor: hardwareOverlayHex,
-                                maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, maskSize: "contain", maskPosition: "center", maskRepeat: "no-repeat",
-                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, WebkitMaskSize: "contain", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
+                                maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, maskSize: "cover", maskPosition: "center", maskRepeat: "no-repeat",
+                                WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-bouclerie.png')`, WebkitMaskSize: "cover", WebkitMaskPosition: "center", WebkitMaskRepeat: "no-repeat"
                               }}
                             />
                           </div>
@@ -345,8 +341,9 @@ export default function SelleriePage() {
 
                     {/* --- APERÇU : LONGE --- */}
                     {selectedProduct.type === "Longe" && (
-                      <div className="text-center w-full max-w-sm pointer-events-none flex flex-col items-center justify-center">
-                        <img src={`${BUCKET_URL}/sellerie/${selectedProduct.imagePath}`} alt={selectedProduct.name} className="w-48 h-48 object-contain drop-shadow-xl" />
+                      // FORMAT 3:2 ET OBJECT-COVER POUR LA LONGE
+                      <div className="relative w-full max-w-[500px] aspect-[3/2] mx-auto rounded-2xl overflow-hidden shadow-sm pointer-events-none">
+                        <img src={`${BUCKET_URL}/sellerie/${selectedProduct.imagePath}`} alt={selectedProduct.name} className="w-full h-full object-cover mix-blend-multiply" />
                       </div>
                     )}
 
