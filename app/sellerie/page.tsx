@@ -12,13 +12,11 @@ import ContactSection from "../components/ContactSection";
 
 const BUCKET_URL = "https://qvybupsibujplkykufja.supabase.co/storage/v1/object/public/media";
 
-// CATALOGUE DE LA BOUTIQUE
+// CATALOGUE DE LA BOUTIQUE (Mis à jour avec les images)
 const PRODUCTS = [
-  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"] },
-  { id: "lais-frog", name: "Laisse Bicolore Attache Frog", price: "55€", type: "Laisse Frog", desc: "Biothane bicolore et attache tactique Frog à libération rapide. Idéale pour les tractions fortes.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux", "Beige", "Bleu Roi", "Bleu Ciel"] },
-  { id: "lais-multi", name: "Laisse Multipositions (2m)", price: "35€", type: "Laisse", desc: "3 points de réglage pour s'adapter à toutes vos promenades. Corde marine ultra-solide.", colors: ["Noir", "Beige", "Vert Forêt"] },
-  { id: "harn-para", name: "Collier Paracorde Tressé", price: "30€", type: "Collier", desc: "Tressage artisanal à la main, idéal pour les races primitives. Sur-mesure exact.", colors: ["Personnalisé (Préciser en note)"] },
-  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: "45€", type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"] }
+  { id: "col-bio", name: "Collier Biothane Sur-Mesure", price: "25€", type: "Collier", desc: "Ultra-résistant, waterproof et facile à nettoyer. Bouclerie en laiton inoxydable.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux"], imagePath: "collier/collier.png" },
+  { id: "lais-frog", name: "Laisse Bicolore Attache Frog", price: "55€", type: "Laisse Frog", desc: "Biothane bicolore et attache tactique Frog à libération rapide. Idéale pour les tractions fortes.", colors: ["Noir", "Fauve", "Kaki", "Bordeaux", "Beige", "Bleu Roi", "Bleu Ciel"], imagePath: "laisse-frog/laisse-frog.png" },
+  { id: "longe-bio", name: "Longe d'apprentissage (5m/10m)", price: "45€", type: "Longe", desc: "Longe en biothane sans poignée pour ne pas s'accrocher dans les broussailles.", colors: ["Orange Fluo", "Jaune Fluo", "Noir"], imagePath: "longe/longe.png" }
 ];
 
 export default function SelleriePage() {
@@ -94,7 +92,6 @@ export default function SelleriePage() {
     onTouchCancel: () => setIsZooming(false),
   };
 
-  // CARROUSEL POINTE DÉSORMAIS SUR LE BUCKET SUPABASE
   const sellerieCarouselSlides: CarouselSlide[] = [
     { src: `${BUCKET_URL}/sellerie/carrousel-1.jpeg`, type: "image", alt: "Matériel de sellerie", tag: "Fabrication Artisanale", caption: "Du matériel robuste et pensé pour durer en extérieur." },
     { src: `${BUCKET_URL}/sellerie/carrousel-2.jpeg`, type: "image", alt: "Chien avec harnais", tag: "Confort & Maintien", caption: "Des coupes ergonomiques adaptées à la morphologie des chiens." },
@@ -208,12 +205,12 @@ export default function SelleriePage() {
       <AppleCarousel slides={sellerieCarouselSlides} />
 
       <section className="relative z-10 max-w-6xl mx-auto px-6 my-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {PRODUCTS.map((product) => (
             <div key={product.id} className="group bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
               <div>
-                <div className="h-40 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center text-4xl group-hover:scale-105 transition-transform duration-300">
-                  {product.type === "Collier" ? "🐕" : product.type === "Laisse" || product.type === "Laisse Frog" ? "🦮" : "🔗"}
+                <div className="h-48 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center p-4 group-hover:scale-105 transition-transform duration-300">
+                  <img src={`${BUCKET_URL}/sellerie/${product.imagePath}`} alt={product.name} className="w-full h-full object-contain drop-shadow-sm mix-blend-multiply" />
                 </div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-black text-stone-900 text-lg leading-tight">{product.name}</h3>
@@ -236,7 +233,7 @@ export default function SelleriePage() {
       </footer>
 
       {isAuthOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/80">
           <div className="w-full max-w-md bg-white p-8 rounded-[2rem] text-center shadow-2xl">
             <h3 className="text-2xl font-black text-stone-900">Connexion requise</h3>
             <p className="text-sm text-stone-500 mt-2">Connectez-vous pour associer une commande au profil de votre chien.</p>
@@ -247,7 +244,7 @@ export default function SelleriePage() {
       )}
 
       {selectedProduct && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 sm:p-8 bg-black/80 backdrop-blur-sm">
           <div className="relative w-full max-w-5xl h-[90vh] flex flex-col md:flex-row bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
             <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-4 z-50 flex items-center justify-center w-8 h-8 bg-white/50 backdrop-blur-md hover:bg-white text-stone-500 hover:text-stone-900 rounded-full cursor-pointer transition shadow-sm border border-stone-200">✕</button>
             
@@ -268,9 +265,11 @@ export default function SelleriePage() {
                       <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full inline-block mb-1 md:mb-2 shadow-sm border border-amber-200">Aperçu Dynamique</span>
                       <h3 className="text-xl md:text-2xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h3>
                     </div>
-                    <span className={`hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 transition-opacity duration-300 ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
-                      🔍 Survolez pour zoomer
-                    </span>
+                    {selectedProduct.type !== "Longe" && (
+                      <span className={`hidden md:inline-flex text-[10px] font-bold text-stone-400 items-center gap-1 transition-opacity duration-300 ${isZooming ? 'opacity-0' : 'opacity-100'}`}>
+                        🔍 Survolez pour zoomer
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1 relative flex flex-col items-center justify-center p-4 md:p-8 min-h-[180px] md:min-h-[250px] overflow-hidden group">
@@ -340,7 +339,7 @@ export default function SelleriePage() {
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-ombre.png`} alt="Ombre" className="absolute inset-0 w-full h-full object-contain z-0 opacity-30 translate-y-2 pointer-events-none" />
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: ropeHex, maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-sangle.png`} alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-bouclerie.png`} alt="Texture Bouclerie" className="absolute inset-0 w-full h-full object-contain z-30 drop-shadow-sm pointer-events-none" />
@@ -357,30 +356,10 @@ export default function SelleriePage() {
                       </div>
                     )}
 
-                    {/* --- APERÇU : LAISSE MULTIPOSITIONS --- */}
-                    {selectedProduct.type === "Laisse" && (
-                      <div className="w-full max-w-[200px] md:max-w-sm flex items-center justify-center scale-110 lg:scale-125 transition-transform duration-700">
-                        <svg viewBox="0 0 400 150" className="w-full h-auto drop-shadow-xl p-2 transition-all duration-500 pointer-events-none">
-                          <path d="M 50,75 Q 125,140 200,75 T 350,75" stroke={ropeHex} strokeWidth="12" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
-                          <circle cx="125" cy="107" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          <circle cx="200" cy="75" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          <circle cx="275" cy="42" r="10" stroke={hardwareSvgHex} strokeWidth="4" fill="none" className="transition-colors duration-300" />
-                          <g transform="translate(15, 65)">
-                            <rect x="15" y="0" width="20" height="20" rx="4" fill={hardwareSvgHex} className="transition-colors duration-300" />
-                            <path d="M 15,10 C -5,10 -5,-5 10,-5 C 18,-5 20,5 20,5" stroke={hardwareSvgHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
-                          </g>
-                          <g transform="translate(345, 65)">
-                            <rect x="0" y="0" width="20" height="20" rx="4" fill={hardwareSvgHex} className="transition-colors duration-300" />
-                            <path d="M 20,10 C 40,10 40,-5 25,-5 C 17,-5 15,5 15,5" stroke={hardwareSvgHex} strokeWidth="5" fill="none" strokeLinecap="round" className="transition-colors duration-300" />
-                          </g>
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* --- AUTRES PRODUITS --- */}
-                    {selectedProduct.type !== "Laisse" && selectedProduct.type !== "Collier" && selectedProduct.type !== "Laisse Frog" && (
-                      <div className="text-center w-full max-w-sm pointer-events-none">
-                        <div className={`w-32 h-32 mx-auto rounded-[2rem] ${colorMap[formData.color] || 'bg-stone-800'} shadow-lg transition-colors duration-300 flex items-center justify-center text-4xl`}>📦</div>
+                    {/* --- APERÇU : LONGE --- */}
+                    {selectedProduct.type === "Longe" && (
+                      <div className="text-center w-full max-w-sm pointer-events-none flex flex-col items-center justify-center">
+                        <img src={`${BUCKET_URL}/sellerie/${selectedProduct.imagePath}`} alt={selectedProduct.name} className="w-48 h-48 object-contain drop-shadow-xl" />
                       </div>
                     )}
 
