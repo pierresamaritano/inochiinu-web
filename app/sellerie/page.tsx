@@ -220,8 +220,9 @@ export default function SelleriePage() {
           {PRODUCTS.map((product) => (
             <div key={product.id} className="group bg-white rounded-3xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
               <div>
-                <div className="h-48 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center p-4 group-hover:scale-105 transition-transform duration-300">
-                  <img src={`${BUCKET_URL}/sellerie/${product.imagePath}`} alt={product.name} className="w-full h-full object-contain drop-shadow-sm mix-blend-multiply" />
+                {/* MODIFICATION ICI : overflow-hidden et object-cover au lieu de object-contain */}
+                <div className="h-48 w-full bg-stone-100 rounded-2xl mb-4 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                  <img src={`${BUCKET_URL}/sellerie/${product.imagePath}`} alt={product.name} className="w-full h-full object-cover mix-blend-multiply" />
                 </div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-black text-stone-900 text-lg leading-tight">{product.name}</h3>
@@ -325,7 +326,7 @@ export default function SelleriePage() {
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-base.png`} alt="Base" className="absolute inset-0 w-full h-full object-contain z-0 pointer-events-none" />
 
                             {/* COULEUR PRINCIPALE */}
-                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/collier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
+                            <div className="absolute inset-0 w-full h-full z-10 transition-colors duration-300 ease-in-out" style={{ backgroundColor: mainHex, maskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, WebkitMaskImage: `url('${BUCKET_URL}/sellerie/colier/collier-sangle.png')`, maskSize: "contain", WebkitMaskSize: "contain", maskPosition: "center", WebkitMaskPosition: "center", maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat" }} />
                             <img src={`${BUCKET_URL}/sellerie/collier/collier-sangle.png`} alt="Base Sangle Ombres" className="absolute inset-0 w-full h-full object-contain z-20 mix-blend-multiply opacity-100 pointer-events-none" />
                             
                             {/* QUINCAILLERIE */}
