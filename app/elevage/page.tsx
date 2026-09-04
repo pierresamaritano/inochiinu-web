@@ -389,8 +389,8 @@ export default function ElevagePage() {
         </div>
       </section>
 
-      {/* SECTION NOS REPRODUCTEURS LOF */}
-      <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl py-12 sm:py-16">
+      {/* SECTION NOS REPRODUCTEURS LOF - PARTIE 1 */}
+      <section className="relative z-10 border-t border-stone-200/60 bg-white/50 backdrop-blur-xl pt-12 sm:pt-16 pb-4">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
             <div className="text-center lg:text-left mx-auto lg:mx-0 max-w-xl">
@@ -449,13 +449,17 @@ export default function ElevagePage() {
             </p>
           </div>
         </div>
+      </section>
 
-        <div className="relative w-full py-6 sm:py-8">
-          <AppleCarousel slides={currentProfile.images} />
-        </div>
+      {/* COMPOSANT CAROUSEL SORTI DU CONTEXTE "backdrop-blur" POUR PERMETTRE AU Z-INDEX DE FONCTIONNER */}
+      <div className="relative w-full py-4 sm:py-6">
+        <AppleCarousel slides={currentProfile.images} />
+      </div>
 
+      {/* SECTION NOS REPRODUCTEURS LOF - PARTIE 2 */}
+      <section className="relative z-10 bg-white/50 backdrop-blur-xl pb-12 sm:pb-16 pt-4">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-8">
-          <div className="pt-8 border-t border-stone-200/60 relative z-10">
+          <div className="pt-4 border-t border-stone-200/60 relative z-10">
             <h3 className="text-xl font-black text-stone-900 mb-6 text-center sm:text-left">Arbre Généalogique Officiel</h3>
             
             <div className="grid gap-4 sm:gap-6 md:grid-cols-2 mb-8">
@@ -550,7 +554,7 @@ export default function ElevagePage() {
         <p>© {new Date().getFullYear()} Inochi Inu — Les Héritiers de Boshin. Tous droits réservés.</p>
       </footer>
 
-      {/* POP-UP MODE IMMERSION (CORRIGÉ AVEC Z-INDEX 999999) */}
+      {/* POP-UP MODE IMMERSION */}
       {isImmersionMode && activeLitters.length > 0 && (
         <div className="fixed inset-0 z-[999999] bg-stone-950/95 backdrop-blur-2xl flex flex-col justify-center animate-in fade-in duration-300">
           <button onClick={() => setIsImmersionMode(false)} className="absolute top-6 right-6 z-[1000000] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition cursor-pointer shadow-xl">
@@ -592,7 +596,7 @@ export default function ElevagePage() {
         </div>
       )}
 
-      {/* POP-UP : PORTÉE ET CHIOTS (z-index 999999) */}
+      {/* POP-UP : PORTÉE ET CHIOTS */}
       {showLitterModal && activeLitters.length > 0 && !isImmersionMode && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-300">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowLitterModal(false)} />
@@ -754,6 +758,7 @@ export default function ElevagePage() {
         </div>
       )}
 
+      {/* POP-UPS SECONDAIRES */}
       {showInfoModal && (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80" onClick={() => setShowInfoModal(false)} />
